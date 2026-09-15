@@ -1,0 +1,11 @@
+{
+  "name":"Music Battle",
+  "short_name":"Music Battle",
+  "start_url":"./",
+  "scope":"./",
+  "display":"standalone",
+  "background_color":"#090b10",
+  "theme_color":"#090b10",
+  "lang":"de-CH",
+  "description":"Spotify Music Battle mit Draft, Songauswahl und KI- oder Menschenjury."
+}
