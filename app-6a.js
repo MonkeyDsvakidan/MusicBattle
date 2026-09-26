@@ -6,15 +6,35 @@ const SUDDEN_THEMES=[
   "Noch ein Song, dann ist Schluss"
 ];
 
-let mbFallbackPoll=null;
+let mbFallbackPoll=null,mbPendingRender=false;
+function mbEditingActive(){
+  const el=document.activeElement;
+  return Boolean(el&&(el.matches?.("input, textarea, select")||el.isContentEditable));
+}
+async function mbSafeSync(){
+  if(!S.room?.id)return;
+  try{
+    await loadRoom(S.room.id);
+    if(mbEditingActive()){mbPendingRender=true;return}
+    mbPendingRender=false;render();
+  }catch(e){console.warn("room sync",e)}
+}
+function refresh(){
+  clearTimeout(refreshTimer);
+  refreshTimer=setTimeout(mbSafeSync,120);
+}
 function startRoomFallbackPoll(){
   if(mbFallbackPoll)clearInterval(mbFallbackPoll);
   if(!S.room?.id)return;
-  mbFallbackPoll=setInterval(async()=>{
-    if(!S.room?.id||document.hidden)return;
-    try{await loadRoom(S.room.id);render()}catch(e){console.warn("fallback sync",e)}
-  },1800);
+  mbFallbackPoll=setInterval(()=>{
+    if(!S.room?.id||document.hidden||mbEditingActive())return;
+    mbSafeSync();
+  },2500);
 }
+document.addEventListener("focusout",()=>{
+  if(!mbPendingRender)return;
+  setTimeout(()=>{if(!mbEditingActive()&&mbPendingRender){mbPendingRender=false;render()}},150);
+},true);
 function subscribeRoom(){
   if(!S.room)return;
   if(channel)sb.removeChannel(channel);
@@ -28,8 +48,8 @@ function subscribeRoom(){
     .subscribe(status=>{if(status==="SUBSCRIBED")reloadRoomNow()});
   startRoomFallbackPoll();
 }
-window.addEventListener("focus",()=>{if(S.room?.id)reloadRoomNow()});
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.room?.id)reloadRoomNow()});
+window.addEventListener("focus",()=>{if(S.room?.id&&!mbEditingActive())mbSafeSync()});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.room?.id&&!mbEditingActive())mbSafeSync()});
 
 function allSkippedArtistIds(){return new Set(S.members.map(m=>m.draft_skipped_artist_id).filter(Boolean))}
 function drawArtist(slotNo){
