@@ -13,29 +13,59 @@ function sharedSpotifySlot(slotNo){
   const a=spotifyAccountKey(S.spotifyProfiles[1]),b=spotifyAccountKey(S.spotifyProfiles[2]);
   return a&&b&&a===b?1:slotNo;
 }
+async function existingSpotifyDevice(slotNo){
+  try{
+    const d=await sp(slotNo,"/me/player/devices");
+    const devices=(d.devices||[]).filter(x=>x?.id&&!x?.is_restricted);
+    return devices.find(x=>x.is_active)||devices.find(x=>!String(x.name||"").startsWith("Music Battle"))||devices[0]||null;
+  }catch{return null}
+}
 async function ensurePlayer(slotNo){
   const playbackSlot=sharedSpotifySlot(slotNo);
   if(playbackSlot!==slotNo)return ensurePlayer(playbackSlot);
   const ss=S.spotify[playbackSlot];
   if(ss.player&&ss.deviceId)return ss.deviceId;
+
   await waitSdk();
   const t=await token(playbackSlot);
   if(!t)throw Error(`Spotify Login für Spieler ${playbackSlot} fehlt`);
-  return new Promise(async(ok,no)=>{
-    const p=new Spotify.Player({
-      name:S.room?.device_mode==="single"?"Music Battle · Pass & Play":`Music Battle · Spieler ${playbackSlot}`,
-      getOAuthToken:cb=>token(playbackSlot).then(cb).catch(()=>cb("")),
-      volume:.75
+
+  let sdkError="";
+  try{
+    const deviceId=await new Promise(async(resolve,reject)=>{
+      let settled=false;
+      const finish=(fn,value)=>{if(settled)return;settled=true;clearTimeout(timer);fn(value)};
+      const p=new Spotify.Player({
+        name:S.room?.device_mode==="single"?"Music Battle · Pass & Play":`Music Battle · Spieler ${playbackSlot}`,
+        getOAuthToken:cb=>token(playbackSlot).then(cb).catch(()=>cb("")),
+        volume:.75
+      });
+      ss.player=p;
+      p.addListener("ready",x=>{ss.deviceId=x.device_id;finish(resolve,x.device_id)});
+      p.addListener("authentication_error",x=>{sdkError="Spotify-Authentifizierung fehlgeschlagen: "+x.message;finish(reject,Error(sdkError))});
+      p.addListener("account_error",x=>{sdkError="Spotify Premium erforderlich oder Konto nicht für Playback freigeschaltet: "+x.message;finish(reject,Error(sdkError))});
+      p.addListener("initialization_error",x=>{sdkError="Spotify Player konnte im Browser nicht initialisiert werden: "+x.message;finish(reject,Error(sdkError))});
+      p.addListener("playback_error",x=>{sdkError="Spotify Playback-Fehler: "+x.message});
+      p.addListener("not_ready",()=>{sdkError="Spotify Player wurde wieder getrennt."});
+      await p.activateElement?.();
+      const success=await p.connect();
+      if(!success)sdkError="Spotify Web Playback SDK hat die Verbindung abgelehnt.";
+      const timer=setTimeout(()=>finish(reject,Error(sdkError||"Spotify Player wurde nicht rechtzeitig bereit.")),5000);
     });
-    ss.player=p;
-    p.addListener("ready",x=>{ss.deviceId=x.device_id;ok(x.device_id)});
-    p.addListener("authentication_error",x=>no(Error("Spotify Player Auth: "+x.message)));
-    p.addListener("account_error",x=>no(Error("Spotify Premium erforderlich: "+x.message)));
-    p.addListener("initialization_error",x=>no(Error("Spotify Player konnte nicht initialisiert werden: "+x.message)));
-    await p.activateElement?.();
-    const success=await p.connect();
-    if(!success)no(Error("Spotify Player konnte nicht verbunden werden."));
-  })
+    return deviceId;
+  }catch(e){
+    sdkError=e?.message||String(e);
+    try{ss.player?.disconnect()}catch{}
+    ss.player=null;ss.deviceId="";
+  }
+
+  const fallback=await existingSpotifyDevice(playbackSlot);
+  if(fallback?.id){
+    S.notice=`Browser-Player nicht verfügbar. Wiedergabe erfolgt über Spotify Connect: ${fallback.name||"Spotify-Gerät"}.`;
+    return fallback.id;
+  }
+
+  throw Error(`${sdkError} Öffne alternativ Spotify Desktop oder den Spotify Web Player und starte dort kurz einen Song; Music Battle kann dieses Gerät dann übernehmen.`);
 }
 async function playSubmission(sub){
   try{
@@ -45,10 +75,22 @@ async function playSubmission(sub){
       headers:{Authorization:`Bearer ${t}`,"Content-Type":"application/json"},
       body:JSON.stringify({uris:[sub.spotify_uri],position_ms:sub.start_ms||0})
     });
-    if(!r.ok)throw Error(`Playback ${r.status}`);
+    if(!r.ok){
+      let detail="";try{const body=await r.json();detail=body?.error?.message||""}catch{}
+      throw Error(`Spotify Playback ${r.status}${detail?": "+detail:""}`);
+    }
   }catch(e){S.error=e.message;render()}
 }
-async function pause(slotNo){try{const playbackSlot=sharedSpotifySlot(slotNo);await S.spotify[playbackSlot]?.player?.pause()}catch{}}
+async function pause(slotNo){
+  try{
+    const playbackSlot=sharedSpotifySlot(slotNo),ss=S.spotify[playbackSlot];
+    if(ss?.player){await ss.player.pause();return}
+    const dev=await existingSpotifyDevice(playbackSlot);
+    if(!dev?.id)return;
+    const t=await token(playbackSlot);
+    await fetch(`${SPOTIFY.api}/me/player/pause?device_id=${encodeURIComponent(dev.id)}`,{method:"PUT",headers:{Authorization:`Bearer ${t}`}});
+  }catch{}
+}
 async function submitHumanScore(winner,close){const r=currentRound(),subs=currentSubs();if(!r||!subs[0]||!subs[1])return;const a=winner===1?10:(close?9:8),b=winner===2?10:(close?9:8),{error}=await sb.from("mb_jury_scores").insert({round_id:r.id,room_id:S.room.id,source:"human",juror_user_id:S.user.id,juror_name:jurorMembership()?.display_name||"Juror",score_a:a,score_b:b,reason:close?"Knapper Entscheid":"Klarer Entscheid",details:{kind:"human"}});if(error)S.error=error.message;await reloadRoomNow()}
 async function runAIJury(){const r=currentRound();if(!r)return;S.error="";S.notice="KI-Jury bewertet die beiden Songs …";render();try{const {data,error}=await sb.functions.invoke("mb-ai-jury",{body:{room_id:S.room.id,round_id:r.id}});if(error){let detail=error.message||"Unbekannter Edge-Function-Fehler";try{if(error.context){const body=await error.context.json();detail=[body?.error,body?.detail].filter(Boolean).join(": ")||detail}}catch{}throw new Error(detail)}if(data?.error)throw new Error([data.error,data.detail].filter(Boolean).join(": "));S.notice="KI-Jury ist bereit. Die Juroren können jetzt nacheinander aufgedeckt werden.";S.aiReveal=0;await reloadRoomNow()}catch(e){S.notice="";S.error=`KI-Jury konnte nicht ausgeführt werden: ${e?.message||String(e)}`;render()}}
 function scoreSummary(scores){let a=0,b=0;for(const s of scores){a+=s.score_a;b+=s.score_b}return{a,b,winner:a===b?null:(a>b?1:2)}}
