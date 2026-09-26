@@ -13,7 +13,7 @@ function resetDeviceModeChoice(){
   renderLanding();
 }
 
-async function changeGameModeFromLobby(){
+async function openModeSelection(){
   if(S.room?.id){
     try{await sb.rpc("mb_leave_room",{p_room_id:S.room.id})}catch(e){console.warn("Room leave before mode change failed:",e)}
   }
@@ -66,6 +66,7 @@ function renderLanding(){
 }
 
 function renderLobby(){
+  bindBrandHome();
   $("roomBadge").innerHTML=`<span class="chip">RAUM <b style="margin-left:6px">${esc(S.room.code)}</b></span>`;
   const players=S.members.filter(m=>m.role==="player"),jurors=S.members.filter(m=>m.role==="juror"),p2=players.find(p=>p.player_slot===2);
   const mode=S.room.device_mode||"single";
@@ -81,6 +82,8 @@ function renderLobby(){
   if($("addLocalP2"))$("addLocalP2").onclick=addLocalPlayer2;
   document.querySelectorAll("[data-connect-slot]").forEach(b=>b.onclick=()=>connectSpotify(Number(b.dataset.connectSlot)));
   if($("startDraftBtn"))$("startDraftBtn").onclick=startDraft;
-  if($("changeModeLobby"))$("changeModeLobby").onclick=changeGameModeFromLobby;
+  if($("changeModeLobby"))$("changeModeLobby").onclick=openModeSelection;
   bindRoomExitControls();
 }
+
+function bindBrandHome(){const el=$("brandHome");if(el)el.onclick=openModeSelection}
