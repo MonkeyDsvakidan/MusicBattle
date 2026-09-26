@@ -33,6 +33,21 @@ async function sp(slotNo,path){const t=await token(slotNo);if(!t)throw Error(`Sp
 function restorePool(slotNo){if(S.artistPools[slotNo]?.length)return;try{S.artistPools[slotNo]=JSON.parse(localStorage.getItem(poolKey(slotNo))||"[]")}catch{S.artistPools[slotNo]=[]}}
 function clearSpotifySlot(slotNo){const s=S.spotify[slotNo];s.access="";s.refresh="";s.expires=0;if(s.player){try{s.player.disconnect()}catch{}}s.player=null;s.deviceId="";sessionStorage.removeItem(spotifyKey(slotNo,"access"));localStorage.removeItem(spotifyKey(slotNo,"refresh"));localStorage.removeItem(spotifyKey(slotNo,"expires"));localStorage.removeItem(poolKey(slotNo));S.artistPools[slotNo]=[];S.spotifyProfiles[slotNo]=null}
 function spotifyAccountKey(profile){return profile?.account_id || profile?.id || ""}
+function mirrorSingleDeviceSpotifyToPlayer2(){
+  if(S.room?.device_mode!=="single"||!ownsPlayerSlot(2))return false;
+  const one=S.spotify[1],two=S.spotify[2];
+  if(!one?.refresh&&!one?.access)return false;
+  two.access=one.access;
+  two.refresh=one.refresh;
+  two.expires=one.expires;
+  sessionStorage.setItem(spotifyKey(2,"access"),two.access||"");
+  localStorage.setItem(spotifyKey(2,"refresh"),two.refresh||"");
+  localStorage.setItem(spotifyKey(2,"expires"),String(two.expires||0));
+  S.spotifyProfiles[2]=S.spotifyProfiles[1];
+  S.artistPools[2]=[...(S.artistPools[1]||[])];
+  localStorage.setItem(poolKey(2),JSON.stringify(S.artistPools[2]));
+  return true;
+}
 async function getProfileForSlot(slotNo){try{return await sp(slotNo,"/me")}catch{return null}}
 const SPOKEN_GENRE_HINTS=["audiobook","hörbuch","hoerbuch","spoken word","spoken-word","podcast","comedy","stand-up comedy","standup comedy","storytelling","poetry","meditation","sleep","asmr","kids story","children's story","radio drama"];
 const SPOKEN_NAME_HINTS=["hörbuch","hoerbuch","audiobook","podcast","geschichten","märchen","maerchen","lesung","hörspiel","hoerspiel","meditation","einschlaf","schlafgeschichten","stories for kids","fairy tales","spoken word"];
@@ -47,7 +62,31 @@ async function hydrateSpotify(slotNo){
   S.spotifyProfiles[slotNo]=profile;const map=new Map();
   for(const range of ["short_term","medium_term","long_term"]){const d=await sp(slotNo,`/me/top/artists?limit=50&time_range=${range}`);for(const a of d.items||[]){if(looksLikeSpokenArtist(a))continue;map.set(a.id,{id:a.id,name:a.name,image:a.images?.[1]?.url||a.images?.[0]?.url||"",genres:a.genres||[]})}}
   if(map.size<15){const fallbackCandidates=new Map();let off=0;while(off<1000&&fallbackCandidates.size<60){const d=await sp(slotNo,`/me/tracks?limit=50&offset=${off}`);for(const it of d.items||[]){const track=it.track;if(!track||looksLikeSpokenTrack(track))continue;const a=track.artists?.[0];if(a?.id&&!map.has(a.id)&&!fallbackCandidates.has(a.id))fallbackCandidates.set(a.id,{id:a.id,name:a.name,image:""})}if(!d.next)break;off+=50}for(const candidate of fallbackCandidates.values()){if(map.size>=80)break;const full=await enrichArtist(slotNo,candidate);if(looksLikeSpokenArtist(full))continue;map.set(full.id,full)}}
-  S.artistPools[slotNo]=[...map.values()];localStorage.setItem(poolKey(slotNo),JSON.stringify(S.artistPools[slotNo]));await sb.rpc("mb_set_spotify_ready_for_slot",{p_room_id:S.room.id,p_slot:slotNo,p_ready:true,p_display_name:profile.display_name||"",p_artist_count:S.artistPools[slotNo].length});await reloadRoomNow();
+  S.artistPools[slotNo]=[...map.values()];localStorage.setItem(poolKey(slotNo),JSON.stringify(S.artistPools[slotNo]));
+  await sb.rpc("mb_set_spotify_ready_for_slot",{p_room_id:S.room.id,p_slot:slotNo,p_ready:true,p_display_name:profile.display_name||"",p_artist_count:S.artistPools[slotNo].length});
+  if(slotNo===1&&S.room?.device_mode==="single"&&ownsPlayerSlot(2)){
+    mirrorSingleDeviceSpotifyToPlayer2();
+    await sb.rpc("mb_set_spotify_ready_for_slot",{p_room_id:S.room.id,p_slot:2,p_ready:true,p_display_name:profile.display_name||"",p_artist_count:S.artistPools[1].length});
+  }
+  await reloadRoomNow();
  }catch(e){S.error=e.message;render()}
 }
-async function addLocalPlayer2(){const name=$("localPlayer2Name")?.value.trim();if(!name){S.error="Name für Spieler 2 fehlt.";render();return}S.error="";const {error}=await sb.rpc("mb_add_local_player2",{p_room_id:S.room.id,p_display_name:name});if(error){S.error=error.message;render();return}await reloadRoomNow();if(!ownsPlayerSlot(2)){S.error="Spieler 2 wurde angelegt, konnte aber in der Lobby nicht geladen werden. Bitte Seite neu laden.";render();return}await connectSpotify(2)}
+async function addLocalPlayer2(){
+  const name=$("localPlayer2Name")?.value.trim();
+  if(!name){S.error="Name für Spieler 2 fehlt.";render();return}
+  S.error="";
+  const {error}=await sb.rpc("mb_add_local_player2",{p_room_id:S.room.id,p_display_name:name});
+  if(error){S.error=error.message;render();return}
+  await reloadRoomNow();
+  if(!ownsPlayerSlot(2)){S.error="Spieler 2 wurde angelegt, konnte aber in der Lobby nicht geladen werden.";render();return}
+  if(S.room?.device_mode==="single"&&membershipForSlot(1)?.spotify_ready){
+    mirrorSingleDeviceSpotifyToPlayer2();
+    const p=S.spotifyProfiles[1]||await getProfileForSlot(1);
+    await sb.rpc("mb_set_spotify_ready_for_slot",{p_room_id:S.room.id,p_slot:2,p_ready:true,p_display_name:p?.display_name||"",p_artist_count:(S.artistPools[1]||[]).length});
+    S.notice="Spieler 2 verwendet dasselbe Spotify-Konto wie Spieler 1.";
+    await reloadRoomNow();
+    return;
+  }
+  S.notice="Verbinde Spotify einmal bei Spieler 1. Dieses Konto wird im 1-Gerät-Modus automatisch für beide Spieler verwendet.";
+  render();
+}
