@@ -33,8 +33,8 @@ async function ensurePlayer(slotNo){
   let sdkError="";
   try{
     const deviceId=await new Promise(async(resolve,reject)=>{
-      let settled=false;
-      const finish=(fn,value)=>{if(settled)return;settled=true;clearTimeout(timer);fn(value)};
+      let settled=false,timer=null;
+      const finish=(fn,value)=>{if(settled)return;settled=true;if(timer)clearTimeout(timer);fn(value)};
       const p=new Spotify.Player({
         name:S.room?.device_mode==="single"?"Music Battle · Pass & Play":`Music Battle · Spieler ${playbackSlot}`,
         getOAuthToken:cb=>token(playbackSlot).then(cb).catch(()=>cb("")),
@@ -50,7 +50,7 @@ async function ensurePlayer(slotNo){
       await p.activateElement?.();
       const success=await p.connect();
       if(!success)sdkError="Spotify Web Playback SDK hat die Verbindung abgelehnt.";
-      const timer=setTimeout(()=>finish(reject,Error(sdkError||"Spotify Player wurde nicht rechtzeitig bereit.")),5000);
+      timer=setTimeout(()=>finish(reject,Error(sdkError||"Spotify Player wurde nicht rechtzeitig bereit.")),5000);
     });
     return deviceId;
   }catch(e){
