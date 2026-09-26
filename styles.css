@@ -94,3 +94,5 @@ input:focus,select:focus{
 .member{
   background:#151b24;
 }
+
+.brand-home{appearance:none;border:0;background:transparent;color:inherit;padding:0;display:flex;align-items:center;gap:13px;cursor:pointer;text-align:left}.brand-home:hover .mark{filter:brightness(1.12);transform:translateY(-1px)}.brandcopy{display:block}.brandcopy .eyebrow{display:block}.brandtitle{display:block;font:700 28px "Space Grotesk",sans-serif;line-height:1.1}.brand-home:focus-visible{outline:2px solid var(--purple);outline-offset:6px;border-radius:14px}@media(max-width:560px){.brandtitle{font-size:22px}}
