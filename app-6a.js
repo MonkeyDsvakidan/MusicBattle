@@ -85,6 +85,7 @@ function matchScoreboard(){
 }
 
 function renderLanding(){
+  bindBrandHome();
   $("roomBadge").innerHTML="";
   const mode=window.MB_DEVICE_MODE_CHOICE,err=S.error?`<div class="notice error">${esc(S.error)}</div>`:"";
   if(!mode){
