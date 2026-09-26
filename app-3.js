@@ -11,102 +11,48 @@ function waitSdk(){return new Promise((ok,no)=>{if(window.Spotify?.Player)return
 function playbackSlotForBrowser(slotNo){
   return S.room?.device_mode==="single"?1:slotNo;
 }
-async function waitForRegisteredDevice(slotNo,deviceId,tries=12){
-  for(let i=0;i<tries;i++){
-    try{
-      const d=await sp(slotNo,"/me/player/devices");
-      const found=(d.devices||[]).find(x=>x?.id===deviceId);
-      if(found)return found;
-    }catch{}
-    await new Promise(r=>setTimeout(r,250));
-  }
-  return null;
-}
-async function transferPlaybackToBrowser(slotNo,deviceId){
-  const t=await token(slotNo);
-  if(!t)throw Error(`Spotify Login für Spieler ${slotNo} fehlt`);
-  const registered=await waitForRegisteredDevice(slotNo,deviceId);
-  if(!registered)throw Error("Spotify hat den Browser-Player nicht als verfügbares Gerät registriert.");
-  const r=await fetch(`${SPOTIFY.api}/me/player`,{
-    method:"PUT",
-    headers:{Authorization:`Bearer ${t}`,"Content-Type":"application/json"},
-    body:JSON.stringify({device_ids:[deviceId],play:false})
-  });
-  if(!r.ok){
-    let detail="";try{const body=await r.json();detail=body?.error?.message||""}catch{}
-    throw Error(`Spotify konnte die Wiedergabe nicht auf den Browser übertragen (${r.status}${detail?": "+detail:""}).`);
-  }
-}
 async function ensurePlayer(slotNo){
   const playbackSlot=playbackSlotForBrowser(slotNo),ss=S.spotify[playbackSlot];
-  if(ss.player&&ss.deviceId){
-    const registered=await waitForRegisteredDevice(playbackSlot,ss.deviceId,4);
-    if(registered)return ss.deviceId;
-    try{ss.player.disconnect()}catch{}
-    ss.player=null;ss.deviceId="";
-  }
-
+  if(ss.player&&ss.deviceId)return ss.deviceId;
   await waitSdk();
   const t=await token(playbackSlot);
   if(!t)throw Error(`Spotify Login für Spieler ${playbackSlot} fehlt`);
-
-  let sdkError="";
-  const deviceId=await new Promise(async(resolve,reject)=>{
-    let settled=false,timer=null;
-    const finish=(fn,value)=>{if(settled)return;settled=true;if(timer)clearTimeout(timer);fn(value)};
+  return new Promise(async(ok,no)=>{
     const p=new Spotify.Player({
-      name:S.room?.device_mode==="single"?"Music Battle · Browser":"Music Battle · Spieler "+playbackSlot,
+      name:S.room?.device_mode==="single"?"Music Battle · Pass & Play":`Music Battle · Spieler ${playbackSlot}`,
       getOAuthToken:cb=>token(playbackSlot).then(cb).catch(()=>cb("")),
-      volume:.75,
-      enableMediaSession:true
+      volume:.75
     });
     ss.player=p;
-    p.addListener("ready",x=>{ss.deviceId=x.device_id;finish(resolve,x.device_id)});
-    p.addListener("not_ready",x=>{if(ss.deviceId===x.device_id)ss.deviceId="";sdkError="Spotify Browser-Player ist nicht bereit."});
-    p.addListener("authentication_error",x=>{sdkError="Spotify-Authentifizierung fehlgeschlagen: "+x.message;finish(reject,Error(sdkError))});
-    p.addListener("account_error",x=>{sdkError="Spotify Premium erforderlich oder Konto nicht für Playback freigeschaltet: "+x.message;finish(reject,Error(sdkError))});
-    p.addListener("initialization_error",x=>{sdkError="Spotify Player konnte im Browser nicht initialisiert werden: "+x.message;finish(reject,Error(sdkError))});
-    p.addListener("playback_error",x=>{sdkError="Spotify Playback-Fehler: "+x.message});
-    p.addListener("autoplay_failed",()=>{sdkError="Der Browser hat Autoplay blockiert. Klicke nochmals auf Abspielen."});
+    p.addListener("ready",x=>{ss.deviceId=x.device_id;ok(x.device_id)});
+    p.addListener("authentication_error",x=>no(Error("Spotify Player Auth: "+x.message)));
+    p.addListener("account_error",x=>no(Error("Spotify Premium erforderlich: "+x.message)));
+    p.addListener("initialization_error",x=>no(Error("Spotify Player Initialisierung: "+x.message)));
+    p.addListener("playback_error",x=>{S.error="Spotify Playback: "+x.message;render()});
     await p.activateElement?.();
     const success=await p.connect();
-    if(!success){sdkError="Spotify Web Playback SDK hat die Verbindung abgelehnt.";finish(reject,Error(sdkError));return}
-    timer=setTimeout(()=>finish(reject,Error(sdkError||"Spotify Browser-Player wurde nicht rechtzeitig bereit.")),8000);
+    if(!success)no(Error("Spotify Web Playback SDK hat die Verbindung abgelehnt."));
   });
-
-  await transferPlaybackToBrowser(playbackSlot,deviceId);
-  return deviceId;
 }
 async function playSubmission(sub){
   try{
     const slotNo=Number(sub.player_slot),playbackSlot=playbackSlotForBrowser(slotNo),dev=await ensurePlayer(slotNo),t=await token(playbackSlot);
-    await transferPlaybackToBrowser(playbackSlot,dev);
-    let r=await fetch(`${SPOTIFY.api}/me/player/play?device_id=${encodeURIComponent(dev)}`,{
+    const r=await fetch(`${SPOTIFY.api}/me/player/play?device_id=${encodeURIComponent(dev)}`,{
       method:"PUT",
       headers:{Authorization:`Bearer ${t}`,"Content-Type":"application/json"},
       body:JSON.stringify({uris:[sub.spotify_uri],position_ms:sub.start_ms||0})
     });
-    if(r.status===404){
-      await new Promise(x=>setTimeout(x,500));
-      await transferPlaybackToBrowser(playbackSlot,dev);
-      r=await fetch(`${SPOTIFY.api}/me/player/play?device_id=${encodeURIComponent(dev)}`,{
-        method:"PUT",
-        headers:{Authorization:`Bearer ${t}`,"Content-Type":"application/json"},
-        body:JSON.stringify({uris:[sub.spotify_uri],position_ms:sub.start_ms||0})
-      });
-    }
     if(!r.ok){
       let detail="";try{const body=await r.json();detail=body?.error?.message||""}catch{}
       throw Error(`Spotify Playback ${r.status}${detail?": "+detail:""}`);
     }
-    S.notice="Wiedergabe läuft direkt im Music-Battle-Browser.";
     S.error="";
   }catch(e){S.error=e.message;render()}
 }
 async function pause(slotNo){
   try{
-    const playbackSlot=playbackSlotForBrowser(slotNo),ss=S.spotify[playbackSlot];
-    if(ss?.player)await ss.player.pause();
+    const playbackSlot=playbackSlotForBrowser(slotNo);
+    await S.spotify[playbackSlot]?.player?.pause();
   }catch{}
 }
 async function submitHumanScore(winner,close){const r=currentRound(),subs=currentSubs();if(!r||!subs[0]||!subs[1])return;const a=winner===1?10:(close?9:8),b=winner===2?10:(close?9:8),{error}=await sb.from("mb_jury_scores").insert({round_id:r.id,room_id:S.room.id,source:"human",juror_user_id:S.user.id,juror_name:jurorMembership()?.display_name||"Juror",score_a:a,score_b:b,reason:close?"Knapper Entscheid":"Klarer Entscheid",details:{kind:"human"}});if(error)S.error=error.message;await reloadRoomNow()}
