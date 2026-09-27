@@ -58,7 +58,11 @@ function drawArtist(slotNo){
   for(const id of allSkippedArtistIds())used.add(id);
   const avail=(S.artistPools[slotNo]||[]).filter(a=>!used.has(a.id));
   if(!avail.length){S.error=`Keine eindeutigen Künstler für Spieler ${slotNo} verfügbar.`;render();return}
-  S.currentArtist=avail[Math.floor(Math.random()*avail.length)];
+  const weights=avail.map(a=>Math.max(1,Number(a.draftWeight)||10));
+  const total=weights.reduce((a,b)=>a+b,0);
+  let roll=Math.random()*total,chosen=avail[avail.length-1];
+  for(let i=0;i<avail.length;i++){roll-=weights[i];if(roll<=0){chosen=avail[i];break}}
+  S.currentArtist=chosen;
   S.currentArtistSlot=slotNo;render();
 }
 async function useDraftSkip(slotNo){
