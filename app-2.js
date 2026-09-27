@@ -3,7 +3,7 @@ function redirectUri(){return `${location.origin}${location.pathname}`}
 function rnd(n=64){const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";const a=crypto.getRandomValues(new Uint8Array(n));return [...a].map(x=>chars[x%chars.length]).join("")}
 async function challenge(v){const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v));return btoa(String.fromCharCode(...new Uint8Array(d))).replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_")}
 function spotifyKey(slotNo,kind){return `mb_sp_${kind}_${slotNo}`}
-function poolKey(slotNo){return `mb_artist_pool_${slotNo}`}
+function poolKey(slotNo){return `mb_artist_pool_v2_${slotNo}`}
 
 async function connectSpotify(slotNo){
  if(!ownsPlayerSlot(slotNo)){
