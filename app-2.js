@@ -50,8 +50,26 @@ function mirrorSingleDeviceSpotifyToPlayer2(){
 }
 async function getProfileForSlot(slotNo){try{return await sp(slotNo,"/me")}catch{return null}}
 const SPOKEN_GENRE_HINTS=["audiobook","hörbuch","hoerbuch","spoken word","spoken-word","podcast","comedy","stand-up comedy","standup comedy","storytelling","poetry","meditation","sleep","asmr","kids story","children's story","radio drama"];
-const SPOKEN_NAME_HINTS=["hörbuch","hoerbuch","audiobook","podcast","geschichten","märchen","maerchen","lesung","hörspiel","hoerspiel","meditation","einschlaf","schlafgeschichten","stories for kids","fairy tales","spoken word"];
-function looksLikeSpokenArtist(artist){const genres=(artist?.genres||[]).map(x=>String(x).toLowerCase()),name=String(artist?.name||"").toLowerCase();return genres.some(g=>SPOKEN_GENRE_HINTS.some(h=>g.includes(h)))||SPOKEN_NAME_HINTS.some(h=>name.includes(h))}
+const SPOKEN_NAME_HINTS=["hörbuch","hoerbuch","audiobook","podcast","geschichten","märchen","maerchen","lesung","hörspiel","hoerspiel","meditation","einschlaf","schlafgeschichten","stories for kids","fairy tales","spoken word","der hörverlag","der hoerverlag","lübbe audio","luebbe audio","argon verlag","random house audio","audible originals","hörbuch hamburg","hoerbuch hamburg","audio verlag","verlagsgruppe"];
+function looksLikeSpokenArtist(artist){
+  const genres=(artist?.genres||[]).map(x=>String(x).toLowerCase()),name=String(artist?.name||"").toLowerCase();
+  const publisherLike=/\b(verlag|hörverlag|hoerverlag|hörbuchverlag|hoerbuchverlag)\b/i.test(name);
+  return publisherLike||genres.some(g=>SPOKEN_GENRE_HINTS.some(h=>g.includes(h)))||SPOKEN_NAME_HINTS.some(h=>name.includes(h));
+}
+function artistDraftScore(rank,range){
+  const base=Math.max(1,51-rank);
+  if(range==="long_term")return base*1.15;
+  if(range==="medium_term")return base*0.95;
+  return base*1.35;
+}
+function mergeRankedArtist(map,a,range,rank){
+  if(!a?.id||looksLikeSpokenArtist(a))return;
+  const prev=map.get(a.id)||{id:a.id,name:a.name,image:a.images?.[1]?.url||a.images?.[0]?.url||"",genres:a.genres||[],draftWeight:0,sources:[]};
+  prev.name=a.name||prev.name;prev.image=a.images?.[1]?.url||a.images?.[0]?.url||prev.image;prev.genres=a.genres||prev.genres;
+  prev.draftWeight+=artistDraftScore(rank,range);
+  if(!prev.sources.includes(range))prev.sources.push(range);
+  map.set(a.id,prev);
+}
 function looksLikeSpokenTrack(track){const hay=`${String(track?.name||"").toLowerCase()} ${String(track?.album?.name||"").toLowerCase()}`;return SPOKEN_NAME_HINTS.some(h=>hay.includes(h))}
 async function enrichArtist(slotNo,artist){if(!artist?.id)return artist;try{const full=await sp(slotNo,`/artists/${artist.id}`);return{id:full.id,name:full.name,image:full.images?.[1]?.url||full.images?.[0]?.url||artist.image||"",genres:full.genres||[]}}catch{return{id:artist.id,name:artist.name,image:artist.image||"",genres:artist.genres||[]}}}
 async function hydrateSpotify(slotNo){
@@ -60,9 +78,29 @@ async function hydrateSpotify(slotNo){
   const profile=await sp(slotNo,"/me");
   if(slotNo===2&&ownsPlayerSlot(1)&&S.room?.device_mode==="two"){const p1=await getProfileForSlot(1),key1=spotifyAccountKey(p1),key2=spotifyAccountKey(profile);if(key1&&key2&&key1===key2){clearSpotifySlot(2);await sb.rpc("mb_set_spotify_ready_for_slot",{p_room_id:S.room.id,p_slot:2,p_ready:false,p_display_name:"",p_artist_count:0});await reloadRoomNow();S.error="Im 2-Geräte-Modus benötigt Spieler 2 ein eigenes Spotify-Konto. Wähle auf Spotify «Not you?» / «Nicht du?» und melde das zweite Konto an.";render();return}}
   S.spotifyProfiles[slotNo]=profile;const map=new Map();
-  for(const range of ["short_term","medium_term","long_term"]){const d=await sp(slotNo,`/me/top/artists?limit=50&time_range=${range}`);for(const a of d.items||[]){if(looksLikeSpokenArtist(a))continue;map.set(a.id,{id:a.id,name:a.name,image:a.images?.[1]?.url||a.images?.[0]?.url||"",genres:a.genres||[]})}}
-  if(map.size<15){const fallbackCandidates=new Map();let off=0;while(off<1000&&fallbackCandidates.size<60){const d=await sp(slotNo,`/me/tracks?limit=50&offset=${off}`);for(const it of d.items||[]){const track=it.track;if(!track||looksLikeSpokenTrack(track))continue;const a=track.artists?.[0];if(a?.id&&!map.has(a.id)&&!fallbackCandidates.has(a.id))fallbackCandidates.set(a.id,{id:a.id,name:a.name,image:""})}if(!d.next)break;off+=50}for(const candidate of fallbackCandidates.values()){if(map.size>=80)break;const full=await enrichArtist(slotNo,candidate);if(looksLikeSpokenArtist(full))continue;map.set(full.id,full)}}
-  S.artistPools[slotNo]=[...map.values()];localStorage.setItem(poolKey(slotNo),JSON.stringify(S.artistPools[slotNo]));
+  const ranges=["long_term","medium_term","short_term"];
+  const topSets=await Promise.all(ranges.map(range=>sp(slotNo,`/me/top/artists?limit=50&time_range=${range}`).then(d=>({range,items:d.items||[]}))));
+  for(const set of topSets)set.items.forEach((a,i)=>mergeRankedArtist(map,a,set.range,i+1));
+  if(map.size<20){
+    const fallbackCandidates=new Map();let off=0;
+    while(off<500&&fallbackCandidates.size<50){
+      const d=await sp(slotNo,`/me/tracks?limit=50&offset=${off}`);
+      for(const it of d.items||[]){
+        const track=it.track;if(!track||looksLikeSpokenTrack(track))continue;
+        const a=track.artists?.[0];
+        if(a?.id&&!map.has(a.id)&&!fallbackCandidates.has(a.id))fallbackCandidates.set(a.id,{id:a.id,name:a.name,image:""});
+      }
+      if(!d.next)break;off+=50;
+    }
+    for(const candidate of fallbackCandidates.values()){
+      if(map.size>=70)break;
+      const full=await enrichArtist(slotNo,candidate);
+      if(looksLikeSpokenArtist(full))continue;
+      map.set(full.id,{...full,draftWeight:8,sources:["library"]});
+    }
+  }
+  S.artistPools[slotNo]=[...map.values()].filter(a=>!looksLikeSpokenArtist(a)).sort((a,b)=>(b.draftWeight||0)-(a.draftWeight||0));
+  localStorage.setItem(poolKey(slotNo),JSON.stringify(S.artistPools[slotNo]));
   await sb.rpc("mb_set_spotify_ready_for_slot",{p_room_id:S.room.id,p_slot:slotNo,p_ready:true,p_display_name:profile.display_name||"",p_artist_count:S.artistPools[slotNo].length});
   if(slotNo===1&&S.room?.device_mode==="single"&&ownsPlayerSlot(2)){
     mirrorSingleDeviceSpotifyToPlayer2();
