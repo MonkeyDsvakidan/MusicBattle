@@ -8,7 +8,7 @@ function renderDraft(){
 async function submitTrack(slotNo,track){
   const r=currentRound();if(!r)return;const old=currentSubs()[slotNo-1];
   if(old){S.error="Dein Song ist bereits eingereicht und kann nicht mehr geändert werden.";render();return}
-  const payload={round_id:r.id,room_id:S.room.id,player_user_id:S.user.id,player_slot:slotNo,spotify_track_id:track.id,spotify_uri:track.uri,song_name:track.name,artist_name:track.artist,album_name:track.album,album_image_url:track.image,start_ms:25000};
+  const payload={round_id:r.id,room_id:S.room.id,player_user_id:S.user.id,player_slot:slotNo,spotify_track_id:track.id,spotify_uri:track.uri,song_name:track.name,artist_name:track.artist,album_name:track.album,album_image_url:track.image,spotify_release_date:track.releaseDate||null,spotify_duration_ms:track.durationMs||null,spotify_album_type:track.albumType||null,spotify_isrc:track.isrc||null,spotify_explicit:Boolean(track.explicit),start_ms:25000};
   const {error}=await sb.from("mb_submissions").insert(payload);if(error)S.error=error.message;else{S.searchResults[slotNo]=[];S.notice="Song eingereicht und gesperrt."}await reloadRoomNow();
 }
 function trackSide(slotNo,pick,sub,both){
