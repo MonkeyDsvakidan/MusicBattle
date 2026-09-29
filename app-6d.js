@@ -56,3 +56,11 @@ function juryVisibleReason(row,r,subs){
   }
   return String(row.reason||"")
 }
+
+function applyJuryTextPolish(){
+  const r=currentRound(),subs=currentSubs(),rows=aiScores(),cards=[...document.querySelectorAll(".jurygrid .judge")];
+  if(!r||!cards.length)return;
+  cards.forEach((card,i)=>{const row=rows[i],p=card.querySelector("p.muted");if(row&&p)p.textContent=juryVisibleReason(row,r,subs)});
+}
+const juryTextObserver=new MutationObserver(()=>queueMicrotask(applyJuryTextPolish));
+juryTextObserver.observe(document.getElementById("app"),{childList:true,subtree:true});
