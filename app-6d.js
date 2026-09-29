@@ -60,7 +60,7 @@ function juryVisibleReason(row,r,subs){
 function applyJuryTextPolish(){
   const r=currentRound(),subs=currentSubs(),rows=aiScores(),cards=[...document.querySelectorAll(".jurygrid .judge")];
   if(!r||!cards.length)return;
-  cards.forEach((card,i)=>{const row=rows[i],p=card.querySelector("p.muted");if(row&&p)p.textContent=juryVisibleReason(row,r,subs)});
+  cards.forEach((card,i)=>{const row=rows[i],p=card.querySelector("p.muted");if(row&&p){const next=juryVisibleReason(row,r,subs);if(p.textContent!==next)p.textContent=next}});
 }
 const juryTextObserver=new MutationObserver(()=>queueMicrotask(applyJuryTextPolish));
 juryTextObserver.observe(document.getElementById("app"),{childList:true,subtree:true});
