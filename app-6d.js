@@ -15,3 +15,44 @@ function render(){
   $("roomBadge").innerHTML=`<span class="chip">${esc(S.room.code)} · ${role()==="player"?(localSlots.length===2?"SPIELER 1 + 2":`SPIELER ${localSlots[0]}`):"JURY"}</span>`;
   if(S.room.status==="lobby")renderLobby();else if(S.room.status==="draft")renderDraft();else if(S.room.status==="battle")renderBattle();else if(S.room.status==="tiebreak")renderTiebreak();else if(S.room.status==="sudden_draft")renderSuddenDraft();else if(S.room.status==="finished")renderFinished();else renderLobby();
 }
+
+
+function juryMeta(row){return row?.details&&typeof row.details==="object"?row.details:{}}
+function juryEvidence(row,slotNo){const d=juryMeta(row);return slotNo===1?(d.evidence_a||{}):(d.evidence_b||{})}
+function jurySide(row){return Number(row?.score_a)>Number(row?.score_b)?1:2}
+function juryReleaseYears(e){const v=[e?.spotify?.release_date,e?.genius?.release_date,e?.musicbrainz?.first_release_date,...(e?.musicbrainz?.releases||[]).map(x=>x?.date)];return [...new Set(v.map(x=>Number(String(x||"").match(/(?:19|20)\d{2}/)?.[0]||0)).filter(Boolean))]}
+function jurySignal(row){
+  const a=juryEvidence(row,1),b=juryEvidence(row,2),pairs=[
+    ["ListenBrainz-Nutzer",Number(a?.listenbrainz?.total_user_count||0),Number(b?.listenbrainz?.total_user_count||0)],
+    ["ListenBrainz-Listens",Number(a?.listenbrainz?.total_listen_count||0),Number(b?.listenbrainz?.total_listen_count||0)],
+    ["Last.fm-Hörer",Number(a?.lastfm?.listeners||0),Number(b?.lastfm?.listeners||0)],
+    ["persönliches Spotify-Hörsignal",Number(a?.personal_listening?.draft_weight||0),Number(b?.personal_listening?.draft_weight||0)]
+  ],x=pairs.find(p=>p[1]>0&&p[2]>0);return x?{label:x[0],a:x[1],b:x[2]}:null
+}
+function juryNumber(n){return n>=1000000?(n/1000000).toFixed(n>=10000000?0:1)+" Mio.":n>=1000?Math.round(n/1000)+"k":String(Math.round(n))}
+function juryVisibleReason(row,r,subs){
+  const w=jurySide(row),e=juryEvidence(row,w),o=juryEvidence(row,w===1?2:1),name=String(subs?.[w-1]?.song_name||e?.identity?.song||`Song ${w===1?"A":"B"}`),other=String(subs?.[w===1?1:0]?.song_name||o?.identity?.song||"der andere Song"),theme=String(r?.theme||"das Thema");
+  if(row.juror_key==="theme"){
+    const y=Number((theme+" "+String(r?.category||"")).match(/(?:19|20)\d{2}/)?.[0]||0),wy=juryReleaseYears(e),oy=juryReleaseYears(o);
+    if(y&&wy.includes(y))return `„${name}“ trifft „${theme}“ am saubersten: die gespeicherten Release-Daten bestätigen ${y}. Bei „${other}“ liegen ${oy.length?oy.join("/"):"keine gleich starken Jahresbelege"} vor.`;
+    return `„${name}“ bekommt den Themenpunkt für „${theme}“. Der Entscheid bleibt knapp, wenn Titel, Songkontext und vorhandene Metadaten keinen klaren Direktbeleg liefern.`
+  }
+  if(row.juror_key==="vibe"){
+    const tags=[...(e?.listenbrainz?.tags||[]).map(x=>x?.name),...(e?.lastfm?.track_tags||[]).map(x=>x?.name)].filter(Boolean).slice(0,4);
+    return tags.length?`„${name}“ bekommt den Vibe-Punkt auf Basis dokumentierter Tags wie ${tags.join(", ")}. Nicht vorhandene Audioeigenschaften werden nicht dazuerfunden.`:`Für die Atmosphäre fehlen belastbare Audio- oder Mood-Daten. „${name}“ erhält deshalb nur einen knappen Vorteil aus dem dokumentierten Songkontext.`
+  }
+  if(row.juror_key==="lyrics"){
+    return e?.lyrics?.found?`Für „${name}“ lag ein LRCLIB-Text als Grundlage vor. Die Wertung stützt sich auf den analysierten Inhalt, ohne Textzeilen zu erfinden oder wörtlich zu zitieren.`:`Für die Textwertung fehlen ausreichende Lyrics-Daten. „${name}“ erhält nur einen knappen Vorteil aus Titel und dokumentiertem Songkontext.`
+  }
+  if(row.juror_key==="underdog"){
+    const s=jurySignal(row);
+    if(!s)return `Für beide Songs fehlt ein sauber vergleichbares Reichweiten- oder persönliches Hörsignal. Snoop erfindet deshalb keinen Popularitätsvorteil; die Stimme bleibt bewusst knapp.`;
+    const mine=w===1?s.a:s.b,theirs=w===1?s.b:s.a;
+    return mine<theirs?`„${name}“ bekommt den Underdog-Bonus: beim direkt vergleichbaren Signal ${s.label} liegt der Wert bei ${juryNumber(mine)} gegenüber ${juryNumber(theirs)}.`:`„${name}“ gewinnt diese Stimme trotz des kleineren Reichweitensignals von „${other}“. Der Themenfit verhindert hier einen automatischen Underdog-Bonus.`
+  }
+  if(row.juror_key==="connoisseur"){
+    const album=String(e?.identity?.album||""),year=juryReleaseYears(e)[0],parts=[];if(album)parts.push(`Album „${album}“`);if(year)parts.push(`Release ${year}`);
+    return parts.length?`„${name}“ bekommt Dr. Körnlis Punkt über den konkreteren Katalogkontext: ${parts.join(", ")}. Ein nicht belegter Deep-Cut-Status wird nicht behauptet.`:`Die Katalogdaten unterscheiden die beiden Picks kaum. „${name}“ erhält deshalb nur einen knappen Punkt; zusätzliche Katalogbehauptungen werden nicht erfunden.`
+  }
+  return String(row.reason||"")
+}
