@@ -56,6 +56,28 @@ async function pause(slotNo){
   }catch{}
 }
 async function submitHumanScore(winner,close){const r=currentRound(),subs=currentSubs();if(!r||!subs[0]||!subs[1])return;const a=winner===1?10:(close?9:8),b=winner===2?10:(close?9:8),{error}=await sb.from("mb_jury_scores").insert({round_id:r.id,room_id:S.room.id,source:"human",juror_user_id:S.user.id,juror_name:jurorMembership()?.display_name||"Juror",score_a:a,score_b:b,reason:close?"Knapper Entscheid":"Klarer Entscheid",details:{kind:"human"}});if(error)S.error=error.message;await reloadRoomNow()}
-async function runAIJury(){const r=currentRound();if(!r)return;S.error="";S.notice="KI-Jury bewertet die beiden Songs …";render();try{const {data,error}=await sb.functions.invoke("mb-ai-jury",{body:{room_id:S.room.id,round_id:r.id}});if(error){let detail=error.message||"Unbekannter Edge-Function-Fehler";try{if(error.context){const body=await error.context.json();detail=[body?.error,body?.detail].filter(Boolean).join(": ")||detail}}catch{}throw new Error(detail)}if(data?.error)throw new Error([data.error,data.detail].filter(Boolean).join(": "));S.notice="KI-Jury ist bereit. Die Juroren können jetzt nacheinander aufgedeckt werden.";S.aiReveal=0;await reloadRoomNow()}catch(e){S.notice="";S.error=`KI-Jury konnte nicht ausgeführt werden: ${e?.message||String(e)}`;render()}}
+let aiJuryRunning=false;
+async function runAIJury(){
+  const r=currentRound();if(!r||aiJuryRunning)return;
+  aiJuryRunning=true;S.error="";S.notice="KI-Jury sammelt Songdaten und bewertet …";render();
+  let timer=null;
+  try{
+    const invoke=sb.functions.invoke("mb-ai-jury",{body:{room_id:S.room.id,round_id:r.id}});
+    const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error("Die KI-Jury hat nach 40 Sekunden nicht geantwortet. Bitte erneut starten.")),40000)});
+    const {data,error}=await Promise.race([invoke,timeout]);
+    if(error){
+      let detail=error.message||"Unbekannter Edge-Function-Fehler";
+      try{if(error.context){const body=await error.context.json();detail=[body?.error,body?.detail,body?.provider_detail].filter(Boolean).join(": ")||detail}}catch{}
+      throw new Error(detail);
+    }
+    if(data?.error)throw new Error([data.error,data.detail,data.provider_detail].filter(Boolean).join(": "));
+    S.notice="KI-Jury ist bereit.";S.aiReveal=0;await reloadRoomNow();
+  }catch(e){
+    S.notice="";S.error=`KI-Jury konnte nicht ausgeführt werden: ${e?.message||String(e)}`;render();
+  }finally{
+    if(timer)clearTimeout(timer);
+    aiJuryRunning=false;
+  }
+}
 function scoreSummary(scores){let a=0,b=0;for(const s of scores){a+=s.score_a;b+=s.score_b}return{a,b,winner:a===b?null:(a>b?1:2)}}
 async function finalizeRound(){const r=currentRound(),hs=humanScores(),as=aiScores(),use=hs.length?hs:as;if(!use.length){S.error="Noch keine Jury-Wertung vorhanden.";render();return}const x=scoreSummary(use);if(!x.winner){S.error="Score ist unentschieden. Bitte eine weitere menschliche Jurorin/einen weiteren Juror abstimmen lassen.";render();return}const {error}=await sb.rpc("mb_advance_round",{p_room_id:S.room.id,p_round_number:r.round_number,p_winner_slot:x.winner});if(error)S.error=error.message;S.aiReveal=0;await reloadRoomNow()}
