@@ -31,30 +31,49 @@ function jurySignal(row){
 }
 function juryNumber(n){return n>=1000000?(n/1000000).toFixed(n>=10000000?0:1)+" Mio.":n>=1000?Math.round(n/1000)+"k":String(Math.round(n))}
 function juryVisibleReason(row,r,subs){
-  const w=jurySide(row),e=juryEvidence(row,w),o=juryEvidence(row,w===1?2:1),name=String(subs?.[w-1]?.song_name||e?.identity?.song||`Song ${w===1?"A":"B"}`),other=String(subs?.[w===1?1:0]?.song_name||o?.identity?.song||"der andere Song"),theme=String(r?.theme||"das Thema");
+  const w=jurySide(row),e=juryEvidence(row,w),o=juryEvidence(row,w===1?2:1),name=String(subs?.[w-1]?.song_name||e?.identity?.song||`Song ${w===1?"A":"B"}`),other=String(subs?.[w===1?1:0]?.song_name||o?.identity?.song||"der andere Song"),theme=String(r?.theme||"das Thema"),raw=String(row?.reason||"");
+  const motifMatch=raw.match(/(?:Motive sind|rund um|wie)\s+([^\.]+)/i),motifs=(motifMatch?.[1]||"").trim(),hasMotifs=Boolean(motifs&&!/wenige direkte|keine|nicht verfügbar/i.test(motifs));
+
   if(row.juror_key==="theme"){
     const y=Number((theme+" "+String(r?.category||"")).match(/(?:19|20)\d{2}/)?.[0]||0),wy=juryReleaseYears(e),oy=juryReleaseYears(o);
-    if(y&&wy.includes(y))return `„${name}“ trifft „${theme}“ am saubersten: die gespeicherten Release-Daten bestätigen ${y}. Bei „${other}“ liegen ${oy.length?oy.join("/"):"keine gleich starken Jahresbelege"} vor.`;
-    return `„${name}“ bekommt den Themenpunkt für „${theme}“. Der Entscheid bleibt knapp, wenn Titel, Songkontext und vorhandene Metadaten keinen klaren Direktbeleg liefern.`
+    if(y&&wy.includes(y))return `„${name}“ erfüllt „${theme}“ direkt: die Release-Daten bestätigen ${y}. „${other}“ liegt bei ${oy.length?oy.join("/"):"einem nicht eindeutig bestätigten Jahr"} – deshalb geht der Themenpunkt an „${name}“.`;
+    if(y&&oy.length&&!oy.includes(y))return `„${other}“ ist mit Release ${oy.join("/")} nicht als ${y}-Song belegt. Für „${name}“ fehlt zwar ebenfalls ein eindeutiger ${y}-Nachweis, aber der Gegenbeleg ist schwächer – deshalb nur 10–9 für „${name}“.`;
+    if(hasMotifs)return `„${name}“ passt direkter zu „${theme}“: In den vorhandenen Songdaten tauchen konkrete Motive wie ${motifs} auf. Beim anderen Song ist dieser Bezug schwächer – deshalb geht der Punkt an „${name}“.`;
+    return `Für „${theme}“ liefern beide Songs nur schwache direkte Belege. „${name}“ bekommt deshalb bewusst nur 10–9, weil der verfügbare Titel- und Songkontext etwas besser passt.`
   }
+
   if(row.juror_key==="vibe"){
-    const tags=[...(e?.listenbrainz?.tags||[]).map(x=>x?.name),...(e?.lastfm?.track_tags||[]).map(x=>x?.name)].filter(Boolean).slice(0,4);
-    return tags.length?`„${name}“ bekommt den Vibe-Punkt auf Basis dokumentierter Tags wie ${tags.join(", ")}. Nicht vorhandene Audioeigenschaften werden nicht dazuerfunden.`:`Für die Atmosphäre fehlen belastbare Audio- oder Mood-Daten. „${name}“ erhält deshalb nur einen knappen Vorteil aus dem dokumentierten Songkontext.`
+    const tags=[...(e?.listenbrainz?.tags||[]).map(x=>x?.name),...(e?.lastfm?.track_tags||[]).map(x=>x?.name)].filter(Boolean).slice(0,4),otherTags=[...(o?.listenbrainz?.tags||[]).map(x=>x?.name),...(o?.lastfm?.track_tags||[]).map(x=>x?.name)].filter(Boolean).slice(0,4);
+    if(tags.length)return `„${name}“ bekommt den Vibe-Punkt: dokumentierte Tags wie ${tags.join(", ")} stützen die Atmosphäre von „${theme}“ stärker${otherTags.length?` als die verfügbaren Tags zu „${other}“`:""}. Deshalb 10–9 für „${name}“.`;
+    const context=[e?.genius?.description?"Genius-Kontext":null,e?.lyrics?.found?"Lyrics-Inhalt":null].filter(Boolean);
+    return context.length?`Für „${name}“ liegen mit ${context.join(" und ")} zumindest indirekte Hinweise auf die Atmosphäre vor. Da echte Audio-/Mood-Daten fehlen, bleibt der Entscheid bewusst knapp bei 10–9.`:`Für beide Songs fehlen belastbare Audio- oder Mood-Daten. Der Vibe-Punkt ist deshalb nur schwach abgesichert und bleibt bei 10–9 für „${name}“.`
   }
+
   if(row.juror_key==="lyrics"){
-    return e?.lyrics?.found?`Für „${name}“ lag ein LRCLIB-Text als Grundlage vor. Die Wertung stützt sich auf den analysierten Inhalt, ohne Textzeilen zu erfinden oder wörtlich zu zitieren.`:`Für die Textwertung fehlen ausreichende Lyrics-Daten. „${name}“ erhält nur einen knappen Vorteil aus Titel und dokumentiertem Songkontext.`
+    const otherHas=Boolean(o?.lyrics?.found);
+    if(e?.lyrics?.found&&hasMotifs)return `„${name}“ liegt textlich vorn: Im ausgewerteten LRCLIB-Text zeigen sich stärkere Themenmotive rund um ${motifs}. Deshalb 10–9 für „${name}“, ohne Lyrics zu erfinden oder wörtlich zu zitieren.`;
+    if(e?.lyrics?.found&&!otherHas)return `Für „${name}“ lag ein LRCLIB-Text als echte Inhaltsgrundlage vor, für „${other}“ nicht in gleicher Qualität. Deshalb erhält „${name}“ den knappen 10–9-Vorteil.`;
+    if(e?.lyrics?.found&&otherHas)return `Für beide Songs lagen Lyrics als Grundlage vor. Die gespeicherte Analyse sieht bei „${name}“ den etwas stärkeren thematischen Inhalt, aber ohne klaren Abstand – deshalb nur 10–9.`;
+    return `Für die Textwertung fehlen ausreichende Lyrics-Daten. „${name}“ erhält deshalb nur einen knappen 10–9-Vorteil aus Titel und dokumentiertem Songkontext.`
   }
+
   if(row.juror_key==="underdog"){
     const s=jurySignal(row);
     if(!s)return `Für beide Songs fehlt ein sauber vergleichbares Reichweiten- oder persönliches Hörsignal. Snoop erfindet deshalb keinen Popularitätsvorteil; die Stimme bleibt bewusst knapp.`;
     const mine=w===1?s.a:s.b,theirs=w===1?s.b:s.a;
-    return mine<theirs?`„${name}“ bekommt den Underdog-Bonus: beim direkt vergleichbaren Signal ${s.label} liegt der Wert bei ${juryNumber(mine)} gegenüber ${juryNumber(theirs)}.`:`„${name}“ gewinnt diese Stimme trotz des kleineren Reichweitensignals von „${other}“. Der Themenfit verhindert hier einen automatischen Underdog-Bonus.`
+    return mine<theirs?`„${name}“ ist beim vergleichbaren Signal ${s.label} klar der kleinere Pick: ${juryNumber(mine)} gegenüber ${juryNumber(theirs)}. Genau dafür bekommt er den Underdog-Punkt.`:`„${other}“ wäre beim Signal ${s.label} zwar der kleinere Pick (${juryNumber(theirs)} vs. ${juryNumber(mine)}), aber der Themenfit reicht nicht für den Bonus. Deshalb bleibt die Stimme bei „${name}“.`
   }
+
   if(row.juror_key==="connoisseur"){
-    const album=String(e?.identity?.album||""),year=juryReleaseYears(e)[0],parts=[];if(album)parts.push(`Album „${album}“`);if(year)parts.push(`Release ${year}`);
-    return parts.length?`„${name}“ bekommt Dr. Körnlis Punkt über den konkreteren Katalogkontext: ${parts.join(", ")}. Ein nicht belegter Deep-Cut-Status wird nicht behauptet.`:`Die Katalogdaten unterscheiden die beiden Picks kaum. „${name}“ erhält deshalb nur einen knappen Punkt; zusätzliche Katalogbehauptungen werden nicht erfunden.`
+    const album=String(e?.identity?.album||""),otherAlbum=String(o?.identity?.album||""),year=juryReleaseYears(e)[0],otherYear=juryReleaseYears(o)[0],s=jurySignal(row),parts=[],otherParts=[];
+    if(album)parts.push(`Album „${album}“`);if(year)parts.push(`Release ${year}`);
+    if(otherAlbum)otherParts.push(`Album „${otherAlbum}“`);if(otherYear)otherParts.push(`Release ${otherYear}`);
+    if(s){const mine=w===1?s.a:s.b,theirs=w===1?s.b:s.a;if(mine<theirs)parts.push(`kleineres ${s.label}-Signal (${juryNumber(mine)} vs. ${juryNumber(theirs)})`)}
+    if(parts.length)return `„${name}“ bekommt Dr. Körnlis Punkt über den konkreteren Katalogkontext: ${parts.join(", ")}${otherParts.length?`; „${other}“ bringt ${otherParts.join(", ")} mit`:""}. Der Vorteil bleibt 10–9, weil daraus kein unbelegter Deep-Cut-Status abgeleitet wird.`;
+    return `Die verfügbaren Katalogdaten unterscheiden die beiden Picks kaum. „${name}“ erhält deshalb nur 10–9; zusätzliche Katalogbehauptungen werden nicht erfunden.`
   }
-  return String(row.reason||"")
+
+  return raw
 }
 
 function applyJuryTextPolish(){
