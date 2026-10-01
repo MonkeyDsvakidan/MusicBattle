@@ -56,6 +56,26 @@ async function pause(slotNo){
   }catch{}
 }
 async function submitHumanScore(winner,close){const r=currentRound(),subs=currentSubs();if(!r||!subs[0]||!subs[1])return;const a=winner===1?10:(close?9:8),b=winner===2?10:(close?9:8),{error}=await sb.from("mb_jury_scores").insert({round_id:r.id,room_id:S.room.id,source:"human",juror_user_id:S.user.id,juror_name:jurorMembership()?.display_name||"Juror",score_a:a,score_b:b,reason:close?"Knapper Entscheid":"Klarer Entscheid",details:{kind:"human"}});if(error)S.error=error.message;await reloadRoomNow()}
+let selfDecisionRunning=false;
+async function submitSelfDecision(winner){
+  if(!isHost()||selfDecisionRunning)return;
+  const r=currentRound(),subs=currentSubs(),jurors=S.members.filter(m=>m.role==="juror");
+  if(!r||!subs[0]||!subs[1])return;
+  if(jurors.length){S.error="Selber entscheiden ist nur möglich, wenn keine menschlichen Juroren im Spiel sind.";render();return}
+  const chosen=subs[winner-1];
+  if(!window.confirm(`„${chosen.song_name}“ wirklich als Rundensieger wählen?`))return;
+  selfDecisionRunning=true;S.error="";
+  try{
+    const {error}=await sb.from("mb_jury_scores").insert({
+      round_id:r.id,room_id:S.room.id,source:"human",juror_user_id:S.user.id,
+      juror_name:"Eigener Entscheid",score_a:winner===1?10:9,score_b:winner===2?10:9,
+      reason:`Manueller Entscheid: ${chosen.song_name}`,details:{kind:"self_decision",winner_slot:winner}
+    });
+    if(error)throw error;
+    await reloadRoomNow();
+  }catch(e){S.error=e?.message||String(e);render()}
+  finally{selfDecisionRunning=false}
+}
 let aiJuryRunning=false;
 async function runAIJury(){
   const r=currentRound();if(!r||aiJuryRunning)return;
