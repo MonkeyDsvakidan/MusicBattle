@@ -40,11 +40,12 @@
 
 ## Phase 1 – „Selber entscheiden“ reparieren
 
-- [ ] 🟡 **1.1 Regel festlegen** (siehe offene Entscheidungen A und B).
+- [x] 🟡 **1.1 Regel festlegen** (siehe offene Entscheidungen A und B).
+  - *Entschieden 06.10.2026:* **Nur der Host** entscheidet selbst (A). „Selber entscheiden“ gibt es **nur, wenn kein menschlicher Juror im Raum ist** – dann aber immer, auch statt bzw. nach der Auto-Jury (B). Mit Juror entscheidet ausschliesslich die menschliche Jury.
 - [ ] **1.2 Button-Bindung** `[data-self-winner]` in der aktiven `renderBattle()` ergänzen.
-- [ ] **1.3 Immer anbieten:** Sobald beide Songs aufgedeckt sind, hat der Host die Option „Selber entscheiden“ – auch wenn Juroren im Raum sind und auch nachdem die Auto-Jury geurteilt hat (dann als „Jury überstimmen“).
-- [ ] **1.4 Backend angleichen:** Migration für die RLS-Policy (Juroren-Bedingung entfernen bzw. gemäss Entscheidung A anpassen).
-- [ ] **1.5 Wertungslogik:** `finalizeRound()` mit klarer Rangfolge (Vorschlag: eigener Entscheid > menschliche Jury > Auto-Jury). Ein eigener Entscheid darf nicht mit Juroren-Scorecards zusammengezählt werden.
+- [ ] **1.3 Immer anbieten (ohne Juror):** Sobald beide Songs aufgedeckt sind und **kein menschlicher Juror im Raum ist**, hat der Host die Option „Selber entscheiden“ – vor der Auto-Jury, statt ihr und auch nachdem sie geurteilt hat (dann als „Jury überstimmen“). Mit Juror im Raum bleibt es bei „Runde werten“ (gemäss 1.1).
+- [ ] **1.4 Backend angleichen:** Die RLS-Policy `mb_scores_insert_host_self_decision` entspricht bereits Entscheidung 1.1 (nur Host, nur ohne Juror) und **bleibt**. Prüfen: Nach einem eigenen Entscheid darf kein zweiter eingefügt werden (`mb_human_score_once` greift, da `juror_user_id` = Host) und der Override nach der Auto-Jury funktioniert ohne Konflikt mit den AI-Scores. Nur falls nötig Migration.
+- [ ] **1.5 Wertungslogik:** `finalizeRound()` mit klarer Rangfolge: **mit Juror** zählt nur die menschliche Jury; **ohne Juror** gilt eigener Entscheid > Auto-Jury. Ein eigener Entscheid wird nie mit anderen Scorecards zusammengezählt und ist im Endstand als „Eigener Entscheid“ markiert.
 - [ ] **1.6** `window.confirm` durch eine Bestätigung in der App ersetzen. Smoke-Test Punkt 4 in beiden Gerätemodi.
 
 ## Phase 2 – Code konsolidieren (ohne Verhaltensänderung)
@@ -131,8 +132,8 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 
 ## Offene Entscheidungen (Nutzer)
 
-- **A – Wer darf selber entscheiden?** Vorschlag: nur der Host. Alternative im 2-Geräte-Modus: beide Spieler müssen denselben Sieger bestätigen.
-- **B – Eigener Entscheid vs. menschliche Juroren:** Vorschlag: Eigener Entscheid überstimmt immer alles (bewusster Override, wird im Endstand markiert).
+- ~~**A – Wer darf selber entscheiden?**~~ → entschieden 06.10.2026: nur der Host.
+- ~~**B – Eigener Entscheid vs. menschliche Juroren:**~~ → entschieden 06.10.2026: Selber entscheiden nur ohne Juror im Raum; mit Juror zählt allein die menschliche Jury.
   - *Teilantwort Nutzer 06.10.2026:* Ohne Juror im Raum muss „Selber entscheiden“ immer möglich sein – auch statt der Auto-Jury, wenn man sie nicht nutzen will. Offen: Darf der Host auch **mit** Juror im Raum selbst entscheiden/überstimmen? → in 1.1 klären.
 - **C – Gleichstand bei einem Juror / zu wenig Daten:** Vorschlag: Juror vergibt 10–10 und sagt offen „zu wenig Daten“; endet die ganze Jury unentschieden, wird „Selber entscheiden“ hervorgehoben.
 - **D – KI für Formulierungen behalten?** Vorschlag: nein – Text-Bausteine pro Juror sind konsistenter, schneller und kostenlos.
@@ -144,6 +145,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 - 06.10.2026 · Jury soll ohne KI auf gespeicherten Songdaten urteilen · Wunsch des Nutzers, bessere Nachvollziehbarkeit und Zuverlässigkeit
 - 06.10.2026 · „Selber entscheiden“ soll immer verfügbar sein · Wunsch des Nutzers
 - 06.10.2026 · Supabase-Stand per MCP statt CLI ins Repo geholt: Remote-Migrationshistorie 1:1 übernommen, Dashboard-Änderungen als eigene idempotente Migration nachgetragen (statt einer einzigen Gesamt-Baseline) · so bleibt die Historie mit `supabase migration list` deckungsgleich und nichts muss in der Live-DB repariert werden
+- 06.10.2026 · Selber entscheiden: nur der Host, nur ohne menschlichen Juror im Raum (dann immer, auch statt/nach der Auto-Jury); mit Juror entscheidet ausschliesslich die menschliche Jury · Entscheid des Nutzers (1.1); bestehende RLS-Policy passt bereits dazu
 - 06.10.2026 · Tabellenrechte auf die Grants der Core-Migration zurückgesetzt (nicht weiter verschärft, z. B. `mb_rounds` insert/update bleibt, obwohl das Frontend es nur über RPCs nutzt) · keine Verhaltensänderung für die App; weitere Verschärfung erst nach der Konsolidierung (Phase 2), wenn klar ist, welche Zugriffe bleiben
 - 06.10.2026 · „Blind Draft“ ist kein Blind Draft (Gegner-Künstler sind im Draft sichtbar) · Nutzer: Bezeichnung streichen oder „verdeckt“ als Option anbieten → bei 4.3/4.4 umsetzen
 - 06.10.2026 · Neue Aufgabe 0.4 (Neu-Rendern) vor Phase 1 eingeschoben · im Smoke-Test als Ursache für verlorene Klicks und verlorene Eingaben identifiziert; ohne Fix wirkt jeder reparierte Button weiterhin „manchmal kaputt“
