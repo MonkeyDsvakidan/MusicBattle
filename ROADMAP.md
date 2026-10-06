@@ -202,6 +202,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 - 06.10.2026 · Jury soll ohne KI auf gespeicherten Songdaten urteilen · Wunsch des Nutzers, bessere Nachvollziehbarkeit und Zuverlässigkeit
 - 06.10.2026 · „Selber entscheiden“ soll immer verfügbar sein · Wunsch des Nutzers
 - 06.10.2026 · Supabase-Stand per MCP statt CLI ins Repo geholt: Remote-Migrationshistorie 1:1 übernommen, Dashboard-Änderungen als eigene idempotente Migration nachgetragen (statt einer einzigen Gesamt-Baseline) · so bleibt die Historie mit `supabase migration list` deckungsgleich und nichts muss in der Live-DB repariert werden
+- 06.10.2026 · Juror-Namen bleiben unverändert (inkl. „Kollegah der Lyricboss“, „Snoop Underdogg“); Juror-Bilder vorerst weglassen (die ursprünglichen `assets/jury/*.webp` waren nie im Repo und sind nicht mehr vorhanden) · Entscheid des Nutzers; 4.5 bleibt offen für später
 - 06.10.2026 · Smoke-Test ohne Handy per Mehrfenster-Simulation; Abspielen gilt durch den Handy-Test vom selben Tag als geprüft (Code unverändert) · Nutzerwunsch, spart Gerätewechsel
 - 06.10.2026 · Jury-Texte nicht mehr im DOM umschreiben (2.4) – bis Phase 3 erscheinen die nüchternen Originaltexte der Edge Function · Nutzer hat zugestimmt; eine Quelle für Begründungen statt zwei
 - 06.10.2026 · Konsolidierung als klassische Skripte (Variante A) statt ES-Modulen · geringes Risiko (Code zieht 1:1 um); Module erst, wenn Phase 3/4 die Struktur festgelegt haben (Nutzer einverstanden)
