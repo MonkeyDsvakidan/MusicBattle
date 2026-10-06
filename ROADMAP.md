@@ -27,7 +27,9 @@
   - `supabase/functions/mb-ai-jury/index.ts` = deployte Version 23 (`verify_jwt = true`). Hinweis: Die Datei wurde aus der API-Antwort übernommen; ein Byte-Vergleich mit dem Deployment war nicht möglich – beim nächsten Deploy aus dem Repo (Phase 3) kurz gegen das Dashboard prüfen.
   - Secrets konnten über die MCP-Schnittstelle nicht ausgelesen werden → Prüfung in 3.4.
 - [ ] **0.2 Funktionsinventur.** Kompletten Smoke-Test aus `CLAUDE.md` durchgehen, jede Fehlfunktion unten unter „Gefundene Bugs“ eintragen (Schritt, erwartet, tatsächlich, vermutete Ursache). Noch nichts reparieren.
+  - *Teil 1 erledigt 06.10.2026* (Pass & Play, Schritte 1–5 und 7 teilweise) – Ergebnisse unten. **Offen:** Wiedergabe in Chrome/Handy, menschlicher Juror, 2-Geräte-Modus, Modus wechseln, Herkunft des `length`-TypeErrors.
 - [ ] **0.3 Tabellenrechte härten** *(neu aus 0.1)*. `authenticated` hat auf allen `mb_*`-Tabellen alle Rechte (inkl. `DELETE`, `TRUNCATE`) – vermutlich Supabase-Default-Privileges, obwohl die erste Migration nur gezielte Grants vergibt. RLS blockiert ohne passende Policy zwar Schreibzugriffe, `TRUNCATE` unterliegt RLS aber nicht. Per Migration auf die Grants der Core-Migration zurückstellen; vorher prüfen, dass das Frontend nichts darüber hinaus braucht. Ebenso `anon`-Execute auf den RPCs prüfen.
+- [ ] **0.4 Neu-Rendern entschärfen** *(neu aus 0.2)*. Der Fallback-Poll (`mbSafeSync`, alle 2,5 s) baut die ganze Seite neu auf, auch wenn sich nichts geändert hat. Folge: Klicks gehen sporadisch verloren, eingetippter Text verschwindet nach dem Verlassen des Feldes. Lösung: nur rendern, wenn sich die geladenen Daten tatsächlich geändert haben (z. B. Vergleich eines Daten-Fingerabdrucks), und Eingabewerte über den Neuaufbau retten. Vor Phase 1, weil sonst auch der reparierte „Selber entscheiden“-Button unzuverlässig wirkt.
 
 ## Phase 1 – „Selber entscheiden“ reparieren
 
@@ -90,6 +92,28 @@ Grundidee: Die Daten werden **einmal pro Song** gesammelt und gespeichert. Die f
 - Toter Code Backend (aus 0.1): RPC `mb_set_spotify_ready` wird vom Frontend nicht mehr genutzt (nur `…_for_slot`), `validateResult()` in `mb-ai-jury` wird nie aufgerufen, `mb_rooms.jury_mode`/`game_state` scheinen ungenutzt · → beim Konsolidieren (2.x) bzw. Jury-Ersatz (3.8) entfernen (Achtung: `DROP` nur mit Bestätigung)
 - Edge Function `mb-ai-jury` löscht vor dem Einfügen alle AI-Scores der Runde – bei Doppelklick zwei parallele Läufe möglich · → 3.8 beachten
 
+**Smoke-Test 06.10.2026** (Pass & Play, eingebauter Browser der Claude-App, Raum `6BH2H6`):
+
+- **Alle Screens** · Klicks kommen zuverlässig an · Klicks gehen sporadisch verloren (2× beobachtet: „Sudden Death übernehmen“, „Raum verlassen“ – Handler gebunden, zweiter Klick klappt) · `mbSafeSync()` (app-6a) lädt alle 2,5 s und rendert die **ganze Seite neu, auch ohne Datenänderung**; fällt ein Klick in den Neuaufbau, landet er auf einem entfernten Element · → **0.4**
+- **Lobby, Namensfeld Spieler 2** · eingetippter Text bleibt · Text tippen, danach daneben tippen → nach ≤ 2,5 s ist der Text weg (auf dem Handy reicht Tastatur schliessen) · gleicher Neuaufbau; Eingaben werden nur bei aktivem Fokus geschützt · → **0.4**
+- **Seite laden** · keine Konsolenfehler · `onSpotifyWebPlaybackSDKReady is not defined` bei jedem Laden · `index.html` lädt das Spotify-SDK, der Callback wird nirgends definiert (App pollt stattdessen `window.Spotify`) – funktional harmlos · → 2.3
+- **Battle/Jury** · keine Konsolenfehler · wiederholt `TypeError: Cannot read properties of undefined (reading 'length')`, dazu einmal HTTP 400 · Quelle nicht gefunden (evtl. Spotify-SDK nach Init-Fehler) · in Chrome mit funktionierendem Player nachprüfen · → 0.2
+- **Lobby Pass & Play** · ein klarer Spotify-Hinweis · oben „ein Konto für beide“, bei Spieler 2 „öffnet Spotify für das zweite Konto“ · widersprüchliche Texte aus verschiedenen Dateiversionen · → 4.3
+- **Battle, Songsuche** · Enter startet Suche · Enter macht nichts, nur der Button „Suchen“ · → 4.4
+- **Battle, Song einreichen** · bewusste Bestätigung · ein Tipp auf einen Treffer sperrt den Song sofort und endgültig · Produktfrage, ob gewollt · → 4.3
+- **Battle, Abspielen** · Song spielt · „Spotify Player Initialisierung: Failed to initialize player“ · **Testumgebung**: eingebauter Browser hat kein Widevine/DRM. Abspielen/Pause/Startpunkt-Wiedergabe muss in Chrome bzw. am Handy getestet werden · → 0.2. Die Fehlermeldung bleibt zudem in den nächsten Runden stehen (siehe nächster Punkt).
+- **Battle, Statusmeldungen** · Meldung gilt nur für den Moment · „KI-Jury ist bereit.“ und Player-Fehler bleiben in Folgerunden stehen · `S.error`/Info wird beim Rundenwechsel nicht geleert · → 4.4
+- **Jury, Auto-Jury** · Urteil mit Ladeanzeige in wenigen Sekunden · ~10 s ohne jede Ladeanzeige; Last.fm, Genius, MusicBrainz, ListenBrainz lieferten nichts, nur Song A hatte Lyrics → alle 5 Juroren 10–9 für A mit Begründung „Motiv: rap“ · `OPENROUTER_API_KEY` ist gesetzt, Umformulierung scheitert aber („No JSON object returned“) und kostet ~5 s · → 3.4, 3.8
+- **Jury, Begründungen** · Text aus der DB · angezeigter Text ≠ gespeicherter Text (MutationObserver app-6d), u. a. Tippfehler „Spotify-Hörsignal-Signal“ · → 2.4
+- **Jury, Motiv-Erkennung** · thematische Treffer · deutscher Artikel „die“ zählt als englisches Motiv *die* (sterben) im Thema „Letzte Chance auf den Sieg“ · `motifRules` mischt DE/EN ohne Sprachprüfung · → 3.1/3.6
+- **Jury, nach Auto-Jury** · „Selber entscheiden“ weiter möglich · Option verschwindet · bekannt · → 1.3
+- **Sudden Death** · sauberes Label · „SUDDEN DEATH · SUDDEN DEATH“ (Kategorie = Rundenname) · → 4.4
+- **Draft, Rundenfelder** · per Tastatur bedienbar · `div.roundslot` statt Button, kein Fokus/Enter · → 4.4
+
+**Funktioniert:** Raum erstellen inkl. Pflichtfeld-Prüfung · Spieler 2 hinzufügen · „Draft starten“ gesperrt ohne Spotify · Spotify-Login inkl. Rückkehr in den Raum · Draft: ziehen, Skip je Spieler einmal, 10 Picks, Themen erscheinen · Songsuche, Einreichen, verdeckt bis beide eingereicht, gleichzeitiges Aufdecken · Startpunkt-Regler speichert (`start_ms`) · Spotify-Metadaten (ISRC, Release, Albumtyp) werden gespeichert · Auto-Jury + „Runde übernehmen“ · Seite neu laden mitten im Match (Stand bleibt) · Runde 5 doppelt, 3–3 → Sudden Death (neue Künstler ziehen, Battle, Jury) → Endstand 3–4 mit Statistik · Raum verlassen.
+
+**Noch nicht getestet** (braucht zweites Gerät bzw. Chrome): Abspielen/Pause/Startpunkt-Wiedergabe · menschlicher Juror · 2-Geräte-Modus mit Realtime-Sync · Modus wechseln. Runden 2–5 wurden für den Gleichstand per `mb_advance_round` direkt gesetzt (UI-Weg dafür ist „Selber entscheiden“, das kaputt ist).
+
 ## Offene Entscheidungen (Nutzer)
 
 - **A – Wer darf selber entscheiden?** Vorschlag: nur der Host. Alternative im 2-Geräte-Modus: beide Spieler müssen denselben Sieger bestätigen.
@@ -104,3 +128,4 @@ Grundidee: Die Daten werden **einmal pro Song** gesammelt und gespeichert. Die f
 - 06.10.2026 · Jury soll ohne KI auf gespeicherten Songdaten urteilen · Wunsch des Nutzers, bessere Nachvollziehbarkeit und Zuverlässigkeit
 - 06.10.2026 · „Selber entscheiden“ soll immer verfügbar sein · Wunsch des Nutzers
 - 06.10.2026 · Supabase-Stand per MCP statt CLI ins Repo geholt: Remote-Migrationshistorie 1:1 übernommen, Dashboard-Änderungen als eigene idempotente Migration nachgetragen (statt einer einzigen Gesamt-Baseline) · so bleibt die Historie mit `supabase migration list` deckungsgleich und nichts muss in der Live-DB repariert werden
+- 06.10.2026 · Neue Aufgabe 0.4 (Neu-Rendern) vor Phase 1 eingeschoben · im Smoke-Test als Ursache für verlorene Klicks und verlorene Eingaben identifiziert; ohne Fix wirkt jeder reparierte Button weiterhin „manchmal kaputt“
