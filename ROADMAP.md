@@ -64,7 +64,28 @@
 
 ## Phase 2 – Code konsolidieren (ohne Verhaltensänderung)
 
-- [ ] **2.1** Für jede mehrfach definierte Funktion die aktive Version bestimmen. Ergebnis als Tabelle hier eintragen.
+- [x] **2.1** Für jede mehrfach definierte Funktion die aktive Version bestimmen. Ergebnis als Tabelle hier eintragen.
+  - *Erledigt 06.10.2026* (BUILD `20261006-4`). Methode: in der laufenden Live-App den Quelltext jeder globalen Funktion (`window[name].toString()`) mit allen Definitionen in `app-1 … app-6d` verglichen – kein Raten anhand der Ladereihenfolge. Ergebnis: **117 globale Funktionen, 14 davon mehrfach definiert; aktiv ist immer die zuletzt geladene Datei.** Keine Funktion ist völlig unreferenziert (Aufrufe aus toten Definitionen zählen allerdings mit → in 2.2 nachprüfen).
+
+    | Funktion | definiert in | aktiv | tot (in 2.2 löschen) |
+    |---|---|---|---|
+    | `createRoom` | 1, 5 | **5** | 1 |
+    | `subscribeRoom` | 1, 6a | **6a** | 1 |
+    | `refresh` | 1, 6a | **6a** | 1 |
+    | `reloadRoomNow` | 1, 6a | **6a** | 1 (Duplikat entstand bewusst in 0.4) |
+    | `drawArtist` | 3, 6a | **6a** | 3 |
+    | `submitTrack` | 3, 6b | **6b** | 3 |
+    | `renderLanding` | 4, 5, 6a | **6a** | 4, 5 |
+    | `renderLobby` | 4, 5 | **5** | 4 |
+    | `renderDraft` | 4, 6b | **6b** | 4 |
+    | `trackSide` | 4, 6b | **6b** | 4 |
+    | `renderBattle` | 4, 6b | **6b** | 4 |
+    | `renderJury` | 4, 6c | **6c** | 4 |
+    | `renderFinished` | 4, 6d | **6d** | 4 |
+    | `render` | 4, 6d | **6d** | 4 |
+
+  - **Start-Race bestätigt:** `init()` ist nur in app-1 definiert, wird aber am Ende von **app-4** aufgerufen – app-5 … app-6d sind dann noch nicht geladen. Je nach Netzwerk läuft der erste `subscribeRoom()` in der alten app-1-Version (Kanal ohne Fallback-Poll) und der erste `render()` in der app-4-Version; erst der Loader in `app.js` ruft am Schluss nochmals `render()` auf. → 2.3
+  - **Seiteneffekte auf oberster Ebene** (müssen beim Umbau genau einmal laufen): app-1 `createClient` (Supabase), `$`/`esc`-Helfer; app-4 `init()`; app-5 `window.MB_DEVICE_MODE_CHOICE` aus `localStorage`; app-6a `focusout`/`focus`/`visibilitychange`-Listener; app-6d `MutationObserver` `juryTextObserver` (→ 2.4); `app.js` leert nach app-1 alle `JUDGES[*].image`.
 - [ ] **2.2** In eine klare Modulstruktur überführen, z. B. `js/config.js`, `state.js`, `supabase.js`, `spotify.js`, `draft.js`, `battle.js`, `jury.js`, `ui/*.js` (ES-Module, weiterhin ohne Build-Step). Tote Definitionen löschen.
 - [ ] **2.3** Start-Race beheben: genau ein `init()` nach vollständigem Laden. Loader `app.js` und Cache-Busting vereinfachen.
 - [ ] **2.4** `MutationObserver`-Textüberschreibung entfernen (Begründungen kommen künftig fertig aus der Jury, Phase 3).
