@@ -2,7 +2,7 @@
 // Nach JS/CSS-Änderungen BUILD hier und die ?v=-Parameter in index.html erhöhen.
 // main.js startet die App (genau ein init()), wenn alles geladen ist.
 (async()=>{
-  const BUILD="20261006-9";
+  const BUILD="20261006-10";
   // Themen-Profile (gemeinsame Quelle mit der Jury) vor allen Skripten laden – config.js baut daraus THEMES
   const themesRes=await fetch(`./supabase/functions/_shared/themes.json?v=${BUILD}`);
   if(!themesRes.ok)throw new Error("Themen konnten nicht geladen werden");
