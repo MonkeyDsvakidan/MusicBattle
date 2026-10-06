@@ -112,7 +112,10 @@ Grundidee: Die Daten werden **einmal pro Song** gesammelt und gespeichert. Die f
 
 **Funktioniert:** Raum erstellen inkl. Pflichtfeld-Prüfung · Spieler 2 hinzufügen · „Draft starten“ gesperrt ohne Spotify · Spotify-Login inkl. Rückkehr in den Raum · Draft: ziehen, Skip je Spieler einmal, 10 Picks, Themen erscheinen · Songsuche, Einreichen, verdeckt bis beide eingereicht, gleichzeitiges Aufdecken · Startpunkt-Regler speichert (`start_ms`) · Spotify-Metadaten (ISRC, Release, Albumtyp) werden gespeichert · Auto-Jury + „Runde übernehmen“ · Seite neu laden mitten im Match (Stand bleibt) · Runde 5 doppelt, 3–3 → Sudden Death (neue Künstler ziehen, Battle, Jury) → Endstand 3–4 mit Statistik · Raum verlassen.
 
-**Noch nicht getestet** (braucht zweites Gerät bzw. Chrome): Abspielen/Pause/Startpunkt-Wiedergabe · menschlicher Juror · 2-Geräte-Modus mit Realtime-Sync · Modus wechseln. Runden 2–5 wurden für den Gleichstand per `mb_advance_round` direkt gesetzt (UI-Weg dafür ist „Selber entscheiden“, das kaputt ist).
+**Smoke-Test Teil 2 (06.10.2026, 2-Geräte-Modus, Raum `3FG3SA`, Host im eingebauten Browser + Spieler 2 am Handy):** Beitritt mit Code, Spotify je Gerät, Draft abwechselnd über beide Geräte, Einreichen verdeckt + gleichzeitiges Aufdecken – alles per Realtime synchron. Am Handy: kein horizontales Scrollen, Knöpfe gut treffbar, **Abspielen/Pause/Startpunkt funktionieren** (laut Nutzer), Enter in der Suche vermutlich ok (Handy-Tastatur).
+- **Lobby 2 Geräte, Host** · Spotify bleibt verbunden, wenn es im selben Browser kurz vorher verbunden war · Host musste Spotify im neuen Raum erneut verbinden (OAuth erneut) · Spotify-Status hängt offenbar am Raum/Slot statt am Browser · → 0.2-Nachtest bzw. 4.3
+
+**Noch nicht getestet:** menschlicher Juror (Beitritt + Scorecard + Runde übernehmen mit Juror) · Modus wechseln. Runden 2–5 wurden für den Gleichstand per `mb_advance_round` direkt gesetzt (UI-Weg dafür ist „Selber entscheiden“, das kaputt ist).
 
 ## Offene Entscheidungen (Nutzer)
 
@@ -128,4 +131,5 @@ Grundidee: Die Daten werden **einmal pro Song** gesammelt und gespeichert. Die f
 - 06.10.2026 · Jury soll ohne KI auf gespeicherten Songdaten urteilen · Wunsch des Nutzers, bessere Nachvollziehbarkeit und Zuverlässigkeit
 - 06.10.2026 · „Selber entscheiden“ soll immer verfügbar sein · Wunsch des Nutzers
 - 06.10.2026 · Supabase-Stand per MCP statt CLI ins Repo geholt: Remote-Migrationshistorie 1:1 übernommen, Dashboard-Änderungen als eigene idempotente Migration nachgetragen (statt einer einzigen Gesamt-Baseline) · so bleibt die Historie mit `supabase migration list` deckungsgleich und nichts muss in der Live-DB repariert werden
+- 06.10.2026 · „Blind Draft“ ist kein Blind Draft (Gegner-Künstler sind im Draft sichtbar) · Nutzer: Bezeichnung streichen oder „verdeckt“ als Option anbieten → bei 4.3/4.4 umsetzen
 - 06.10.2026 · Neue Aufgabe 0.4 (Neu-Rendern) vor Phase 1 eingeschoben · im Smoke-Test als Ursache für verlorene Klicks und verlorene Eingaben identifiziert; ohne Fix wirkt jeder reparierte Button weiterhin „manchmal kaputt“
