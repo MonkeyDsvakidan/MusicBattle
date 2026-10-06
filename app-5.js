@@ -14,10 +14,7 @@ function resetDeviceModeChoice(){
 }
 
 async function openModeSelection(){
-  if(S.room?.id&&S.room.status!=="lobby"){
-    const ok=await mbConfirm("Zum Spielmodus wechseln? Das laufende Match wird für alle beendet.",{title:"Match verlassen?",confirmLabel:"Verlassen",cancelLabel:"Weiterspielen",danger:true});
-    if(!ok)return;
-  }
+  if(!(await mbConfirmLeave()))return;
   if(S.room?.id){
     try{await sb.rpc("mb_leave_room",{p_room_id:S.room.id})}catch(e){console.warn("Room leave before mode change failed:",e)}
   }

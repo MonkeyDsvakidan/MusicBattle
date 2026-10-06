@@ -30,6 +30,15 @@ function mbConfirm(message,{title="Bist du sicher?",confirmLabel="Bestätigen",c
     wrap.querySelector('[data-dialog="ok"]').focus();
   });
 }
+// Rückfrage beim Verlassen, passend zur Rolle (Entscheidung F, Roadmap 1.7).
+// In der Lobby und nach Matchende wird nicht gefragt.
+async function mbConfirmLeave(){
+  if(!S.room?.id||["lobby","finished","closed"].includes(S.room.status))return true;
+  const code=S.room.code;
+  if(isHost())return mbConfirm("Das laufende Match wird für alle beendet.",{title:"Match verlassen?",confirmLabel:"Verlassen",cancelLabel:"Weiterspielen",danger:true});
+  if(role()==="juror")return mbConfirm(`Du kannst mit dem Raumcode ${code} wieder als Juror beitreten.`,{title:"Jury verlassen?",confirmLabel:"Verlassen",cancelLabel:"Bleiben",danger:true});
+  return mbConfirm(`Das Match wartet auf dich. Mit dem Raumcode ${code} kommst du als Spieler 2 auf deinen Platz zurück.`,{title:"Match verlassen?",confirmLabel:"Verlassen",cancelLabel:"Weiterspielen",danger:true});
+}
 // Fingerabdruck der Raumdaten: Sync rendert nur, wenn sich etwas geändert hat.
 // Sonst ersetzt der 2,5-s-Poll laufend das DOM und Klicks/Eingaben gehen verloren.
 function mbRoomFingerprint(){

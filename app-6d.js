@@ -13,7 +13,20 @@ function render(){
   if(!S.user||!S.room){renderLanding();return}
   const localSlots=ownedMemberships().filter(m=>m.role==="player").map(m=>m.player_slot).sort();
   $("roomBadge").innerHTML=`<span class="chip">${esc(S.room.code)} · ${role()==="player"?(localSlots.length===2?"SPIELER 1 + 2":`SPIELER ${localSlots[0]}`):"JURY"}</span>`;
-  if(S.room.status==="lobby")renderLobby();else if(S.room.status==="draft")renderDraft();else if(S.room.status==="battle")renderBattle();else if(S.room.status==="tiebreak")renderTiebreak();else if(S.room.status==="sudden_draft")renderSuddenDraft();else if(S.room.status==="finished")renderFinished();else renderLobby();
+  if(S.room.status==="lobby")renderLobby();else if(S.room.status==="draft")renderDraft();else if(S.room.status==="battle")renderBattle();else if(S.room.status==="tiebreak")renderTiebreak();else if(S.room.status==="sudden_draft")renderSuddenDraft();else if(S.room.status==="finished")renderFinished();else if(S.room.status==="closed"){renderClosed();return}else renderLobby();
+  renderMissingPlayerNotice();
+}
+// Host hat das Match verlassen → Raum ist für alle geschlossen (Entscheidung F)
+function renderClosed(){
+  $("roomBadge").innerHTML="";
+  $("app").innerHTML=`<section class="card"><div class="eyebrow">MATCH BEENDET</div><h2>Der Host hat das Match beendet</h2><p class="muted">Raum ${esc(S.room.code)} ist geschlossen. Startet einfach ein neues Match.</p><div class="actions"><button class="btn primary" id="closedHome">Zur Startseite</button></div></section>`;
+  $("closedHome").onclick=()=>{resetLocalRoomState();render()};
+}
+// 2 Geräte: Spieler 2 hat den Raum mitten im Match verlassen → Platz wartet auf Wiederbeitritt
+function renderMissingPlayerNotice(){
+  if(S.room.device_mode!=="two"||!["draft","battle","tiebreak","sudden_draft"].includes(S.room.status))return;
+  if(S.members.some(m=>m.role==="player"&&m.player_slot===2))return;
+  $("app").insertAdjacentHTML("afterbegin",`<div class="notice" role="status" style="margin-bottom:14px"><strong>Spieler 2 hat das Match verlassen.</strong> Das Match wartet: Mit dem Raumcode <strong>${esc(S.room.code)}</strong> kann Spieler 2 über „Als Spieler 2 beitreten“ auf seinen Platz zurück.</div>`);
 }
 
 
