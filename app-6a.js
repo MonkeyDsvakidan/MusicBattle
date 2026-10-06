@@ -6,18 +6,47 @@ const SUDDEN_THEMES=[
   "Noch ein Song, dann ist Schluss"
 ];
 
-let mbFallbackPoll=null,mbPendingRender=false;
+let mbFallbackPoll=null,mbPendingRender=false,mbLastFingerprint="";
 function mbEditingActive(){
   const el=document.activeElement;
   return Boolean(el&&(el.matches?.("input, textarea, select")||el.isContentEditable));
+}
+// Fingerabdruck der Raumdaten: Sync rendert nur, wenn sich etwas geändert hat.
+// Sonst ersetzt der 2,5-s-Poll laufend das DOM und Klicks/Eingaben gehen verloren.
+function mbRoomFingerprint(){
+  try{return JSON.stringify([S.room,S.members,S.picks,S.rounds,S.subs,S.scores])}catch{return String(Date.now())}
+}
+// Getippten Text über einen Neuaufbau retten (nur innerhalb derselben Phase/Runde).
+function mbTextInputs(){
+  return [...document.querySelectorAll("#app input:not([type]), #app input[type=text], #app input[type=search], #app textarea")];
+}
+function mbInputKey(el){return el.id?"#"+el.id:(el.placeholder?"ph:"+el.placeholder:"")}
+function mbRenderKeepingInputs(){
+  const phase=`${S.room?.id}|${S.room?.status}|${S.room?.current_round}`;
+  const saved=mbTextInputs().filter(el=>el.value&&mbInputKey(el)).map(el=>[mbInputKey(el),el.value]);
+  mbLastFingerprint=mbRoomFingerprint();
+  render();
+  if(!saved.length||phase!==`${S.room?.id}|${S.room?.status}|${S.room?.current_round}`)return;
+  const fresh=mbTextInputs();
+  for(const [key,value] of saved){
+    const el=fresh.find(x=>mbInputKey(x)===key);
+    if(el&&!el.value)el.value=value;
+  }
 }
 async function mbSafeSync(){
   if(!S.room?.id)return;
   try{
     await loadRoom(S.room.id);
+    if(!mbPendingRender&&mbRoomFingerprint()===mbLastFingerprint)return;
     if(mbEditingActive()){mbPendingRender=true;return}
-    mbPendingRender=false;render();
+    mbPendingRender=false;mbRenderKeepingInputs();
   }catch(e){console.warn("room sync",e)}
+}
+async function reloadRoomNow(){
+  if(!S.room?.id)return;
+  await loadRoom(S.room.id);
+  mbLastFingerprint=mbRoomFingerprint();
+  render();
 }
 function refresh(){
   clearTimeout(refreshTimer);
@@ -33,7 +62,7 @@ function startRoomFallbackPoll(){
 }
 document.addEventListener("focusout",()=>{
   if(!mbPendingRender)return;
-  setTimeout(()=>{if(!mbEditingActive()&&mbPendingRender){mbPendingRender=false;render()}},150);
+  setTimeout(()=>{if(!mbEditingActive()&&mbPendingRender){mbPendingRender=false;mbRenderKeepingInputs()}},150);
 },true);
 function subscribeRoom(){
   if(!S.room)return;
