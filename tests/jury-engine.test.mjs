@@ -186,3 +186,11 @@ test("3.9: Grammatik – „1 passendes Motiv“, kein „nur 1“ bei Gleichsta
   assert.ok(!/1 passende Motive/.test(all), all);
   assert.ok(!/nur 1/.test(all), all);
 });
+
+test("3.9: Themen-Schwelle von Snoop Underdogg vergleicht nur gemeinsam vorhandene Merkmale", () => {
+  const t = theme("verliebt-sein");
+  const ohneText = song({ title: "Ohne Text", lastfm_listeners: 1400 });
+  const mitText = song({ title: "Mit Text", lastfm_listeners: 11000 }, "love baby heart " + filler(80));
+  const c = byKey(scoreRound(ohneText, mitText, t, config, { year: YEAR })).underdog;
+  assert.equal(c.verdict, "a", "fehlende Lyrics dürfen den Kleinen nicht thematisch disqualifizieren");
+});

@@ -135,10 +135,12 @@ export function computeFeatures(song, theme, config, year) {
   return { features: f, facts };
 }
 
-// Thematische Passung (Mittel der vorhandenen Themen-Merkmale) – für Snoop Underdoggs theme_gate
-function themeFit(f) {
-  const vals = ["title_keywords", "lyrics_keywords", "tag_match", "era_match"].map((k) => f[k]).filter((v) => v !== null && v !== undefined);
-  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+// Thematische Passung beider Songs (Mittel der Themen-Merkmale, die für BEIDE vorhanden sind) – für Snoop Underdoggs theme_gate
+function themeFits(fa, fb) {
+  const keys = ["title_keywords", "lyrics_keywords", "tag_match", "era_match"].filter((k) => fa[k] !== null && fa[k] !== undefined && fb[k] !== null && fb[k] !== undefined);
+  if (!keys.length) return [null, null];
+  const avg = (f) => keys.reduce((s, k) => s + f[k], 0) / keys.length;
+  return [avg(fa), avg(fb)];
 }
 
 function hasData(kind, song, f) {
@@ -270,7 +272,7 @@ export function scoreRound(songA, songB, theme, config, opts = {}) {
 
     // Snoop Underdogg: der kleinere Song gewinnt nur, wenn er thematisch genug mithält
     if (juror.theme_gate) {
-      const fitA = themeFit(A.features), fitB = themeFit(B.features);
+      const [fitA, fitB] = themeFits(A.features, B.features);
       const obscureSide = (A.features.obscurity ?? 0) >= (B.features.obscurity ?? 0) ? "a" : "b";
       const fitW = winner === "a" ? fitA : fitB, fitL = winner === "a" ? fitB : fitA;
       if (winner === obscureSide && fitW !== null && fitL !== null && fitL > 0 && fitW < juror.theme_gate * fitL) {
