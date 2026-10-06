@@ -18,7 +18,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 
 - **Frontend:** statisches HTML/CSS/Vanilla-JS, kein Build-Step, kein Framework. Deployment über GitHub Pages (`.github/workflows/pages.yml`, Push auf `main` = live).
 - **Backend:** Supabase-Projekt „MusicVote“ (`swgraidbdxpjqnvxacpq`): Postgres mit RLS, RPC-Funktionen `mb_*`, Realtime auf allen `mb_*`-Tabellen, anonyme Auth.
-- **Edge Functions:** `mb-track-profile` (seit 3.3) sammelt nach dem Einreichen einmal pro Song die Daten (LRCLIB, MusicBrainz, ListenBrainz, Last.fm) und speichert das Profil in `mb_track_profiles`. `mb-ai-jury` (Deno/TypeScript, alt) berechnet die 5 Juror-Wertungen noch mit Live-Abfragen; wird in 3.8 ersetzt. Gemeinsamer Code in `supabase/functions/_shared/` (`themes.json`, `track-features.mjs`). Beim Deploy über den Supabase-MCP die importierten `_shared`-Dateien als `../_shared/…` mitgeben. Secrets: `LASTFM_API_KEY` (gesetzt), `OPENROUTER_API_KEY` (nur alte Jury).
+- **Edge Functions:** `mb-track-profile` (3.3) sammelt nach dem Einreichen einmal pro Song die Daten (LRCLIB, MusicBrainz, ListenBrainz, Last.fm) und speichert das Profil in `mb_track_profiles`. `mb-jury` (3.8) bewertet eine Runde aus diesen Profilen mit der Jury-Engine (`_shared/jury-engine.mjs`) und speichert fünf Scorecards – keine Live-Abfragen, keine KI; fehlende Profile erstellt sie zuerst über `mb-track-profile`. `mb-ai-jury` (alt) wird nicht mehr aufgerufen. Gemeinsamer Code in `supabase/functions/_shared/` (`themes.json`, `jurors.json`, `track-features.mjs`, `jury-engine.mjs`). Beim Deploy über den Supabase-MCP alle importierten `_shared`-Dateien als `../_shared/…` mitgeben. Secrets: `LASTFM_API_KEY` (gesetzt); `OPENROUTER_API_KEY` wird nicht mehr gebraucht.
 - **Spotify:** OAuth PKCE im Browser, Web API für Top-Artists/Suche, Web Playback SDK zum Abspielen (Premium nötig).
 
 ### Datenmodell (public)
@@ -46,7 +46,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `js/room.js` | Anmeldung, Raum laden/beitreten/erstellen/verlassen, Sync (Realtime + Poll mit Fingerabdruck), `init` |
 | `js/draft.js` | Draft, Skip, Sudden-Death-Draft |
 | `js/battle.js` | Songsuche, Einreichen (stösst danach `mb-track-profile` im Hintergrund an), Startpunkt |
-| `js/jury.js` | Scorecards, eigener Entscheid, Auto-Jury, `roundDecision`, `finalizeRound` |
+| `js/jury.js` | Scorecards, eigener Entscheid, Auto-Jury (ruft `mb-jury` auf), `roundDecision`, `finalizeRound` |
 | `js/ui-screens.js` | Bildschirme: Start, Lobby, Draft, Battle, Jury, Tiebreak, Endstand |
 | `js/main.js` | Start: genau ein `init()` + `render()`, nachdem alles geladen ist |
 
