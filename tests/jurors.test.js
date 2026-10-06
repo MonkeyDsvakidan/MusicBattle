@@ -43,11 +43,13 @@ test("Text-Bausteine: vorhanden, nur bekannte Platzhalter, Schweizer Schreibweis
   for (const j of data.jurors) {
     assert.ok(j.texts.win?.length > 0, `${j.key}: keine win-Texte`);
     assert.ok(j.texts.weak?.length > 0, `${j.key}: keine weak-Texte`);
+    assert.ok(j.texts.tie?.length > 0, `${j.key}: keine tie-Texte`);
     for (const [kind, list] of Object.entries(j.texts)) {
       for (const t of list) {
         for (const m of t.matchAll(/\{(\w+)\}/g)) assert.ok(PLACEHOLDERS.includes(m[1]), `${j.key}.${kind}: unbekannter Platzhalter {${m[1]}}`);
         assert.ok(!t.includes("ß"), `${j.key}.${kind}: „ß“ statt „ss“`);
-        assert.ok(t.includes("{winner}"), `${j.key}.${kind}: Text nennt den Gewinner nicht`);
+        if (kind.startsWith("win")) assert.ok(t.includes("{winner}"), `${j.key}.${kind}: Text nennt den Gewinner nicht`);
+        else assert.ok(!/\{(winner|loser)/.test(t) && t.includes("10–10"), `${j.key}.${kind}: 10–10-Text darf keinen Gewinner nennen und muss „10–10“ sagen`);
       }
     }
   }
