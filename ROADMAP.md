@@ -196,7 +196,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 - ~~**A – Wer darf selber entscheiden?**~~ → entschieden 06.10.2026: nur der Host.
 - ~~**B – Eigener Entscheid vs. menschliche Juroren:**~~ → entschieden 06.10.2026: Selber entscheiden nur ohne Juror im Raum; mit Juror zählt allein die menschliche Jury.
   - *Teilantwort Nutzer 06.10.2026:* Ohne Juror im Raum muss „Selber entscheiden“ immer möglich sein – auch statt der Auto-Jury, wenn man sie nicht nutzen will. Offen: Darf der Host auch **mit** Juror im Raum selbst entscheiden/überstimmen? → in 1.1 klären.
-- **C – Gleichstand bei einem Juror / zu wenig Daten:** Vorschlag: Juror vergibt 10–10 und sagt offen „zu wenig Daten“; endet die ganze Jury unentschieden, wird „Selber entscheiden“ hervorgehoben.
+- ~~**C – Gleichstand bei einem Juror / zu wenig Daten:**~~ → entschieden 06.10.2026: Juror vergibt **10–10** und sagt offen „Gleichstand“ bzw. „zu wenig Daten“ (kein Münzwurf). Endet die ganze Jury unentschieden, wird die Runde nicht automatisch gewertet, sondern „Selber entscheiden“ angeboten. Selber entscheiden bleibt ohnehin nach jedem Jury-Urteil möglich (ohne Juror im Raum, siehe 1.1).
 - **D – KI für Formulierungen behalten?** Vorschlag: nein – Text-Bausteine pro Juror sind konsistenter, schneller und kostenlos.
 - **E – Design-Richtung** (siehe 4.1).
 - ~~**F – Was passiert, wenn jemand das Match verlässt?**~~ → entschieden 06.10.2026: Host → Match endet für alle; Spieler 2 (2 Geräte) → Raum wartet auf Wiederbeitritt.
@@ -207,6 +207,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 - 06.10.2026 · Jury soll ohne KI auf gespeicherten Songdaten urteilen · Wunsch des Nutzers, bessere Nachvollziehbarkeit und Zuverlässigkeit
 - 06.10.2026 · „Selber entscheiden“ soll immer verfügbar sein · Wunsch des Nutzers
 - 06.10.2026 · Supabase-Stand per MCP statt CLI ins Repo geholt: Remote-Migrationshistorie 1:1 übernommen, Dashboard-Änderungen als eigene idempotente Migration nachgetragen (statt einer einzigen Gesamt-Baseline) · so bleibt die Historie mit `supabase migration list` deckungsgleich und nichts muss in der Live-DB repariert werden
+- 06.10.2026 · Entscheidung C: Juror-Gleichstand oder fehlende Daten → 10–10 mit offenem Hinweis; Jury-Remis → „Selber entscheiden“ anbieten, keine automatische Wertung · Entscheid des Nutzers; ersetzt den bisherigen Hash-„Münzwurf“
 - 06.10.2026 · Juror-Namen bleiben unverändert (inkl. „Kollegah der Lyricboss“, „Snoop Underdogg“); Juror-Bilder vorerst weglassen (die ursprünglichen `assets/jury/*.webp` waren nie im Repo und sind nicht mehr vorhanden) · Entscheid des Nutzers; 4.5 bleibt offen für später
 - 06.10.2026 · Smoke-Test ohne Handy per Mehrfenster-Simulation; Abspielen gilt durch den Handy-Test vom selben Tag als geprüft (Code unverändert) · Nutzerwunsch, spart Gerätewechsel
 - 06.10.2026 · Jury-Texte nicht mehr im DOM umschreiben (2.4) – bis Phase 3 erscheinen die nüchternen Originaltexte der Edge Function · Nutzer hat zugestimmt; eine Quelle für Begründungen statt zwei
