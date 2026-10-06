@@ -63,7 +63,7 @@ async function submitSelfDecision(winner){
   if(!r||!subs[0]||!subs[1])return;
   if(jurors.length){S.error="Selber entscheiden ist nur möglich, wenn keine menschlichen Juroren im Spiel sind.";render();return}
   const chosen=subs[winner-1];
-  if(!window.confirm(`„${chosen.song_name}“ wirklich als Rundensieger wählen?`))return;
+  if(!(await mbConfirm(`„${chosen.song_name}“ als Rundensieger wählen? Die Runde wird sofort gewertet.`,{title:"Selber entscheiden",confirmLabel:"Ja, Sieger festlegen"})))return;
   selfDecisionRunning=true;S.error="";
   try{
     // Pro Runde und Host nur ein eigener Entscheid (Index mb_human_score_once)

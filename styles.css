@@ -96,3 +96,13 @@ input:focus,select:focus{
 }
 
 .brand-home{appearance:none;border:0;background:transparent;color:inherit;padding:0;display:flex;align-items:center;gap:13px;cursor:pointer;text-align:left}.brand-home:hover .mark{filter:brightness(1.12);transform:translateY(-1px)}.brandcopy{display:block}.brandcopy .eyebrow{display:block}.brandtitle{display:block;font:700 28px "Space Grotesk",sans-serif;line-height:1.1}.brand-home:focus-visible{outline:2px solid var(--purple);outline-offset:6px;border-radius:14px}@media(max-width:560px){.brandtitle{font-size:22px}}
+
+/* In-App-Bestätigung (mbConfirm, Roadmap 1.6) */
+.mb-dialog-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:16px;background:rgba(5,7,12,.72);backdrop-filter:blur(4px)}
+.mb-dialog{width:min(420px,100%);padding:22px;background:var(--panel2)}
+.mb-dialog h3{margin:0 0 8px;font-size:20px}
+.mb-dialog p{margin:0 0 18px;line-height:1.5}
+.mb-dialog .actions{display:flex;gap:10px;flex-wrap:wrap}
+.mb-dialog .actions .btn{flex:1 1 140px;min-height:44px}
+@media (prefers-reduced-motion:no-preference){.mb-dialog{animation:mbDialogIn .16s ease-out}}
+@keyframes mbDialogIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}

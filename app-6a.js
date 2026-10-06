@@ -11,6 +11,25 @@ function mbEditingActive(){
   const el=document.activeElement;
   return Boolean(el&&(el.matches?.("input, textarea, select")||el.isContentEditable));
 }
+// Bestätigung in der App statt window.confirm (Roadmap 1.6). Hängt ausserhalb von #app,
+// damit ein Neuaufbau der Seite den offenen Dialog nicht entfernt. Liefert true/false.
+function mbConfirm(message,{title="Bist du sicher?",confirmLabel="Bestätigen",cancelLabel="Abbrechen",danger=false}={}){
+  if(document.querySelector(".mb-dialog-backdrop"))return Promise.resolve(false);
+  return new Promise(resolve=>{
+    const prev=document.activeElement,wrap=document.createElement("div");
+    wrap.className="mb-dialog-backdrop";
+    wrap.innerHTML=`<div class="mb-dialog card" role="alertdialog" aria-modal="true" aria-labelledby="mbDialogTitle" aria-describedby="mbDialogText"><h3 id="mbDialogTitle">${esc(title)}</h3><p id="mbDialogText" class="muted">${esc(message)}</p><div class="actions"><button class="btn" type="button" data-dialog="cancel">${esc(cancelLabel)}</button><button class="btn ${danger?"danger":"primary"}" type="button" data-dialog="ok">${esc(confirmLabel)}</button></div></div>`;
+    const close=ok=>{document.removeEventListener("keydown",onKey,true);wrap.remove();prev?.focus?.();resolve(ok)};
+    const onKey=e=>{
+      if(e.key==="Escape"){e.preventDefault();close(false);return}
+      if(e.key==="Tab"){e.preventDefault();const f=[...wrap.querySelectorAll("button")],i=f.indexOf(document.activeElement);f[(i+(e.shiftKey?-1:1)+f.length)%f.length].focus()}
+    };
+    wrap.addEventListener("click",e=>{if(e.target===wrap){close(false);return}const b=e.target.closest("[data-dialog]");if(b)close(b.dataset.dialog==="ok")});
+    document.addEventListener("keydown",onKey,true);
+    document.body.appendChild(wrap);
+    wrap.querySelector('[data-dialog="ok"]').focus();
+  });
+}
 // Fingerabdruck der Raumdaten: Sync rendert nur, wenn sich etwas geändert hat.
 // Sonst ersetzt der 2,5-s-Poll laufend das DOM und Klicks/Eingaben gehen verloren.
 function mbRoomFingerprint(){

@@ -15,7 +15,7 @@ function resetDeviceModeChoice(){
 
 async function openModeSelection(){
   if(S.room?.id&&S.room.status!=="lobby"){
-    const ok=window.confirm("Zum Spielmodus wechseln? Das laufende Match wird verlassen.");
+    const ok=await mbConfirm("Zum Spielmodus wechseln? Das laufende Match wird für alle beendet.",{title:"Match verlassen?",confirmLabel:"Verlassen",cancelLabel:"Weiterspielen",danger:true});
     if(!ok)return;
   }
   if(S.room?.id){
