@@ -138,7 +138,9 @@ Grundidee: Die Daten werden **einmal pro Song** gesammelt und gespeichert. Die f
   - Probelauf mit den 8 echten Song-Profilen aus der DB (3 Paare): Ergebnisse nachvollziehbar (z. B. „2016 Banger“: Release-Jahr entscheidet 10–8; Lyricboss ohne Lyrics → 10–10). Daraufhin Gleichstand-Begründungen neutral formuliert („3 zu 4 passende Motive im Text“ statt „…, bei X nur 4“), +1 Test (gesamt 32 grün).
   - Für 3.9 notiert: Vibejunkie entscheidet bei gleichen Tags/gleicher Energie über die schwach gewichteten Text-Motive – evtl. dann lieber 10–10; Last.fm-Hörerzahl von „Summer Cem“ (60) wirkt zu klein (Titel = Künstlername).
   - Noch nicht im Spiel aktiv: Einbindung in die Jury-Edge-Function folgt in 3.8, die 10–10-Datenbankregel in 3.7.
-- [ ] 🟡 **3.7 Gleichstand und fehlende Daten** gemäss Entscheidung C umsetzen – kein Münzwurf mehr.
+- [x] 🟡 **3.7 Gleichstand und fehlende Daten** gemäss Entscheidung C umsetzen – kein Münzwurf mehr.
+  - *Erledigt 06.10.2026* (Entscheidung C): Engine vergibt 10–10 bei Gleichstand/fehlenden Daten (3.6). Migration `20261006210521_jury_scores_allow_ai_tie.sql`: Prüfregel `mb_jury_scores_check` erweitert – 10–10 **nur** für `source = 'ai'`, menschliche Scorecards bleiben 10–8/10–9 (Trockenlauf: KI 10–10 ok, Mensch 10–10 und KI 9–9 blockiert, alle 258 bestehenden Zeilen gültig). Frontend: Bei Jury-Remis kein „Runde übernehmen“, stattdessen „Unentschieden · Ihr entscheidet – Wer gewinnt die Runde?“ mit den Selbst-Buttons; Mitspieler sehen „Der Host wählt den Rundensieger“. BUILD `20261006-10`.
+  - Getestet live (Raum `GRTKTB`, serverseitig eingefügte KI-Scorecards mit einem 10–10 und Summe 47:47): Anzeige korrekt, kein Übernehmen-Button, eigener Entscheid per echtem Klick + Dialog → Runde 1 an B.
 - [ ] **3.8** `mb-ai-jury` durch die neue Jury ersetzen (neuer Name z. B. `mb-jury`), OpenRouter-Aufruf entfernen (Entscheidung D). Frontend: Juroren einzeln oder gesammelt aufdecken, gezeigte Daten-Fakten pro Juror. Alte Scores in der DB bleiben unangetastet.
 - [ ] **3.9** Test mit 10 echten Song-Paaren über verschiedene Themen; Ergebnisse und Auffälligkeiten hier notieren, Gewichte nachjustieren.
 
@@ -203,7 +205,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 - ~~**B – Eigener Entscheid vs. menschliche Juroren:**~~ → entschieden 06.10.2026: Selber entscheiden nur ohne Juror im Raum; mit Juror zählt allein die menschliche Jury.
   - *Teilantwort Nutzer 06.10.2026:* Ohne Juror im Raum muss „Selber entscheiden“ immer möglich sein – auch statt der Auto-Jury, wenn man sie nicht nutzen will. Offen: Darf der Host auch **mit** Juror im Raum selbst entscheiden/überstimmen? → in 1.1 klären.
 - ~~**C – Gleichstand bei einem Juror / zu wenig Daten:**~~ → entschieden 06.10.2026: Juror vergibt **10–10** und sagt offen „Gleichstand“ bzw. „zu wenig Daten“ (kein Münzwurf). Endet die ganze Jury unentschieden, wird die Runde nicht automatisch gewertet, sondern „Selber entscheiden“ angeboten. Selber entscheiden bleibt ohnehin nach jedem Jury-Urteil möglich (ohne Juror im Raum, siehe 1.1).
-- **D – KI für Formulierungen behalten?** Vorschlag: nein – Text-Bausteine pro Juror sind konsistenter, schneller und kostenlos.
+- ~~**D – KI für Formulierungen behalten?**~~ → entschieden 06.10.2026: **nein**. Begründungen nur aus den Text-Bausteinen; OpenRouter-Aufruf entfällt mit 3.8 (Secret `OPENROUTER_API_KEY` kann danach gelöscht werden).
 - **E – Design-Richtung** (siehe 4.1).
 - ~~**F – Was passiert, wenn jemand das Match verlässt?**~~ → entschieden 06.10.2026: Host → Match endet für alle; Spieler 2 (2 Geräte) → Raum wartet auf Wiederbeitritt.
 
@@ -213,6 +215,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 - 06.10.2026 · Jury soll ohne KI auf gespeicherten Songdaten urteilen · Wunsch des Nutzers, bessere Nachvollziehbarkeit und Zuverlässigkeit
 - 06.10.2026 · „Selber entscheiden“ soll immer verfügbar sein · Wunsch des Nutzers
 - 06.10.2026 · Supabase-Stand per MCP statt CLI ins Repo geholt: Remote-Migrationshistorie 1:1 übernommen, Dashboard-Änderungen als eigene idempotente Migration nachgetragen (statt einer einzigen Gesamt-Baseline) · so bleibt die Historie mit `supabase migration list` deckungsgleich und nichts muss in der Live-DB repariert werden
+- 06.10.2026 · Entscheidung D: keine KI-Umformulierung der Jury-Texte · konsistenter, sofort verfügbar, kostenlos; im Test scheiterte die Umformulierung jedes Mal und kostete ~5 s
 - 06.10.2026 · Entscheidung C: Juror-Gleichstand oder fehlende Daten → 10–10 mit offenem Hinweis; Jury-Remis → „Selber entscheiden“ anbieten, keine automatische Wertung · Entscheid des Nutzers; ersetzt den bisherigen Hash-„Münzwurf“
 - 06.10.2026 · Juror-Namen bleiben unverändert (inkl. „Kollegah der Lyricboss“, „Snoop Underdogg“); Juror-Bilder vorerst weglassen (die ursprünglichen `assets/jury/*.webp` waren nie im Repo und sind nicht mehr vorhanden) · Entscheid des Nutzers; 4.5 bleibt offen für später
 - 06.10.2026 · Smoke-Test ohne Handy per Mehrfenster-Simulation; Abspielen gilt durch den Handy-Test vom selben Tag als geprüft (Code unverändert) · Nutzerwunsch, spart Gerätewechsel
