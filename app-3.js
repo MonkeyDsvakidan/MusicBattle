@@ -66,13 +66,18 @@ async function submitSelfDecision(winner){
   if(!window.confirm(`„${chosen.song_name}“ wirklich als Rundensieger wählen?`))return;
   selfDecisionRunning=true;S.error="";
   try{
-    const {error}=await sb.from("mb_jury_scores").insert({
-      round_id:r.id,room_id:S.room.id,source:"human",juror_user_id:S.user.id,
-      juror_name:"Eigener Entscheid",score_a:winner===1?10:9,score_b:winner===2?10:9,
-      reason:`Manueller Entscheid: ${chosen.song_name}`,details:{kind:"self_decision",winner_slot:winner}
-    });
-    if(error)throw error;
+    // Pro Runde und Host nur ein eigener Entscheid (Index mb_human_score_once)
+    if(!S.scores.some(s=>s.round_id===r.id&&isSelfDecision(s))){
+      const {error}=await sb.from("mb_jury_scores").insert({
+        round_id:r.id,room_id:S.room.id,source:"human",juror_user_id:S.user.id,
+        juror_name:"Eigener Entscheid",score_a:winner===1?10:9,score_b:winner===2?10:9,
+        reason:`Manueller Entscheid: ${chosen.song_name}`,details:{kind:"self_decision",winner_slot:winner}
+      });
+      if(error)throw error;
+    }
     await reloadRoomNow();
+    // Der Entscheid ist bereits bestätigt – Runde direkt übernehmen
+    await finalizeRound();
   }catch(e){S.error=e?.message||String(e);render()}
   finally{selfDecisionRunning=false}
 }
@@ -100,4 +105,4 @@ async function runAIJury(){
   }
 }
 function scoreSummary(scores){let a=0,b=0;for(const s of scores){a+=s.score_a;b+=s.score_b}return{a,b,winner:a===b?null:(a>b?1:2)}}
-async function finalizeRound(){const r=currentRound(),hs=humanScores(),as=aiScores(),use=hs.length?hs:as;if(!use.length){S.error="Noch keine Jury-Wertung vorhanden.";render();return}const x=scoreSummary(use);if(!x.winner){S.error="Score ist unentschieden. Bitte eine weitere menschliche Jurorin/einen weiteren Juror abstimmen lassen.";render();return}const {error}=await sb.rpc("mb_advance_round",{p_room_id:S.room.id,p_round_number:r.round_number,p_winner_slot:x.winner});if(error)S.error=error.message;S.aiReveal=0;await reloadRoomNow()}
+async function finalizeRound(){const r=currentRound();if(!r)return;const d=roundDecision(r.id,true),use=d.scores;if(!use.length){S.error=d.kind==="juror"?"Noch keine Scorecard der Juroren vorhanden.":"Noch keine Jury-Wertung vorhanden.";render();return}const x=scoreSummary(use);if(!x.winner){S.error=d.kind==="juror"?"Score ist unentschieden. Bitte eine weitere menschliche Jurorin/einen weiteren Juror abstimmen lassen.":"Score ist unentschieden. Bitte den Rundensieger selber wählen.";render();return}const {error}=await sb.rpc("mb_advance_round",{p_room_id:S.room.id,p_round_number:r.round_number,p_winner_slot:x.winner});if(error)S.error=error.message;S.aiReveal=0;await reloadRoomNow()}
