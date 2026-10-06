@@ -45,14 +45,14 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `js/room.js` | Anmeldung, Raum laden/beitreten/erstellen/verlassen, Sync (Realtime + Poll mit Fingerabdruck), `init` |
 | `js/draft.js` | Draft, Skip, Sudden-Death-Draft |
 | `js/battle.js` | Songsuche, Einreichen, Startpunkt |
-| `js/jury.js` | Scorecards, eigener Entscheid, Auto-Jury, `roundDecision`, `finalizeRound`, Jury-Texte |
+| `js/jury.js` | Scorecards, eigener Entscheid, Auto-Jury, `roundDecision`, `finalizeRound` |
 | `js/ui-screens.js` | Bildschirme: Start, Lobby, Draft, Battle, Jury, Tiebreak, Endstand |
 | `js/main.js` | Start: genau ein `init()` + `render()`, nachdem alles geladen ist |
 
 Regeln:
 - Neue Funktionen in die thematisch passende Datei; eine Funktion nie in einer zweiten Datei neu definieren.
 - Top-Level-Code (Listener, Observer) läuft beim Laden – nur Funktionen aus derselben oder früheren Dateien direkt aufrufen.
-- Noch offen: `jury.js` überschreibt die Jury-Begründungen per `MutationObserver` (→ Roadmap 2.4); die Juror-Bilder werden in `config.js` geleert (`assets/jury/` fehlt, → 4.5).
+- Jury-Begründungen werden so angezeigt, wie die Edge Function sie speichert (kein Nachbearbeiten im DOM). Die Juror-Bilder werden in `config.js` geleert (`assets/jury/` fehlt, → 4.5).
 - Cache-Busting: `BUILD` in `app.js` und `?v=` in `index.html` erhöhen.
 - Die alten `app-1.js … app-6d.js` werden **nicht mehr geladen** und in Roadmap 2.5 gelöscht – nicht mehr bearbeiten.
 

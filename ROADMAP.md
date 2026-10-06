@@ -92,7 +92,8 @@
   - Alte `app-*.js` bleiben bis 2.5 im Repo, werden aber nicht mehr geladen.
 - [x] **2.3** Start-Race beheben: genau ein `init()` nach vollständigem Laden. Loader `app.js` und Cache-Busting vereinfachen.
   - *Erledigt mit 2.2:* `js/main.js` ruft `init()` genau einmal auf, nachdem alle Skripte geladen sind (vorher am Ende von app-4). `app.js` ist ein lesbarer Loader mit Dateiliste; das Leeren der Juror-Bilder steht jetzt in `config.js`. BUILD `20261006-5`.
-- [ ] **2.4** `MutationObserver`-Textüberschreibung entfernen (Begründungen kommen künftig fertig aus der Jury, Phase 3).
+- [x] **2.4** `MutationObserver`-Textüberschreibung entfernen (Begründungen kommen künftig fertig aus der Jury, Phase 3).
+  - *Erledigt 06.10.2026:* `juryTextObserver` und die 8 nur dafür genutzten Hilfsfunktionen (`juryMeta` … `applyJuryTextPolish`, ~7 KB) aus `js/jury.js` entfernt. Begründungen erscheinen jetzt so, wie die Edge Function sie speichert (nüchterner, Schwächen wie „Motiv: rap“ sichtbar; der Tippfehler „Spotify-Hörsignal-Signal“ entfällt). Bessere Texte kommen mit Phase 3. BUILD `20261006-6`.
 - [ ] **2.5** Kompletter Smoke-Test, Abschnitt „Code-Aufbau“ in `CLAUDE.md` auf die neue Struktur aktualisieren, alte `app-*.js` löschen.
 
 ## Phase 3 – Neue Jury: Song-Profil × Themen-Profil × Juror-Profil
@@ -151,7 +152,7 @@ Grundidee: Die Daten werden **einmal pro Song** gesammelt und gespeichert. Die f
 - **Battle, Abspielen** · Song spielt · „Spotify Player Initialisierung: Failed to initialize player“ · **Testumgebung**: eingebauter Browser hat kein Widevine/DRM. Abspielen/Pause/Startpunkt-Wiedergabe muss in Chrome bzw. am Handy getestet werden · → 0.2. Die Fehlermeldung bleibt zudem in den nächsten Runden stehen (siehe nächster Punkt).
 - **Battle, Statusmeldungen** · Meldung gilt nur für den Moment · „KI-Jury ist bereit.“ und Player-Fehler bleiben in Folgerunden stehen · `S.error`/Info wird beim Rundenwechsel nicht geleert · → 4.4
 - **Jury, Auto-Jury** · Urteil mit Ladeanzeige in wenigen Sekunden · ~10 s ohne jede Ladeanzeige; Last.fm, Genius, MusicBrainz, ListenBrainz lieferten nichts, nur Song A hatte Lyrics → alle 5 Juroren 10–9 für A mit Begründung „Motiv: rap“ · `OPENROUTER_API_KEY` ist gesetzt, Umformulierung scheitert aber („No JSON object returned“) und kostet ~5 s · → 3.4, 3.8
-- **Jury, Begründungen** · Text aus der DB · angezeigter Text ≠ gespeicherter Text (MutationObserver app-6d), u. a. Tippfehler „Spotify-Hörsignal-Signal“ · → 2.4
+- ✅ *behoben in 2.4* – **Jury, Begründungen** · Text aus der DB · angezeigter Text ≠ gespeicherter Text (MutationObserver app-6d), u. a. Tippfehler „Spotify-Hörsignal-Signal“ · → 2.4
 - **Jury, Motiv-Erkennung** · thematische Treffer · deutscher Artikel „die“ zählt als englisches Motiv *die* (sterben) im Thema „Letzte Chance auf den Sieg“ · `motifRules` mischt DE/EN ohne Sprachprüfung · → 3.1/3.6
 - **Jury, nach Auto-Jury** · „Selber entscheiden“ weiter möglich · Option verschwindet · bekannt · → 1.3
 - **Sudden Death** · sauberes Label · „SUDDEN DEATH · SUDDEN DEATH“ (Kategorie = Rundenname) · → 4.4
@@ -185,6 +186,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 - 06.10.2026 · Jury soll ohne KI auf gespeicherten Songdaten urteilen · Wunsch des Nutzers, bessere Nachvollziehbarkeit und Zuverlässigkeit
 - 06.10.2026 · „Selber entscheiden“ soll immer verfügbar sein · Wunsch des Nutzers
 - 06.10.2026 · Supabase-Stand per MCP statt CLI ins Repo geholt: Remote-Migrationshistorie 1:1 übernommen, Dashboard-Änderungen als eigene idempotente Migration nachgetragen (statt einer einzigen Gesamt-Baseline) · so bleibt die Historie mit `supabase migration list` deckungsgleich und nichts muss in der Live-DB repariert werden
+- 06.10.2026 · Jury-Texte nicht mehr im DOM umschreiben (2.4) – bis Phase 3 erscheinen die nüchternen Originaltexte der Edge Function · Nutzer hat zugestimmt; eine Quelle für Begründungen statt zwei
 - 06.10.2026 · Konsolidierung als klassische Skripte (Variante A) statt ES-Modulen · geringes Risiko (Code zieht 1:1 um); Module erst, wenn Phase 3/4 die Struktur festgelegt haben (Nutzer einverstanden)
 - 06.10.2026 · Verlassen-Regel F: Host verlässt → Match endet für alle (Hinweis + Startseite); Spieler 2 verlässt → Platz wartet auf Wiederbeitritt per Raumcode · Entscheid des Nutzers (1.7). „Raum verlassen“ fragt mitten im Match jetzt ebenfalls nach (vorher ohne Rückfrage)
 - 06.10.2026 · Text Moduswechsel: „Das laufende Match wird für alle beendet“ statt „…wird verlassen“, Buttons „Weiterspielen“/„Verlassen“ · entspricht dem tatsächlichen Verhalten (Raum wird geschlossen, siehe Bug `mb_leave_room`)
