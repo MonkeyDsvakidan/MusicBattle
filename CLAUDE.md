@@ -38,7 +38,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 
 | Datei | Inhalt |
 |---|---|
-| `js/config.js` | Supabase-/Spotify-Konfiguration, `JUDGES`, `THEMES`, `SUDDEN_THEMES` |
+| `js/config.js` | Supabase-/Spotify-Konfiguration, `JUDGES`; `THEMES`, `SUDDEN_THEMES`, `themeProfile()` aus der Themen-Datei |
 | `js/state.js` | Zustand `S`, `$`/`esc`, Raum-/Mitglieder-/Runden-Abfragen, `resetLocalRoomState` |
 | `js/ui-common.js` | `mbConfirm`, `mbConfirmLeave`, `render()`-Verteiler, Closed-Screen, gemeinsame Bausteine |
 | `js/spotify.js` | Spotify-Login (PKCE), Token, Künstler-Pool, Web Playback |
@@ -48,6 +48,8 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `js/jury.js` | Scorecards, eigener Entscheid, Auto-Jury, `roundDecision`, `finalizeRound` |
 | `js/ui-screens.js` | Bildschirme: Start, Lobby, Draft, Battle, Jury, Tiebreak, Endstand |
 | `js/main.js` | Start: genau ein `init()` + `render()`, nachdem alles geladen ist |
+
+Gemeinsame Daten: `supabase/functions/_shared/themes.json` enthält alle Themen mit Profil (Schlüsselwörter DE/EN, Tags, Energie, Ära). Das Frontend lädt sie über `app.js` (GitHub Pages liefert das ganze Repo aus), die Jury-Edge-Function importiert sie ab Roadmap 3.8. Themen nur dort ändern.
 
 Regeln:
 - Neue Funktionen in die thematisch passende Datei; eine Funktion nie in einer zweiten Datei neu definieren.
@@ -97,7 +99,7 @@ Es gibt keine automatischen Tests für das Frontend. Nach jeder Änderung den be
 6. 2-Geräte-Modus: Beitritt mit Code, Realtime-Sync auf beiden Geräten
 7. Raum verlassen / Modus wechseln / Seite neu laden mitten im Match
 
-Reine Logik (z. B. Jury-Bewertung) wird als reine Funktion geschrieben und mit `node --test` getestet.
+Reine Logik (z. B. Jury-Bewertung) wird als reine Funktion geschrieben und mit `node --test` getestet. Tests liegen in `tests/*.test.js`; ausführen im Repo-Root mit `node --test`.
 
 ## Glossar
 - **Slot** – Spielerplatz 1 oder 2 (A = Slot 1, B = Slot 2)

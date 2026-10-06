@@ -13,15 +13,13 @@ const SPOTIFY={auth:"https://accounts.spotify.com/authorize",token:"https://acco
 
 const JUDGES={theme:{name:"Themenschnüffler",role:"Themen-Purist",image:"./assets/jury/themenschnueffler.webp"},vibe:{name:"Vibejunkie",role:"Atmosphäre-Juror",image:"./assets/jury/vibejunkie.webp"},lyrics:{name:"Kollegah der Lyricboss",role:"Lyrics-Juror",image:"./assets/jury/lyricboss.webp"},underdog:{name:"Snoop Underdogg",role:"David-vs-Goliath-Juror",image:"./assets/jury/snoop-underdogg.webp"},connoisseur:{name:"Dr. Körnli",role:"Musikkenner-Juror",image:"./assets/jury/dr-koernli.webp"}};
 
-const THEMES={"Arena & Action":["Wrestling-Intro","Sunny Basketball Day","Einlauf vor dem wichtigsten Spiel","Siegesfeier nach dem Finale"],"Kino & Charakter":["Superheld betritt die Szene","Bösewicht betritt die Szene","Filmtrailer für einen Gangsterfilm","Flucht vor der Polizei","Der letzte Song, bevor die Welt endet"],"Stadt & Nacht":["Nachtfahrt durch eine Grossstadt","Freitagabend","Samstag um 2 Uhr nachts","Du betrittst einen Raum und alle schauen","3 Uhr nachts im Uber nach Hause"],"Sommer & Unterwegs":["Roadtrip mit Freunden","Cabrio im Sommer","Am Strand","Sonnenuntergang auf einem Dach","Erste Fahrt im neuen Auto"],"Wetter & Tageszeit":["Regentag in der Stadt","Erster warmer Tag im Frühling","Schneefall mitten in der Nacht","Sonntagmorgen","Montagmorgen"],"Party & Kultur":["OAFF Abriss","Kleine Underground-Party","2000er-Party","90er-Party","Letzter Song vor Clubschluss"],"Emotion & Erinnerung":["Verliebt sein","Herzschmerz","Alle gegen dich","Motivationssong für schlechte Zeiten","Nostalgie"],"Attitude & Status":["Luxusleben","Selbstvertrauen auf Maximum","Diss-Track-Energie","Victory Lap","Niemand kann dir heute etwas sagen"],"Zeitmaschine":["2010 Banger","2012 Banger","2014 Banger","2016 Banger","2018 Banger","2020 Banger","2022 Banger","2024 Banger"],"Hip-Hop Momente":["Street-Anthem","Cypher-Energie","Gym-Track","Late-Night-Rap","Sommer-Rap-Hit","Club-Banger","Kopfhörer-Track für den Heimweg","Track für die erste Reihe am Festival"]};
+// Themen und Themen-Profile kommen aus supabase/functions/_shared/themes.json (Roadmap 3.1),
+// der gemeinsamen Quelle für Frontend und Jury. app.js lädt die Datei vor allen Skripten.
+const THEMES=Object.fromEntries(MB_THEME_DATA.categories.filter(c=>!c.sudden).map(c=>[c.name,c.themes.map(t=>t.theme)]));
 
-const SUDDEN_THEMES=[
-  "Alles oder nichts – der finale Song",
-  "Final Boss betritt die Arena",
-  "Letzte Chance auf den Sieg",
-  "Der Song für den entscheidenden Moment",
-  "Noch ein Song, dann ist Schluss"
-];
+const SUDDEN_THEMES=MB_THEME_DATA.categories.filter(c=>c.sudden).flatMap(c=>c.themes.map(t=>t.theme));
+const THEME_PROFILES=new Map(MB_THEME_DATA.categories.flatMap(c=>c.themes.map(t=>[t.theme,{...t,category:c.name}])));
+function themeProfile(theme){return THEME_PROFILES.get(theme)||null}
 
 // Juror-Bilder gibt es noch nicht (assets/jury fehlt) – bis Roadmap 4.5 ohne Bild (vorher im Loader app.js)
 Object.values(JUDGES).forEach(j=>j.image="");

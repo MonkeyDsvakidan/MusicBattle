@@ -1,0 +1,226 @@
+{
+  "version": 1,
+  "about": "Themen-Profile (Roadmap 3.1). Einzige Quelle für Frontend (js/config.js) und Jury (Edge Function). keywords.de/.en werden nur gegen Texte der jeweiligen Sprache geprüft; tags sind Stimmungs-/Genre-Tags im Stil von Last.fm/ListenBrainz (englisch, klein); energy = high|medium|low; era = {from,to} nur wenn das Thema eine Zeit vorgibt.",
+  "categories": [
+    {
+      "name": "Arena & Action",
+      "themes": [
+        { "id": "wrestling-intro", "theme": "Wrestling-Intro", "energy": "high", "era": null,
+          "tags": ["hype", "aggressive", "energetic", "epic", "trap", "rock"],
+          "keywords": { "de": ["arena", "ring", "kampf", "champion", "gürtel", "gegner", "menge", "laut"], "en": ["arena", "ring", "fight", "champion", "belt", "crowd", "entrance", "smackdown", "title"] } },
+        { "id": "sunny-basketball-day", "theme": "Sunny Basketball Day", "energy": "medium", "era": null,
+          "tags": ["summer", "feel good", "upbeat", "chill", "sunny"],
+          "keywords": { "de": ["sonne", "korb", "sommer", "court", "draussen", "spielplatz"], "en": ["sun", "sunny", "basketball", "hoop", "court", "summer", "ball", "jumpshot", "dunk"] } },
+        { "id": "einlauf-wichtigstes-spiel", "theme": "Einlauf vor dem wichtigsten Spiel", "energy": "high", "era": null,
+          "tags": ["motivational", "epic", "hype", "energetic", "anthem"],
+          "keywords": { "de": ["spiel", "stadion", "sieg", "kampf", "team", "finale", "gewinnen", "fokus"], "en": ["game", "stadium", "win", "victory", "team", "final", "focus", "ready", "warrior"] } },
+        { "id": "siegesfeier-nach-finale", "theme": "Siegesfeier nach dem Finale", "energy": "high", "era": null,
+          "tags": ["party", "celebration", "uplifting", "anthem", "feel good"],
+          "keywords": { "de": ["sieg", "feiern", "pokal", "champion", "gewonnen", "titel", "party", "jubel"], "en": ["victory", "celebrate", "trophy", "champion", "champions", "won", "winner", "party", "champagne"] } }
+      ]
+    },
+    {
+      "name": "Kino & Charakter",
+      "themes": [
+        { "id": "superheld-betritt-szene", "theme": "Superheld betritt die Szene", "energy": "high", "era": null,
+          "tags": ["epic", "uplifting", "cinematic", "hype", "motivational"],
+          "keywords": { "de": ["held", "helden", "retten", "kraft", "welt", "fliegen", "stark", "mut"], "en": ["hero", "heroes", "save", "power", "world", "fly", "strong", "rise", "legend"] } },
+        { "id": "boesewicht-betritt-szene", "theme": "Bösewicht betritt die Szene", "energy": "high", "era": null,
+          "tags": ["dark", "aggressive", "menacing", "cinematic", "trap"],
+          "keywords": { "de": ["böse", "dunkel", "schatten", "teufel", "gefahr", "macht", "angst", "boss"], "en": ["villain", "evil", "dark", "devil", "shadow", "danger", "fear", "demon", "wicked"] } },
+        { "id": "trailer-gangsterfilm", "theme": "Filmtrailer für einen Gangsterfilm", "energy": "high", "era": null,
+          "tags": ["dark", "gangsta rap", "cinematic", "aggressive", "street"],
+          "keywords": { "de": ["gangster", "block", "strasse", "waffe", "familie", "geld", "verrat", "boss"], "en": ["gangster", "mafia", "street", "gun", "family", "money", "trap", "boss", "crime"] } },
+        { "id": "flucht-vor-polizei", "theme": "Flucht vor der Polizei", "energy": "high", "era": null,
+          "tags": ["aggressive", "energetic", "street", "dark", "tense"],
+          "keywords": { "de": ["polizei", "flucht", "renn", "rennen", "sirene", "blaulicht", "bullen", "verfolgt"], "en": ["police", "cops", "run", "running", "sirens", "chase", "escape", "speed", "getaway"] } },
+        { "id": "letzter-song-weltende", "theme": "Der letzte Song, bevor die Welt endet", "energy": "medium", "era": null,
+          "tags": ["epic", "emotional", "melancholic", "atmospheric", "cinematic"],
+          "keywords": { "de": ["ende", "welt", "letzte", "abschied", "himmel", "für immer", "sterben", "untergang"], "en": ["end", "world", "last", "goodbye", "forever", "heaven", "apocalypse", "dying", "final"] } }
+      ]
+    },
+    {
+      "name": "Stadt & Nacht",
+      "themes": [
+        { "id": "nachtfahrt-grossstadt", "theme": "Nachtfahrt durch eine Grossstadt", "energy": "medium", "era": null,
+          "tags": ["night", "driving", "atmospheric", "dark", "chill", "synth"],
+          "keywords": { "de": ["nacht", "nachts", "stadt", "lichter", "strasse", "fahren", "auto", "dunkel"], "en": ["night", "midnight", "city", "lights", "street", "drive", "driving", "ride", "downtown"] } },
+        { "id": "freitagabend", "theme": "Freitagabend", "energy": "high", "era": null,
+          "tags": ["party", "upbeat", "feel good", "dance", "club"],
+          "keywords": { "de": ["freitag", "wochenende", "feiern", "party", "abend", "raus", "trinken"], "en": ["friday", "weekend", "party", "tonight", "night out", "drinks", "turn up"] } },
+        { "id": "samstag-2-uhr-nachts", "theme": "Samstag um 2 Uhr nachts", "energy": "high", "era": null,
+          "tags": ["club", "party", "night", "dance", "late night"],
+          "keywords": { "de": ["samstag", "nacht", "nachts", "club", "tanzen", "morgen", "wach", "party"], "en": ["saturday", "night", "late", "club", "dance", "party", "after party", "afterparty"] } },
+        { "id": "raum-betreten-alle-schauen", "theme": "Du betrittst einen Raum und alle schauen", "energy": "high", "era": null,
+          "tags": ["confident", "swagger", "hype", "trap", "boastful"],
+          "keywords": { "de": ["blicke", "alle", "schauen", "auftritt", "drip", "style", "chef", "star"], "en": ["walk in", "all eyes", "everybody", "drip", "swag", "style", "star", "flex", "attention"] } },
+        { "id": "3-uhr-uber-nach-hause", "theme": "3 Uhr nachts im Uber nach Hause", "energy": "low", "era": null,
+          "tags": ["late night", "melancholic", "chill", "atmospheric", "night"],
+          "keywords": { "de": ["nacht", "nachts", "nachhause", "heim", "allein", "müde", "fenster", "lichter"], "en": ["night", "late", "home", "alone", "tired", "window", "backseat", "lights", "ride"] } }
+      ]
+    },
+    {
+      "name": "Sommer & Unterwegs",
+      "themes": [
+        { "id": "roadtrip-mit-freunden", "theme": "Roadtrip mit Freunden", "energy": "medium", "era": null,
+          "tags": ["summer", "feel good", "road trip", "upbeat", "driving"],
+          "keywords": { "de": ["fahrt", "fahren", "freunde", "strasse", "autobahn", "unterwegs", "sommer", "reise"], "en": ["road", "drive", "friends", "highway", "trip", "ride", "cruise", "summer"] } },
+        { "id": "cabrio-im-sommer", "theme": "Cabrio im Sommer", "energy": "medium", "era": null,
+          "tags": ["summer", "feel good", "chill", "sunny", "driving"],
+          "keywords": { "de": ["cabrio", "sommer", "sonne", "dach", "wind", "fahren", "warm"], "en": ["convertible", "top down", "summer", "sun", "sunshine", "cruise", "drive", "wind"] } },
+        { "id": "am-strand", "theme": "Am Strand", "energy": "medium", "era": null,
+          "tags": ["summer", "beach", "chill", "tropical", "feel good"],
+          "keywords": { "de": ["strand", "meer", "sonne", "sand", "wellen", "sommer", "urlaub", "insel"], "en": ["beach", "ocean", "sea", "sun", "sand", "waves", "summer", "island", "vacation"] } },
+        { "id": "sonnenuntergang-dach", "theme": "Sonnenuntergang auf einem Dach", "energy": "low", "era": null,
+          "tags": ["chill", "atmospheric", "mellow", "summer", "romantic"],
+          "keywords": { "de": ["sonnenuntergang", "dach", "himmel", "abend", "golden", "aussicht", "stadt"], "en": ["sunset", "rooftop", "roof", "sky", "golden", "evening", "view", "skyline"] } },
+        { "id": "erste-fahrt-neues-auto", "theme": "Erste Fahrt im neuen Auto", "energy": "high", "era": null,
+          "tags": ["confident", "driving", "upbeat", "swagger", "feel good"],
+          "keywords": { "de": ["auto", "neu", "fahren", "motor", "gas", "benz", "felgen", "lenkrad"], "en": ["car", "new", "drive", "engine", "whip", "benz", "wheels", "ride", "speed"] } }
+      ]
+    },
+    {
+      "name": "Wetter & Tageszeit",
+      "themes": [
+        { "id": "regentag-in-der-stadt", "theme": "Regentag in der Stadt", "energy": "low", "era": null,
+          "tags": ["melancholic", "rainy", "chill", "sad", "atmospheric"],
+          "keywords": { "de": ["regen", "grau", "nass", "wolken", "stadt", "tropfen", "kalt"], "en": ["rain", "rainy", "grey", "gray", "clouds", "wet", "storm", "city"] } },
+        { "id": "erster-warmer-fruehlingstag", "theme": "Erster warmer Tag im Frühling", "energy": "medium", "era": null,
+          "tags": ["feel good", "uplifting", "happy", "sunny", "fresh"],
+          "keywords": { "de": ["frühling", "sonne", "warm", "blühen", "draussen", "neu", "licht"], "en": ["spring", "sun", "sunshine", "warm", "bloom", "fresh", "outside", "new"] } },
+        { "id": "schneefall-in-der-nacht", "theme": "Schneefall mitten in der Nacht", "energy": "low", "era": null,
+          "tags": ["calm", "atmospheric", "melancholic", "winter", "dreamy"],
+          "keywords": { "de": ["schnee", "winter", "kalt", "nacht", "nachts", "weiss", "still", "frost"], "en": ["snow", "winter", "cold", "night", "white", "frozen", "ice", "silent"] } },
+        { "id": "sonntagmorgen", "theme": "Sonntagmorgen", "energy": "low", "era": null,
+          "tags": ["chill", "mellow", "calm", "feel good", "relaxing"],
+          "keywords": { "de": ["sonntag", "morgen", "kaffee", "aufwachen", "ruhe", "bett", "frühstück"], "en": ["sunday", "morning", "coffee", "wake up", "lazy", "bed", "sunrise", "slow"] } },
+        { "id": "montagmorgen", "theme": "Montagmorgen", "energy": "medium", "era": null,
+          "tags": ["grind", "motivational", "moody", "hustle"],
+          "keywords": { "de": ["montag", "morgen", "arbeit", "wecker", "müde", "job", "aufstehen"], "en": ["monday", "morning", "work", "alarm", "tired", "job", "grind", "nine to five"] } }
+      ]
+    },
+    {
+      "name": "Party & Kultur",
+      "themes": [
+        { "id": "oaff-abriss", "theme": "OAFF Abriss", "energy": "high", "era": null,
+          "tags": ["festival", "hype", "party", "energetic", "turn up"],
+          "keywords": { "de": ["festival", "abriss", "bühne", "menge", "springen", "laut", "moshpit", "openair"], "en": ["festival", "stage", "crowd", "jump", "turn up", "mosh", "loud", "rage"] } },
+        { "id": "kleine-underground-party", "theme": "Kleine Underground-Party", "energy": "medium", "era": null,
+          "tags": ["underground", "club", "boom bap", "dark", "raw"],
+          "keywords": { "de": ["keller", "underground", "untergrund", "szene", "bass", "nacht", "kollektiv"], "en": ["underground", "basement", "bass", "cypher", "scene", "night", "raw"] } },
+        { "id": "2000er-party", "theme": "2000er-Party", "energy": "high", "era": { "from": 2000, "to": 2009 },
+          "tags": ["2000s", "party", "club", "throwback", "dance"],
+          "keywords": { "de": ["party", "club", "tanzen", "damals"], "en": ["party", "club", "dance", "throwback", "shawty", "bling"] } },
+        { "id": "90er-party", "theme": "90er-Party", "energy": "high", "era": { "from": 1990, "to": 1999 },
+          "tags": ["90s", "party", "boom bap", "throwback", "old school"],
+          "keywords": { "de": ["party", "tanzen", "damals", "oldschool"], "en": ["party", "dance", "old school", "throwback", "jam", "funky"] } },
+        { "id": "letzter-song-clubschluss", "theme": "Letzter Song vor Clubschluss", "energy": "medium", "era": null,
+          "tags": ["club", "late night", "emotional", "anthem", "party"],
+          "keywords": { "de": ["letzte", "club", "licht", "morgen", "schluss", "nacht", "tanzen"], "en": ["last", "club", "lights", "closing", "last call", "night", "dance", "one more"] } }
+      ]
+    },
+    {
+      "name": "Emotion & Erinnerung",
+      "themes": [
+        { "id": "verliebt-sein", "theme": "Verliebt sein", "energy": "medium", "era": null,
+          "tags": ["love", "romantic", "feel good", "rnb", "sweet"],
+          "keywords": { "de": ["liebe", "herz", "baby", "küss", "zusammen", "verliebt", "schatz"], "en": ["love", "heart", "baby", "kiss", "together", "darling", "crush", "forever"] } },
+        { "id": "herzschmerz", "theme": "Herzschmerz", "energy": "low", "era": null,
+          "tags": ["sad", "heartbreak", "melancholic", "emotional", "breakup"],
+          "keywords": { "de": ["herz", "schmerz", "tränen", "vermiss", "allein", "weg", "kaputt", "verlassen"], "en": ["heartbreak", "broken", "heart", "tears", "cry", "miss", "alone", "gone", "pain"] } },
+        { "id": "alle-gegen-dich", "theme": "Alle gegen dich", "energy": "high", "era": null,
+          "tags": ["aggressive", "defiant", "motivational", "dark", "hard"],
+          "keywords": { "de": ["gegen", "feinde", "allein", "hass", "kampf", "neider", "niemand", "trotzdem"], "en": ["against", "enemies", "alone", "hate", "haters", "fight", "nobody", "opps"] } },
+        { "id": "motivationssong-schlechte-zeiten", "theme": "Motivationssong für schlechte Zeiten", "energy": "medium", "era": null,
+          "tags": ["motivational", "uplifting", "inspirational", "emotional", "hustle"],
+          "keywords": { "de": ["weiter", "aufstehen", "kämpfen", "glauben", "hoffnung", "stark", "niemals", "aufgeben"], "en": ["keep going", "rise", "fight", "believe", "hope", "strong", "never", "give up", "grind"] } },
+        { "id": "nostalgie", "theme": "Nostalgie", "energy": "low", "era": null,
+          "tags": ["nostalgic", "throwback", "melancholic", "emotional", "old school"],
+          "keywords": { "de": ["damals", "erinnerung", "früher", "kindheit", "zeit", "jahre", "zurück"], "en": ["remember", "memories", "back then", "childhood", "old days", "years", "back in the day"] } }
+      ]
+    },
+    {
+      "name": "Attitude & Status",
+      "themes": [
+        { "id": "luxusleben", "theme": "Luxusleben", "energy": "medium", "era": null,
+          "tags": ["luxury", "swagger", "boastful", "trap", "flex"],
+          "keywords": { "de": ["geld", "luxus", "reich", "rolex", "villa", "designer", "diamanten", "champagner"], "en": ["money", "luxury", "rich", "rolex", "mansion", "designer", "diamonds", "bands", "champagne"] } },
+        { "id": "selbstvertrauen-maximum", "theme": "Selbstvertrauen auf Maximum", "energy": "high", "era": null,
+          "tags": ["confident", "swagger", "boastful", "hype", "motivational"],
+          "keywords": { "de": ["beste", "könig", "king", "boss", "nummer eins", "unantastbar", "stark", "sieg"], "en": ["best", "king", "queen", "boss", "number one", "confident", "untouchable", "goat"] } },
+        { "id": "diss-track-energie", "theme": "Diss-Track-Energie", "energy": "high", "era": null,
+          "tags": ["aggressive", "diss", "hard", "dark", "battle rap"],
+          "keywords": { "de": ["diss", "beef", "fake", "opfer", "neider", "lügner", "feind", "clown"], "en": ["diss", "beef", "fake", "opps", "clown", "enemy", "snake", "weak"] } },
+        { "id": "victory-lap", "theme": "Victory Lap", "energy": "medium", "era": null,
+          "tags": ["triumphant", "confident", "uplifting", "anthem", "motivational"],
+          "keywords": { "de": ["sieg", "geschafft", "oben", "gewonnen", "erfolg", "ziel", "stolz"], "en": ["victory", "made it", "top", "winning", "won", "success", "lap", "celebrate"] } },
+        { "id": "niemand-kann-dir-etwas-sagen", "theme": "Niemand kann dir heute etwas sagen", "energy": "high", "era": null,
+          "tags": ["confident", "defiant", "swagger", "feel good", "hype"],
+          "keywords": { "de": ["niemand", "heute", "frei", "egal", "regeln", "selbst", "unaufhaltsam"], "en": ["nobody", "today", "free", "rules", "unstoppable", "my way", "can't tell me"] } }
+      ]
+    },
+    {
+      "name": "Zeitmaschine",
+      "themes": [
+        { "id": "2010-banger", "theme": "2010 Banger", "energy": "high", "era": { "from": 2010, "to": 2010 }, "tags": ["2010s", "party", "hype"], "keywords": { "de": [], "en": [] } },
+        { "id": "2012-banger", "theme": "2012 Banger", "energy": "high", "era": { "from": 2012, "to": 2012 }, "tags": ["2010s", "party", "hype"], "keywords": { "de": [], "en": [] } },
+        { "id": "2014-banger", "theme": "2014 Banger", "energy": "high", "era": { "from": 2014, "to": 2014 }, "tags": ["2010s", "party", "hype"], "keywords": { "de": [], "en": [] } },
+        { "id": "2016-banger", "theme": "2016 Banger", "energy": "high", "era": { "from": 2016, "to": 2016 }, "tags": ["2010s", "party", "hype"], "keywords": { "de": [], "en": [] } },
+        { "id": "2018-banger", "theme": "2018 Banger", "energy": "high", "era": { "from": 2018, "to": 2018 }, "tags": ["2010s", "party", "hype"], "keywords": { "de": [], "en": [] } },
+        { "id": "2020-banger", "theme": "2020 Banger", "energy": "high", "era": { "from": 2020, "to": 2020 }, "tags": ["2020s", "party", "hype"], "keywords": { "de": [], "en": [] } },
+        { "id": "2022-banger", "theme": "2022 Banger", "energy": "high", "era": { "from": 2022, "to": 2022 }, "tags": ["2020s", "party", "hype"], "keywords": { "de": [], "en": [] } },
+        { "id": "2024-banger", "theme": "2024 Banger", "energy": "high", "era": { "from": 2024, "to": 2024 }, "tags": ["2020s", "party", "hype"], "keywords": { "de": [], "en": [] } }
+      ]
+    },
+    {
+      "name": "Hip-Hop Momente",
+      "themes": [
+        { "id": "street-anthem", "theme": "Street-Anthem", "energy": "high", "era": null,
+          "tags": ["street", "anthem", "hard", "gangsta rap", "hype"],
+          "keywords": { "de": ["strasse", "block", "hood", "jungs", "viertel", "ghetto", "brüder"], "en": ["street", "streets", "block", "hood", "gang", "homies", "ghetto", "the corner"] } },
+        { "id": "cypher-energie", "theme": "Cypher-Energie", "energy": "high", "era": null,
+          "tags": ["boom bap", "lyrical", "underground", "battle rap", "raw"],
+          "keywords": { "de": ["mic", "mikro", "bars", "reime", "flow", "cypher", "freestyle", "beat"], "en": ["mic", "bars", "rhymes", "flow", "cypher", "freestyle", "beat", "spit", "verse"] } },
+        { "id": "gym-track", "theme": "Gym-Track", "energy": "high", "era": null,
+          "tags": ["workout", "motivational", "aggressive", "energetic", "hype"],
+          "keywords": { "de": ["training", "gym", "kraft", "stark", "schweiss", "pumpen", "grenze", "disziplin"], "en": ["gym", "workout", "train", "strong", "sweat", "push", "grind", "beast", "no pain"] } },
+        { "id": "late-night-rap", "theme": "Late-Night-Rap", "energy": "low", "era": null,
+          "tags": ["late night", "dark", "atmospheric", "chill", "introspective"],
+          "keywords": { "de": ["nacht", "nachts", "spät", "wach", "gedanken", "dunkel", "allein", "rauch"], "en": ["night", "late", "midnight", "awake", "thoughts", "dark", "alone", "smoke"] } },
+        { "id": "sommer-rap-hit", "theme": "Sommer-Rap-Hit", "energy": "high", "era": null,
+          "tags": ["summer", "feel good", "party", "upbeat", "dancehall"],
+          "keywords": { "de": ["sommer", "sonne", "strand", "heiss", "party", "urlaub", "palmen"], "en": ["summer", "sun", "beach", "hot", "party", "vacation", "palm"] } },
+        { "id": "club-banger", "theme": "Club-Banger", "energy": "high", "era": null,
+          "tags": ["club", "party", "dance", "bass", "hype"],
+          "keywords": { "de": ["club", "tanzen", "bass", "party", "bühne", "laut", "shots"], "en": ["club", "dance", "bass", "party", "drop", "loud", "shots", "dancefloor"] } },
+        { "id": "kopfhoerer-heimweg", "theme": "Kopfhörer-Track für den Heimweg", "energy": "low", "era": null,
+          "tags": ["chill", "introspective", "melancholic", "atmospheric", "lo-fi"],
+          "keywords": { "de": ["heimweg", "kopfhörer", "allein", "gedanken", "strasse", "nachhause", "nacht"], "en": ["headphones", "walk", "home", "alone", "thoughts", "street", "night", "lonely"] } },
+        { "id": "festival-erste-reihe", "theme": "Track für die erste Reihe am Festival", "energy": "high", "era": null,
+          "tags": ["festival", "hype", "anthem", "energetic", "turn up"],
+          "keywords": { "de": ["festival", "bühne", "erste reihe", "menge", "springen", "hände", "laut"], "en": ["festival", "stage", "front row", "crowd", "jump", "hands up", "loud", "rage"] } }
+      ]
+    },
+    {
+      "name": "Sudden Death",
+      "sudden": true,
+      "themes": [
+        { "id": "alles-oder-nichts", "theme": "Alles oder nichts – der finale Song", "energy": "high", "era": null,
+          "tags": ["epic", "anthem", "motivational", "intense"],
+          "keywords": { "de": ["alles", "nichts", "letzte", "finale", "jetzt", "chance", "sieg"], "en": ["all or nothing", "everything", "last", "final", "now", "chance", "win"] } },
+        { "id": "final-boss-arena", "theme": "Final Boss betritt die Arena", "energy": "high", "era": null,
+          "tags": ["epic", "dark", "aggressive", "menacing", "hype"],
+          "keywords": { "de": ["boss", "arena", "macht", "könig", "dunkel", "kampf", "endgegner"], "en": ["boss", "final boss", "arena", "power", "king", "dark", "fight", "villain"] } },
+        { "id": "letzte-chance-sieg", "theme": "Letzte Chance auf den Sieg", "energy": "high", "era": null,
+          "tags": ["motivational", "epic", "intense", "anthem"],
+          "keywords": { "de": ["letzte", "chance", "sieg", "jetzt", "kämpfen", "alles", "gewinnen"], "en": ["last", "chance", "victory", "now", "fight", "win", "one shot"] } },
+        { "id": "entscheidender-moment", "theme": "Der Song für den entscheidenden Moment", "energy": "high", "era": null,
+          "tags": ["epic", "cinematic", "motivational", "anthem"],
+          "keywords": { "de": ["moment", "jetzt", "entscheidung", "zeit", "schicksal", "bereit"], "en": ["moment", "now", "this is it", "time", "destiny", "ready", "one shot"] } },
+        { "id": "noch-ein-song-dann-schluss", "theme": "Noch ein Song, dann ist Schluss", "energy": "medium", "era": null,
+          "tags": ["anthem", "emotional", "party", "epic"],
+          "keywords": { "de": ["letzte", "noch einmal", "schluss", "ende", "ein letztes mal"], "en": ["last", "one more", "one last time", "end", "final"] } }
+      ]
+    }
+  ]
+}
