@@ -42,10 +42,15 @@
 
 - [x] 🟡 **1.1 Regel festlegen** (siehe offene Entscheidungen A und B).
   - *Entschieden 06.10.2026:* **Nur der Host** entscheidet selbst (A). „Selber entscheiden“ gibt es **nur, wenn kein menschlicher Juror im Raum ist** – dann aber immer, auch statt bzw. nach der Auto-Jury (B). Mit Juror entscheidet ausschliesslich die menschliche Jury.
-- [ ] **1.2 Button-Bindung** `[data-self-winner]` in der aktiven `renderBattle()` ergänzen.
-- [ ] **1.3 Immer anbieten (ohne Juror):** Sobald beide Songs aufgedeckt sind und **kein menschlicher Juror im Raum ist**, hat der Host die Option „Selber entscheiden“ – vor der Auto-Jury, statt ihr und auch nachdem sie geurteilt hat (dann als „Jury überstimmen“). Mit Juror im Raum bleibt es bei „Runde werten“ (gemäss 1.1).
-- [ ] **1.4 Backend angleichen:** Die RLS-Policy `mb_scores_insert_host_self_decision` entspricht bereits Entscheidung 1.1 (nur Host, nur ohne Juror) und **bleibt**. Prüfen: Nach einem eigenen Entscheid darf kein zweiter eingefügt werden (`mb_human_score_once` greift, da `juror_user_id` = Host) und der Override nach der Auto-Jury funktioniert ohne Konflikt mit den AI-Scores. Nur falls nötig Migration.
-- [ ] **1.5 Wertungslogik:** `finalizeRound()` mit klarer Rangfolge: **mit Juror** zählt nur die menschliche Jury; **ohne Juror** gilt eigener Entscheid > Auto-Jury. Ein eigener Entscheid wird nie mit anderen Scorecards zusammengezählt und ist im Endstand als „Eigener Entscheid“ markiert.
+- [x] **1.2 Button-Bindung** `[data-self-winner]` in der aktiven `renderBattle()` ergänzen.
+  - *Erledigt 06.10.2026* in `app-6b.js` (`renderBattle`).
+- [x] **1.3 Immer anbieten (ohne Juror):** Sobald beide Songs aufgedeckt sind und **kein menschlicher Juror im Raum ist**, hat der Host die Option „Selber entscheiden“ – vor der Auto-Jury, statt ihr und auch nachdem sie geurteilt hat (dann als „Jury überstimmen“). Mit Juror im Raum bleibt es bei „Runde werten“ (gemäss 1.1).
+  - *Erledigt:* `renderJury` (app-6c) zeigt ohne Juror die Wahl KI-Jury/selber; nach der Auto-Jury zusätzlich Block „Jury überstimmen“; mit Juror nur Warte-Hinweis bzw. „Runde werten“. Nach einem eigenen Entscheid: Block „Eigener Entscheid“.
+- [x] **1.4 Backend angleichen:** Die RLS-Policy `mb_scores_insert_host_self_decision` entspricht bereits Entscheidung 1.1 (nur Host, nur ohne Juror) und **bleibt**. Prüfen: Nach einem eigenen Entscheid darf kein zweiter eingefügt werden (`mb_human_score_once` greift, da `juror_user_id` = Host) und der Override nach der Auto-Jury funktioniert ohne Konflikt mit den AI-Scores. Nur falls nötig Migration.
+  - *Erledigt ohne Migration:* Policy getestet (zurückgerollte Transaktion): mit Juror im Raum blockiert (RLS), ohne Juror erlaubt; zweiter eigener Entscheid pro Runde → `23505 mb_human_score_once`; Override nach Auto-Jury ohne Konflikt.
+- [x] **1.5 Wertungslogik:** `finalizeRound()` mit klarer Rangfolge: **mit Juror** zählt nur die menschliche Jury; **ohne Juror** gilt eigener Entscheid > Auto-Jury. Ein eigener Entscheid wird nie mit anderen Scorecards zusammengezählt und ist im Endstand als „Eigener Entscheid“ markiert.
+  - *Erledigt:* zentrale `roundDecision(roundId, live)` in app-6c, genutzt von `finalizeRound` (app-3), `renderBattle` (app-6b) und Endstand (`roundJuryMargin`, Rundenliste in app-6d). Eigener Entscheid übernimmt die Runde direkt (ein Klick + Rückfrage), Endstand zeigt „Eigener Entscheid“, Jury-Statistik ignoriert solche Runden. BUILD `20261006-2`.
+  - Getestet (Live-Seite, Code per temporärem Branch injiziert, Raum `UXDXS3`, echte Klicks): A) eigener Entscheid vor Auto-Jury → Runde an B, 1 Scorecard; B) Auto-Jury 49–46 für A, „Jury überstimmen“ auf B → Runde an B; C) Auto-Jury → „übernehmen“ → Runde an A (unverändert); D) Juror im Raum → keine Selbst-/KI-Option, `finalizeRound` meldet fehlende Juror-Scorecard; E) Endstand markiert Runden 1+2, Jury-Statistik nur Runde 3. Nach dem Deploy live (BUILD 20261006-2, Raum `WZYNE3`) mit echtem Klick nachgeprüft: Rückfrage → Runde 1 an A → Runde 2.
 - [ ] **1.6** `window.confirm` durch eine Bestätigung in der App ersetzen. Smoke-Test Punkt 4 in beiden Gerätemodi.
 
 ## Phase 2 – Code konsolidieren (ohne Verhaltensänderung)
@@ -95,7 +100,7 @@ Grundidee: Die Daten werden **einmal pro Song** gesammelt und gespeichert. Die f
 ## Gefundene Bugs
 *(wird in 0.2 und laufend gefüllt – Format: Schritt · erwartet · tatsächlich · Ursache · Aufgabe)*
 
-- Selber entscheiden: Button ohne Funktion · Bindung fehlt in aktiver `renderBattle()` · → 1.2
+- ✅ *behoben in 1.2–1.5* – Selber entscheiden: Button ohne Funktion · Bindung fehlt in aktiver `renderBattle()` · → 1.2
 - Raum verlassen (Host) · Raum bleibt für die anderen offen oder wird bewusst geschlossen · `mb_leave_room` schliesst den Raum immer, beide `if`-Zweige sind identisch · vermutlich unfertige Logik · in 0.2 bestätigen, Regel ggf. als Entscheidung klären
 - Toter Code Backend (aus 0.1): RPC `mb_set_spotify_ready` wird vom Frontend nicht mehr genutzt (nur `…_for_slot`), `validateResult()` in `mb-ai-jury` wird nie aufgerufen, `mb_rooms.jury_mode`/`game_state` scheinen ungenutzt · → beim Konsolidieren (2.x) bzw. Jury-Ersatz (3.8) entfernen (Achtung: `DROP` nur mit Bestätigung)
 - Edge Function `mb-ai-jury` löscht vor dem Einfügen alle AI-Scores der Runde – bei Doppelklick zwei parallele Läufe möglich · → 3.8 beachten
@@ -145,6 +150,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 - 06.10.2026 · Jury soll ohne KI auf gespeicherten Songdaten urteilen · Wunsch des Nutzers, bessere Nachvollziehbarkeit und Zuverlässigkeit
 - 06.10.2026 · „Selber entscheiden“ soll immer verfügbar sein · Wunsch des Nutzers
 - 06.10.2026 · Supabase-Stand per MCP statt CLI ins Repo geholt: Remote-Migrationshistorie 1:1 übernommen, Dashboard-Änderungen als eigene idempotente Migration nachgetragen (statt einer einzigen Gesamt-Baseline) · so bleibt die Historie mit `supabase migration list` deckungsgleich und nichts muss in der Live-DB repariert werden
+- 06.10.2026 · Eigener Entscheid übernimmt die Runde sofort (kein zweiter Klick „Runde werten“ mehr) · die Rückfrage bestätigt den Sieger bereits; ein Hauptschritt pro Screen. Fällt der Rundenwechsel aus, bleibt „Runde übernehmen“ als Rückfall sichtbar
 - 06.10.2026 · Selber entscheiden: nur der Host, nur ohne menschlichen Juror im Raum (dann immer, auch statt/nach der Auto-Jury); mit Juror entscheidet ausschliesslich die menschliche Jury · Entscheid des Nutzers (1.1); bestehende RLS-Policy passt bereits dazu
 - 06.10.2026 · Tabellenrechte auf die Grants der Core-Migration zurückgesetzt (nicht weiter verschärft, z. B. `mb_rounds` insert/update bleibt, obwohl das Frontend es nur über RPCs nutzt) · keine Verhaltensänderung für die App; weitere Verschärfung erst nach der Konsolidierung (Phase 2), wenn klar ist, welche Zugriffe bleiben
 - 06.10.2026 · „Blind Draft“ ist kein Blind Draft (Gegner-Künstler sind im Draft sichtbar) · Nutzer: Bezeichnung streichen oder „verdeckt“ als Option anbieten → bei 4.3/4.4 umsetzen
