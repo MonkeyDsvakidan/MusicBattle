@@ -64,6 +64,8 @@ Solange die Konsolidierung (Roadmap Phase 0) nicht abgeschlossen ist: **Vor jede
 - **Schema-Änderungen nur als Migration** (`supabase/migrations/…sql`) im Repo, nie direkt im Dashboard. Edge Functions liegen unter `supabase/functions/` und werden aus dem Repo deployed.
 - **Keine destruktiven Operationen** (`DROP`, `DELETE`, `TRUNCATE`, Spalten entfernen) ohne ausdrückliche Bestätigung des Nutzers.
 - Jede neue Tabelle bekommt RLS. Clients dürfen keine `source = 'ai'`-Scores schreiben; das passiert nur serverseitig.
+- **Rechte explizit setzen:** Supabase vergibt per Default-Privileges `ALL` auf neue Tabellen und `EXECUTE` auf neue Funktionen an `anon` und `authenticated`. Jede Migration, die eine Tabelle oder Funktion anlegt, entzieht diese Rechte (`revoke all … from anon, authenticated` bzw. `revoke execute … from public, anon`) und vergibt nur, was die App braucht (Muster: `…_harden_table_grants.sql`).
+- Migrationen über den Supabase-MCP mit `apply_migration` anwenden; die dabei vergebene Version danach als Dateinamen in `supabase/migrations/` übernehmen, damit Repo und Remote-Historie deckungsgleich bleiben.
 - Secrets (API-Keys) nur als Supabase-Secrets, nie im Frontend-Code. Der Publishable Key und die Spotify Client-ID im Frontend sind öffentlich und erlaubt.
 
 ### Frontend
