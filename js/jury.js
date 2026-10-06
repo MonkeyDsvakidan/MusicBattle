@@ -35,11 +35,11 @@ let aiJuryRunning=false;
 
 async function runAIJury(){
   const r=currentRound();if(!r||aiJuryRunning)return;
-  aiJuryRunning=true;S.error="";S.notice="KI-Jury sammelt Songdaten und bewertet …";render();
+  aiJuryRunning=true;S.error="";S.notice="Die Jury bewertet die Songs …";render();
   let timer=null;
   try{
-    const invoke=sb.functions.invoke("mb-ai-jury",{body:{room_id:S.room.id,round_id:r.id}});
-    const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error("Die KI-Jury hat nach 40 Sekunden nicht geantwortet. Bitte erneut starten.")),40000)});
+    const invoke=sb.functions.invoke("mb-jury",{body:{room_id:S.room.id,round_id:r.id}});
+    const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error("Die Jury hat nach 40 Sekunden nicht geantwortet. Bitte erneut starten.")),40000)});
     const {data,error}=await Promise.race([invoke,timeout]);
     if(error){
       let detail=error.message||"Unbekannter Edge-Function-Fehler";
@@ -47,9 +47,9 @@ async function runAIJury(){
       throw new Error(detail);
     }
     if(data?.error)throw new Error([data.error,data.detail,data.provider_detail].filter(Boolean).join(": "));
-    S.notice="KI-Jury ist bereit.";S.aiReveal=0;await reloadRoomNow();
+    S.notice="Die Jury ist bereit.";S.aiReveal=0;await reloadRoomNow();
   }catch(e){
-    S.notice="";S.error=`KI-Jury konnte nicht ausgeführt werden: ${e?.message||String(e)}`;render();
+    S.notice="";S.error=`Die Jury konnte nicht ausgeführt werden: ${e?.message||String(e)}`;render();
   }finally{
     if(timer)clearTimeout(timer);
     aiJuryRunning=false;
