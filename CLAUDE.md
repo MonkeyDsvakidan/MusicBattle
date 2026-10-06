@@ -54,7 +54,7 @@ Regeln:
 - Top-Level-Code (Listener, Observer) läuft beim Laden – nur Funktionen aus derselben oder früheren Dateien direkt aufrufen.
 - Jury-Begründungen werden so angezeigt, wie die Edge Function sie speichert (kein Nachbearbeiten im DOM). Die Juror-Bilder werden in `config.js` geleert (`assets/jury/` fehlt, → 4.5).
 - Cache-Busting: `BUILD` in `app.js` und `?v=` in `index.html` erhöhen.
-- Die alten `app-1.js … app-6d.js` werden **nicht mehr geladen** und in Roadmap 2.5 gelöscht – nicht mehr bearbeiten.
+- Die früheren `app-1.js … app-6d.js` wurden in Roadmap 2.5 gelöscht (Stand davor: Git-Historie bis Commit `3715bcc`).
 
 ## Arbeitsregeln
 
@@ -86,6 +86,8 @@ Regeln:
 
 ### Testen
 Es gibt keine automatischen Tests für das Frontend. Nach jeder Änderung den betroffenen Teil dieses Smoke-Tests durchgehen und im Abschluss nennen, was geprüft wurde:
+
+> Ohne Handy testbar (seit 2.5): Im eingebauten Browser ist die Live-Seite der Host; Spieler 2 und Juror laufen als unsichtbare same-origin-iframes (srcdoc) mit eigenem In-Memory-`localStorage`/`sessionStorage` und `BroadcastChannel = undefined` → jeweils eigene anonyme Anmeldung, echte App-Oberfläche, Realtime zwischen allen. Spotify-Token für Spieler 2 aus `mb_sp_*_1` nach `mb_sp_*_2` kopieren. Nur **Abspielen** braucht einen Browser mit DRM (Chrome/Handy).
 
 1. Raum erstellen (1 Gerät) → Spieler 2 hinzufügen → Spotify verbinden → Draft starten
 2. Draft: Künstler ziehen, Skip nutzen, alle 10 Picks setzen → Themen erscheinen
