@@ -1,0 +1,7 @@
+# Supabase-Projekt „MusicVote“ (Ref: swgraidbdxpjqnvxacpq)
+# Verknüpfen: supabase link --project-ref swgraidbdxpjqnvxacpq
+# Nicht gesetzte Werte nutzen die CLI-Standardwerte.
+project_id = "MusicBattle"
+
+[functions.mb-ai-jury]
+verify_jwt = true
