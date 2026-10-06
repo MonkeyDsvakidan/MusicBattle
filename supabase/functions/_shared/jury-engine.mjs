@@ -177,6 +177,21 @@ function factText(feature, side, other, names) {
   }
 }
 
+// Neutraler Vergleich beider Werte für 10–10-Begründungen („3 zu 4 passende Motive im Text“)
+function tieFactText(feature, A, B) {
+  const a = A.facts, b = B.facts;
+  switch (feature) {
+    case "lyrics_keywords": return (a.lyrics_hit_total || b.lyrics_hit_total) ? `${a.lyrics_hit_total || 0} zu ${b.lyrics_hit_total || 0} passende Motive im Text` : null;
+    case "lyrics_density": return a.word_count && b.word_count ? `${formatNumber(a.word_count)} zu ${formatNumber(b.word_count)} Wörter Text` : null;
+    case "obscurity": return a.listeners !== null && b.listeners !== null ? `${formatNumber(a.listeners)} zu ${formatNumber(b.listeners)} Hörer` : null;
+    case "era_match": case "age": return a.year && b.year ? `Release ${a.year} und ${b.year}` : null;
+    case "tag_match": return (a.tag_hits?.length || b.tag_hits?.length) ? `${a.tag_hits?.length || 0} zu ${b.tag_hits?.length || 0} passende Tags` : null;
+    case "energy_match": return a.energy && b.energy ? `Energie ${a.energy} und ${b.energy}` : null;
+    case "album_track": return a.album_type && b.album_type ? `${ALBUM_TYPE_DE[a.album_type] || a.album_type} und ${ALBUM_TYPE_DE[b.album_type] || b.album_type}` : null;
+    default: return null;
+  }
+}
+
 function fill(template, values) {
   return template.replace(/\{(\w+)\}/g, (_, k) => (values[k] ?? ""));
 }
@@ -223,8 +238,7 @@ export function scoreRound(songA, songB, theme, config, opts = {}) {
     const diff = pa - pb;
 
     if (Math.abs(diff) < eps) {
-      const shared = contrib.map((c) => c.feature).find((ft) => factText(ft, A, B, [titleA, titleB])) ;
-      const facts = shared ? `${factText(shared, A, B, [titleA, titleB])}` : "kein Song hebt sich ab";
+      const facts = contrib.map((c) => tieFactText(c.feature, A, B)).filter(Boolean).slice(0, 2).join(", ") || "kein Song hebt sich ab";
       return { ...base, score_a: 10, score_b: 10, verdict: "tie", weak: false, reason: fill(pick(juror.texts.tie, seed), { theme: theme?.theme, facts }), facts: [facts], points: { a: pa, b: pb } };
     }
 

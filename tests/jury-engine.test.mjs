@@ -139,3 +139,13 @@ test("Merkmale: Energie aus Tags und Ära-Toleranz", () => {
   assert.equal(f.energy_match, 1, "Party-Tags passen zu hoher Energie");
   assert.equal(formatNumber(1234567), "1’234’567");
 });
+
+test("Gleichstand-Begründung vergleicht beide Werte neutral", () => {
+  const night = theme("nachtfahrt-grossstadt");
+  const a = song({ title: "A", id: "ta", lastfm_listeners: 10000 }, "night city " + filler(80));
+  const b = song({ title: "B", id: "tb", lastfm_listeners: 10500 }, "night city " + filler(82));
+  const c = byKey(scoreRound(a, b, night, config, { year: YEAR })).lyrics;
+  assert.equal(c.verdict, "tie");
+  assert.match(c.reason, /2 zu 2 passende Motive im Text/);
+  assert.ok(!/nur|keine/.test(c.reason), "keine wertenden Wörter bei Gleichstand");
+});
