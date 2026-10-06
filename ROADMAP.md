@@ -26,8 +26,8 @@
   - Funktionen (15), Trigger, Indizes, Constraints, RLS und Realtime-Publikation stimmen mit den Migrationen überein.
   - `supabase/functions/mb-ai-jury/index.ts` = deployte Version 23 (`verify_jwt = true`). Hinweis: Die Datei wurde aus der API-Antwort übernommen; ein Byte-Vergleich mit dem Deployment war nicht möglich – beim nächsten Deploy aus dem Repo (Phase 3) kurz gegen das Dashboard prüfen.
   - Secrets konnten über die MCP-Schnittstelle nicht ausgelesen werden → Prüfung in 3.4.
-- [ ] **0.2 Funktionsinventur.** Kompletten Smoke-Test aus `CLAUDE.md` durchgehen, jede Fehlfunktion unten unter „Gefundene Bugs“ eintragen (Schritt, erwartet, tatsächlich, vermutete Ursache). Noch nichts reparieren.
-  - *Teil 1 erledigt 06.10.2026* (Pass & Play, Schritte 1–5 und 7 teilweise) – Ergebnisse unten. **Offen:** Wiedergabe in Chrome/Handy, menschlicher Juror, 2-Geräte-Modus, Modus wechseln, Herkunft des `length`-TypeErrors.
+- [x] **0.2 Funktionsinventur.** Kompletten Smoke-Test aus `CLAUDE.md` durchgehen, jede Fehlfunktion unten unter „Gefundene Bugs“ eintragen (Schritt, erwartet, tatsächlich, vermutete Ursache). Noch nichts reparieren.
+  - *Teil 1 + 2 erledigt 06.10.2026* (Pass & Play und 2 Geräte, alle 7 Smoke-Test-Schritte) – Ergebnisse unten. **Offen:** Herkunft des `length`-TypeErrors (beim Konsolidieren in 2.x mit Stacktrace prüfen).
 - [ ] **0.3 Tabellenrechte härten** *(neu aus 0.1)*. `authenticated` hat auf allen `mb_*`-Tabellen alle Rechte (inkl. `DELETE`, `TRUNCATE`) – vermutlich Supabase-Default-Privileges, obwohl die erste Migration nur gezielte Grants vergibt. RLS blockiert ohne passende Policy zwar Schreibzugriffe, `TRUNCATE` unterliegt RLS aber nicht. Per Migration auf die Grants der Core-Migration zurückstellen; vorher prüfen, dass das Frontend nichts darüber hinaus braucht. Ebenso `anon`-Execute auf den RPCs prüfen.
 - [ ] **0.4 Neu-Rendern entschärfen** *(neu aus 0.2)*. Der Fallback-Poll (`mbSafeSync`, alle 2,5 s) baut die ganze Seite neu auf, auch wenn sich nichts geändert hat. Folge: Klicks gehen sporadisch verloren, eingetippter Text verschwindet nach dem Verlassen des Feldes. Lösung: nur rendern, wenn sich die geladenen Daten tatsächlich geändert haben (z. B. Vergleich eines Daten-Fingerabdrucks), und Eingabewerte über den Neuaufbau retten. Vor Phase 1, weil sonst auch der reparierte „Selber entscheiden“-Button unzuverlässig wirkt.
 
@@ -115,12 +115,18 @@ Grundidee: Die Daten werden **einmal pro Song** gesammelt und gespeichert. Die f
 **Smoke-Test Teil 2 (06.10.2026, 2-Geräte-Modus, Raum `3FG3SA`, Host im eingebauten Browser + Spieler 2 am Handy):** Beitritt mit Code, Spotify je Gerät, Draft abwechselnd über beide Geräte, Einreichen verdeckt + gleichzeitiges Aufdecken – alles per Realtime synchron. Am Handy: kein horizontales Scrollen, Knöpfe gut treffbar, **Abspielen/Pause/Startpunkt funktionieren** (laut Nutzer), Enter in der Suche vermutlich ok (Handy-Tastatur).
 - **Lobby 2 Geräte, Host** · Spotify bleibt verbunden, wenn es im selben Browser kurz vorher verbunden war · Host musste Spotify im neuen Raum erneut verbinden (OAuth erneut) · Spotify-Status hängt offenbar am Raum/Slot statt am Browser · → 0.2-Nachtest bzw. 4.3
 
-**Noch nicht getestet:** menschlicher Juror (Beitritt + Scorecard + Runde übernehmen mit Juror) · Modus wechseln. Runden 2–5 wurden für den Gleichstand per `mb_advance_round` direkt gesetzt (UI-Weg dafür ist „Selber entscheiden“, das kaputt ist).
+- **Menschlicher Juror** (zweites Browserfenster) · Beitritt mit Code, Scorecard 10–8, Host sieht sie live und „Runde werten“ übernimmt sie → Runde 2 · funktioniert. Mit Juror im Raum bietet der Host-Screen **nur** „Runde werten“ an – weder Auto-Jury noch „Selber entscheiden“ · → 1.1/1.3
+- **Battle, Suchfeld** · leer in neuer Runde · Suchbegriff der Vorrunde („LUCKI“) steht in Runde 2 beim neuen Künstler (Travis Scott) · Suchtext wird beim Rundenwechsel nicht zurückgesetzt · → 4.4
+- **Modus wechseln mitten im Match (Logo)** · Rückfrage, bei „Abbrechen“ bleibt alles, bei „OK“ zurück zur Modusauswahl · funktioniert (noch per `window.confirm` → 1.6). Raum wird dabei für alle geschlossen (`status = closed`), Spieler 2 und Juror bleiben als Mitglieder eingetragen · siehe Bug `mb_leave_room` oben
+- **Host verlässt Match (2 Geräte)** · Spieler 2 und Juror erfahren, dass das Match beendet ist · beide landen kommentarlos in der **Lobby des geschlossenen Raums** (Draft-Start usw. sichtbar) · Frontend behandelt `status = 'closed'` nirgends (kein Treffer für `closed` in `app*.js`) und fällt auf die Lobby zurück · → 1.x/4.3 (Hinweis „Host hat das Match beendet“ + zurück zur Startseite); Regel, ob der Raum für die anderen offen bleiben soll, zusammen mit `mb_leave_room` klären
+
+Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnahme: Herkunft des `length`-TypeErrors). Runden 2–5 wurden für den Gleichstand per `mb_advance_round` direkt gesetzt (UI-Weg dafür ist „Selber entscheiden“, das kaputt ist).
 
 ## Offene Entscheidungen (Nutzer)
 
 - **A – Wer darf selber entscheiden?** Vorschlag: nur der Host. Alternative im 2-Geräte-Modus: beide Spieler müssen denselben Sieger bestätigen.
 - **B – Eigener Entscheid vs. menschliche Juroren:** Vorschlag: Eigener Entscheid überstimmt immer alles (bewusster Override, wird im Endstand markiert).
+  - *Teilantwort Nutzer 06.10.2026:* Ohne Juror im Raum muss „Selber entscheiden“ immer möglich sein – auch statt der Auto-Jury, wenn man sie nicht nutzen will. Offen: Darf der Host auch **mit** Juror im Raum selbst entscheiden/überstimmen? → in 1.1 klären.
 - **C – Gleichstand bei einem Juror / zu wenig Daten:** Vorschlag: Juror vergibt 10–10 und sagt offen „zu wenig Daten“; endet die ganze Jury unentschieden, wird „Selber entscheiden“ hervorgehoben.
 - **D – KI für Formulierungen behalten?** Vorschlag: nein – Text-Bausteine pro Juror sind konsistenter, schneller und kostenlos.
 - **E – Design-Richtung** (siehe 4.1).
