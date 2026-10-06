@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "about": "Juror-Profile (Roadmap 3.5). Einzige Quelle für Frontend (JUDGES in js/config.js) und Jury-Engine (3.6). weights: Gewicht je Merkmal (Vokabular siehe features), negative Werte = Merkmal spricht dagegen. requires: Daten, ohne die die Stimme des Jurors als schwach gilt (Regel siehe Entscheidung C / 3.7). margins: Abstand der gewichteten Punkte, ab dem 10–8 (clear) statt 10–9 vergeben wird. texts: win/win_era/win_gate (mit {winner}, {loser}, {theme}, {facts}, {winner_value}, {loser_value}) für 10–9/10–8; tie (Gleichstand) und weak (zu wenig Daten) ergeben 10–10 ohne Gewinner (Entscheidung C).",
+  "about": "Juror-Profile (Roadmap 3.5). Einzige Quelle für Frontend (JUDGES in js/config.js) und Jury-Engine (3.6). weights: Gewicht je Merkmal (Vokabular siehe features), negative Werte = Merkmal spricht dagegen. requires: Daten, ohne die die Stimme des Jurors als schwach gilt (Regel siehe Entscheidung C / 3.7). margins: Abstand der gewichteten Punkte, ab dem 10–8 (clear) statt 10–9 vergeben wird. texts: win/win_era/win_gate (mit {winner}, {loser}, {theme}, {facts}, {winner_value}, {loser_value}) für 10–9/10–8; tie (Gleichstand) und weak (zu wenig Daten) ergeben 10–10 ohne Gewinner (Entscheidung C). needs_signal: Kern-Merkmale; haben beide Songs dort kein Signal (≤ 0.05), entscheidet der Juror nicht über Nebenmerkmale, sondern gibt 10–10 (3.9).",
   "features": {
     "title_keywords": "Themen-Schlüsselwörter im Songtitel (gewichtet, weich gesättigt 0–1)",
     "lyrics_keywords": "Themen-Schlüsselwörter in den Lyrics, pro 100 Wörter (gewichtet, weich gesättigt 0–1)",
@@ -14,6 +14,7 @@
     "tag_depth": "Anzahl verschiedener Genre-/Stimmungs-Tags (0–1, ab 8 Tags = 1)"
   },
   "requires_vocabulary": {
+    "title": "Songtitel (immer vorhanden)",
     "lyrics": "Lyrics vorhanden (lyrics_features.has_lyrics)",
     "tags": "mindestens ein Tag",
     "popularity": "Last.fm-Hörer oder ListenBrainz-Nutzer bekannt",
@@ -98,6 +99,7 @@
         "era_match": 5
       },
       "requires": [
+        "title",
         "lyrics",
         "tags",
         "release_year"
@@ -120,7 +122,13 @@
         "tie": [
           "Beide treffen „{theme}“ gleich gut – {facts}. Unentschieden, 10–10."
         ]
-      }
+      },
+      "needs_signal": [
+        "title_keywords",
+        "lyrics_keywords",
+        "tag_match",
+        "era_match"
+      ]
     },
     {
       "key": "vibe",
@@ -150,7 +158,11 @@
         "tie": [
           "Gleicher Vibe auf beiden Seiten – {facts}. 10–10."
         ]
-      }
+      },
+      "needs_signal": [
+        "tag_match",
+        "energy_match"
+      ]
     },
     {
       "key": "lyrics",
@@ -180,7 +192,11 @@
         "tie": [
           "Textlich Kopf an Kopf – {facts}. 10–10."
         ]
-      }
+      },
+      "needs_signal": [
+        "lyrics_keywords",
+        "title_keywords"
+      ]
     },
     {
       "key": "underdog",

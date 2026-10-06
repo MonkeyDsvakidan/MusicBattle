@@ -3,7 +3,7 @@
 // und liefert je Juror eine Scorecard. Gleichstand oder fehlende Daten → 10–10 (Entscheidung C).
 import { normalizeText, keywordIndex, countKeywordHits, cleanTitle } from "./track-features.mjs";
 
-export const ENGINE_VERSION = 1;
+export const ENGINE_VERSION = 2;
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 const round2 = (x) => Math.round(x * 100) / 100;
@@ -31,6 +31,19 @@ function themeKeywordIndex(theme) {
   return keywordIndex({ categories: [{ themes: [theme] }] });
 }
 
+// Titel-Treffer: ganze Wörter/Phrasen und zusätzlich Wortanfänge für Schlüsselwörter ab 4 Buchstaben
+// (deutsche Zusammensetzungen: „Sonnenstrahlen“ → „sonne“, „Nachtfahrt“ → „nacht“)
+function titleKeywordHits(title, index) {
+  const hits = countKeywordHits(title, index);
+  const titleWords = normalizeText(title).split(" ").filter(Boolean);
+  for (const { keyword, key } of index) {
+    if (hits[key] || keyword.length < 4 || keyword.includes(" ")) continue;
+    const n = titleWords.filter((w) => w.length > keyword.length && w.startsWith(keyword)).length;
+    if (n) hits[key] = n;
+  }
+  return hits;
+}
+
 function songTags(song) {
   return (Array.isArray(song?.tags) ? song.tags : []).map((t) => normalizeText(t?.name)).filter(Boolean);
 }
@@ -51,7 +64,7 @@ export function computeFeatures(song, theme, config, year) {
   const facts = {};
 
   // Titel
-  const titleHits = countKeywordHits(cleanTitle(song?.title) || song?.title, index);
+  const titleHits = titleKeywordHits(cleanTitle(song?.title) || song?.title, index);
   const titleSum = Object.entries(titleHits).reduce((s, [k, n]) => s + n * keywordWeight(config, k), 0);
   f.title_keywords = index.length ? saturate(titleSum, 1) : null;
   facts.title_hits = Object.keys(titleHits);
@@ -129,6 +142,7 @@ function themeFit(f) {
 }
 
 function hasData(kind, song, f) {
+  if (kind === "title") return Boolean(song?.title);
   if (kind === "lyrics") return f.lyrics_density !== null;
   if (kind === "tags") return f.tag_depth !== null;
   if (kind === "popularity") return f.obscurity !== null;
@@ -154,7 +168,9 @@ function factText(feature, side, other, names) {
       const n = side.facts.lyrics_hit_total || 0, m = other.facts.lyrics_hit_total || 0;
       if (!n) return null;
       const words = (side.facts.lyrics_hits || []).slice(0, 3).map(([k]) => k).join(", ");
-      return `${n} passende Motive im Text (${words})${m ? `, bei „${l}“ nur ${m}` : `, bei „${l}“ keine`}`;
+      const what = n === 1 ? "1 passendes Motiv" : `${n} passende Motive`;
+      const cmp = m === 0 ? `, bei „${l}“ keines` : m < n ? `, bei „${l}“ nur ${m}` : "";
+      return `${what} im Text (${words})${cmp}`;
     }
     case "tag_match":
       return side.facts.tag_hits?.length ? `Tags wie ${side.facts.tag_hits.slice(0, 3).join(", ")}` : null;
@@ -182,6 +198,7 @@ function tieFactText(feature, A, B) {
   const a = A.facts, b = B.facts;
   switch (feature) {
     case "lyrics_keywords": return (a.lyrics_hit_total || b.lyrics_hit_total) ? `${a.lyrics_hit_total || 0} zu ${b.lyrics_hit_total || 0} passende Motive im Text` : null;
+    case "title_keywords": return (a.title_hits?.length || b.title_hits?.length) ? `Motive im Titel: ${a.title_hits?.length || 0} zu ${b.title_hits?.length || 0}` : null;
     case "lyrics_density": return a.word_count && b.word_count ? `${formatNumber(a.word_count)} zu ${formatNumber(b.word_count)} Wörter Text` : null;
     case "obscurity": return a.listeners !== null && b.listeners !== null ? `${formatNumber(a.listeners)} zu ${formatNumber(b.listeners)} Hörer` : null;
     case "era_match": case "age": return a.year && b.year ? `Release ${a.year} und ${b.year}` : null;
@@ -235,7 +252,13 @@ export function scoreRound(songA, songB, theme, config, opts = {}) {
       contrib.push({ feature, diff: weight * (va - vb) });
     }
     pa = round2(pa); pb = round2(pb);
-    const diff = pa - pb;
+    let diff = pa - pb;
+
+    // Ohne echtes Signal in den Kern-Merkmalen des Jurors kein Entscheid über Nebensachen (3.9)
+    if (Array.isArray(juror.needs_signal) && juror.needs_signal.length) {
+      const signal = (F) => juror.needs_signal.some((ft) => (F.features[ft] ?? 0) > 0.05);
+      if (!signal(A) && !signal(B)) diff = 0;
+    }
 
     if (Math.abs(diff) < eps) {
       const facts = contrib.map((c) => tieFactText(c.feature, A, B)).filter(Boolean).slice(0, 2).join(", ") || "kein Song hebt sich ab";

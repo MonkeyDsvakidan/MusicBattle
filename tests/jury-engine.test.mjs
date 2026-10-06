@@ -149,3 +149,40 @@ test("Gleichstand-Begründung vergleicht beide Werte neutral", () => {
   assert.match(c.reason, /2 zu 2 passende Motive im Text/);
   assert.ok(!/nur|keine/.test(c.reason), "keine wertenden Wörter bei Gleichstand");
 });
+
+test("3.9: Titel zählt als Datenbasis – Themenschnüffler urteilt auch ohne Lyrics/Tags/Jahr", () => {
+  const t = theme("regentag-in-der-stadt");
+  const a = song({ title: "Graue Wolken", tags: [], release_year: null });
+  const b = song({ title: "Sonnenstrahlen", tags: [], release_year: null });
+  const c = byKey(scoreRound(a, b, t, config, { year: YEAR })).theme;
+  assert.equal(c.weak, false);
+  assert.equal(c.verdict, "a");
+  assert.match(c.reason, /Graue Wolken/);
+});
+
+test("3.9: Deutsche Zusammensetzungen im Titel („Sonnenstrahlen“ → sonne)", () => {
+  const t = theme("sommer-rap-hit");
+  const f = computeFeatures(song({ title: "Sonnenstrahlen" }), t, config, YEAR);
+  assert.ok(f.features.title_keywords > 0.5);
+  assert.deepEqual(f.facts.title_hits, ["sonne"]);
+  const kurz = computeFeatures(song({ title: "Hotline" }), theme("sommer-rap-hit"), config, YEAR);
+  assert.equal(kurz.features.title_keywords, 0, "„hot“ (3 Buchstaben) zählt nicht als Wortanfang");
+});
+
+test("3.9: Kein Entscheid ohne Signal – Lyricboss entscheidet nicht nur über die Textlänge", () => {
+  const t = theme("90er-party");
+  const lang = song({ title: "Lang" }, filler(600));
+  const kurz = song({ title: "Kurz" }, filler(120));
+  const c = byKey(scoreRound(lang, kurz, t, config, { year: YEAR })).lyrics;
+  assert.equal(c.verdict, "tie");
+  assert.equal(c.weak, false);
+});
+
+test("3.9: Grammatik – „1 passendes Motiv“, kein „nur 1“ bei Gleichstand der Treffer", () => {
+  const t = theme("herzschmerz");
+  const a = song({ title: "A", id: "ga", tags: [{ name: "sad", source: "lastfm" }] }, "tränen " + filler(40));
+  const b = song({ title: "B", id: "gb", tags: [{ name: "party", source: "lastfm" }] }, "money " + filler(300));
+  const all = scoreRound(a, b, t, config, { year: YEAR }).map((c) => c.reason).join(" ");
+  assert.ok(!/1 passende Motive/.test(all), all);
+  assert.ok(!/nur 1/.test(all), all);
+});

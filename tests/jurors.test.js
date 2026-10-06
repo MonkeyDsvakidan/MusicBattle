@@ -36,6 +36,7 @@ test("Mindestdaten und Abstände sind gültig", () => {
     assert.ok(["any", "all"].includes(j.requires_mode), `${j.key}: requires_mode`);
     assert.ok(j.margins.clear > 0, `${j.key}: margins.clear`);
     if ("theme_gate" in j) assert.ok(j.theme_gate > 0 && j.theme_gate < 1, `${j.key}: theme_gate`);
+    for (const f of j.needs_signal ?? []) assert.ok(features.includes(f), `${j.key}: needs_signal mit unbekanntem Merkmal ${f}`);
   }
 });
 
