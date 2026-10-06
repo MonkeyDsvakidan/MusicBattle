@@ -39,7 +39,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 
 | Datei | Inhalt |
 |---|---|
-| `js/config.js` | Supabase-/Spotify-Konfiguration, `JUDGES`; `THEMES`, `SUDDEN_THEMES`, `themeProfile()` aus der Themen-Datei |
+| `js/config.js` | Supabase-/Spotify-Konfiguration; `JUDGES` aus der Juror-Datei; `THEMES`, `SUDDEN_THEMES`, `themeProfile()` aus der Themen-Datei |
 | `js/state.js` | Zustand `S`, `$`/`esc`, Raum-/Mitglieder-/Runden-Abfragen, `resetLocalRoomState` |
 | `js/ui-common.js` | `mbConfirm`, `mbConfirmLeave`, `render()`-Verteiler, Closed-Screen, gemeinsame Bausteine |
 | `js/spotify.js` | Spotify-Login (PKCE), Token, Künstler-Pool, Web Playback |
@@ -50,7 +50,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `js/ui-screens.js` | Bildschirme: Start, Lobby, Draft, Battle, Jury, Tiebreak, Endstand |
 | `js/main.js` | Start: genau ein `init()` + `render()`, nachdem alles geladen ist |
 
-Gemeinsame Daten: `supabase/functions/_shared/themes.json` enthält alle Themen mit Profil (Schlüsselwörter DE/EN, Tags, Energie, Ära). Das Frontend lädt sie über `app.js` (GitHub Pages liefert das ganze Repo aus), die Jury-Edge-Function importiert sie ab Roadmap 3.8. Themen nur dort ändern.
+Gemeinsame Daten: `supabase/functions/_shared/themes.json` enthält alle Themen mit Profil (Schlüsselwörter DE/EN, Tags, Energie, Ära); `jurors.json` die fünf Juror-Profile (Gewichte, Mindestdaten, Text-Bausteine, schwache Gewichte für allgemeine Wörter, Energie-Tags). Das Frontend lädt sie über `app.js` (GitHub Pages liefert das ganze Repo aus), die Jury-Edge-Function importiert sie ab Roadmap 3.8. Themen und Juroren nur dort ändern.
 
 Regeln:
 - Neue Funktionen in die thematisch passende Datei; eine Funktion nie in einer zweiten Datei neu definieren.

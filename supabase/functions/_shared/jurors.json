@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "about": "Juror-Profile (Roadmap 3.5). Einzige Quelle für Frontend (JUDGES in js/config.js) und Jury-Engine (3.6). weights: Gewicht je Merkmal (Vokabular siehe features), negative Werte = Merkmal spricht dagegen. requires: Daten, ohne die die Stimme des Jurors als schwach gilt (Regel siehe Entscheidung C / 3.7). margins: Abstand der gewichteten Punkte, ab dem 10–8 (clear) statt 10–9 vergeben wird. texts: Bausteine mit Platzhaltern {winner}, {loser}, {theme}, {facts}, {winner_value}, {loser_value}.",
+
+  "features": {
+    "title_keywords": "Themen-Schlüsselwörter im Songtitel (gewichtet, 0–1)",
+    "lyrics_keywords": "Themen-Schlüsselwörter in den Lyrics, pro 100 Wörter (gewichtet, gekappt, 0–1)",
+    "tag_match": "Überschneidung Song-Tags (Last.fm/ListenBrainz) mit Themen-Tags (0–1)",
+    "era_match": "Release-Jahr in der Ära des Themas (1), knapp daneben (0.4), klar daneben (0); nur bei Themen mit Ära",
+    "energy_match": "Energie aus den Song-Tags im Vergleich zur Energie des Themas (0–1)",
+    "lyrics_density": "Textmenge (Wörter, 0–1, ab 450 Wörtern = 1)",
+    "obscurity": "Umgekehrte Bekanntheit aus Last.fm-Hörern bzw. ListenBrainz-Nutzern (0 = Welthit, 1 = kaum bekannt)",
+    "album_track": "Albumtrack (1), Compilation (0.5), Single (0)",
+    "age": "Alter des Songs (0 = neu, 1 = 20+ Jahre)",
+    "tag_depth": "Anzahl verschiedener Genre-/Stimmungs-Tags (0–1, ab 8 Tags = 1)"
+  },
+
+  "requires_vocabulary": {
+    "lyrics": "Lyrics vorhanden (lyrics_features.has_lyrics)",
+    "tags": "mindestens ein Tag",
+    "popularity": "Last.fm-Hörer oder ListenBrainz-Nutzer bekannt",
+    "release_year": "Release-Jahr bekannt"
+  },
+
+  "keyword_weights": {
+    "about": "Sehr allgemeine Wörter treffen in fast jedem Text (Erkenntnis 3.3) und zählen nur anteilig. Nicht aufgeführte Wörter zählen 1.",
+    "now": 0.2, "time": 0.2, "new": 0.3, "never": 0.3, "best": 0.3, "last": 0.4, "end": 0.4,
+    "alle": 0.3, "alles": 0.3, "jetzt": 0.2, "heute": 0.3, "weiter": 0.3, "weg": 0.3, "zeit": 0.3,
+    "everybody": 0.4, "everything": 0.3, "today": 0.3, "late": 0.5, "home": 0.5, "free": 0.5, "top": 0.4, "win": 0.5
+  },
+
+  "energy_tags": {
+    "about": "Tags, aus denen die Energie eines Songs geschätzt wird (Song-Energie = Anteil high minus Anteil low).",
+    "high": ["hype", "energetic", "aggressive", "party", "club", "dance", "turn up", "festival", "workout", "banger", "hard", "trap", "drill", "rage", "upbeat", "anthem", "hardcore", "edm"],
+    "low": ["chill", "mellow", "sad", "melancholic", "calm", "relaxing", "lo-fi", "lofi", "ambient", "ballad", "slow", "dreamy", "introspective", "soft", "acoustic", "sleep"]
+  },
+
+  "jurors": [
+    {
+      "key": "theme",
+      "name": "Themenschnüffler",
+      "role": "Themen-Purist",
+      "persona": "Riecht jedes Motiv. Zählt, was im Titel, im Text und in den Tags wirklich zum Thema passt – und prüft bei Zeitreisen das Jahr.",
+      "weights": { "title_keywords": 3, "lyrics_keywords": 2, "tag_match": 2, "era_match": 5 },
+      "requires": ["lyrics", "tags", "release_year"],
+      "requires_mode": "any",
+      "margins": { "clear": 2.0 },
+      "texts": {
+        "win": [
+          "Ich hab’s gerochen: „{winner}“ trifft „{theme}“ direkt – {facts}. „{loser}“ bleibt beim Thema blass.",
+          "Motiv-Check bestanden: {facts}. Darum geht mein Punkt an „{winner}“."
+        ],
+        "win_era": [
+          "Zeitreise-Check: „{winner}“ stammt aus {winner_value}, „{loser}“ aus {loser_value}. Für „{theme}“ ist das eindeutig."
+        ],
+        "weak": [
+          "Viel zu riechen gibt’s nicht – zu wenig Daten zum Thema. Mit Bauchgefühl knapp für „{winner}“."
+        ]
+      }
+    },
+    {
+      "key": "vibe",
+      "name": "Vibejunkie",
+      "role": "Atmosphäre-Juror",
+      "persona": "Hört nur auf das Gefühl: Stimmungs-Tags und Energie müssen zum Moment passen.",
+      "weights": { "tag_match": 3, "energy_match": 3, "lyrics_keywords": 0.5 },
+      "requires": ["tags"],
+      "requires_mode": "all",
+      "margins": { "clear": 1.8 },
+      "texts": {
+        "win": [
+          "Der Vibe stimmt bei „{winner}“: {facts}. Genau die Energie, die „{theme}“ braucht.",
+          "Augen zu, Bass an: {facts}. „{winner}“ fühlt sich nach „{theme}“ an, „{loser}“ nicht ganz."
+        ],
+        "weak": [
+          "Ohne Stimmungs-Tags fehlt mir das Gefühl. Ganz knapp, eher aus Instinkt: „{winner}“."
+        ]
+      }
+    },
+    {
+      "key": "lyrics",
+      "name": "Kollegah der Lyricboss",
+      "role": "Lyrics-Juror",
+      "persona": "Wertet nur, was im Text steht: Themen-Motive in den Lyrics und wie viel Inhalt der Track hat.",
+      "weights": { "lyrics_keywords": 3, "lyrics_density": 1.5, "title_keywords": 0.5 },
+      "requires": ["lyrics"],
+      "requires_mode": "all",
+      "margins": { "clear": 2.0 },
+      "texts": {
+        "win": [
+          "Textlich klare Sache: {facts}. „{winner}“ liefert die stärkeren Zeilen zu „{theme}“.",
+          "Ich hab die Bars gezählt: {facts}. Punkt für „{winner}“."
+        ],
+        "weak": [
+          "Ohne Lyrics kann der Boss nicht richtig urteilen. Bewusst nur ein knapper Punkt für „{winner}“."
+        ]
+      }
+    },
+    {
+      "key": "underdog",
+      "name": "Snoop Underdogg",
+      "role": "David-vs-Goliath-Juror",
+      "persona": "Steht auf den kleineren Song – solange er thematisch mithalten kann.",
+      "weights": { "obscurity": 4, "title_keywords": 0.5, "lyrics_keywords": 0.5, "tag_match": 0.5 },
+      "theme_gate": 0.6,
+      "requires": ["popularity"],
+      "requires_mode": "all",
+      "margins": { "clear": 2.0 },
+      "texts": {
+        "win": [
+          "Underdog-Alarm: „{winner}“ hat {winner_value} Hörer, „{loser}“ {loser_value}. Und thematisch hält er mit – Punkt für den Kleinen.",
+          "Der Kleinere gewinnt: {facts}. Respekt an „{winner}“."
+        ],
+        "win_gate": [
+          "Ich hätte gern den Underdog gewählt, aber „{loser}“ passt thematisch zu wenig. Der Punkt geht an „{winner}“."
+        ],
+        "weak": [
+          "Keine Hörerzahlen, kein Underdog. Knapp und ohne Überzeugung für „{winner}“."
+        ]
+      }
+    },
+    {
+      "key": "connoisseur",
+      "name": "Dr. Körnli",
+      "role": "Musikkenner-Juror",
+      "persona": "Mag Katalog-Tiefe: Albumtracks statt Singles, ältere Perlen, weniger Bekanntes und Genre-Vielfalt.",
+      "weights": { "album_track": 2, "age": 1.5, "obscurity": 1, "tag_depth": 1, "tag_match": 1, "lyrics_keywords": 1 },
+      "requires": ["release_year", "popularity", "tags"],
+      "requires_mode": "any",
+      "margins": { "clear": 2.2 },
+      "texts": {
+        "win": [
+          "Aus Kennersicht: {facts}. „{winner}“ ist die interessantere Wahl.",
+          "Katalog-Check: {facts}. Dr. Körnli gibt den Punkt an „{winner}“."
+        ],
+        "weak": [
+          "Zu wenig Katalog-Daten für ein fundiertes Urteil. Knapp für „{winner}“."
+        ]
+      }
+    }
+  ]
+}
