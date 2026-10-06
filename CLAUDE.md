@@ -32,19 +32,29 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `mb_submissions` | eingereichte Songs inkl. Spotify-Metadaten (ISRC, Release, Dauer …), `start_ms` |
 | `mb_jury_scores` | Scorecards; `source` = `human` oder `ai`, `details` (jsonb) |
 
-## Aktueller Code-Aufbau (Stand Übernahme) – WICHTIG
+## Code-Aufbau (seit Roadmap 2.2, BUILD 20261006-5)
 
-`index.html` lädt nur `app.js`. `app.js` lädt nacheinander `app-1.js … app-6d.js`. **Spätere Dateien überschreiben gleichnamige Funktionen aus früheren Dateien.** Doppelt bzw. dreifach definiert sind u. a.:
+`index.html` lädt `app.js`. Der Loader lädt der Reihe nach die klassischen Skripte aus `js/` (globale Namen, kein `import`/`export`, kein Build-Step). **Jede Funktion existiert genau einmal** – es gibt keine Überschreibungen mehr.
 
-`renderLanding` (4, 5, 6a) · `renderLobby` (4, 5) · `renderDraft` (4, 6b) · `renderBattle` (4, 6b) · `renderJury` (4, 6c) · `trackSide` (4, 6b) · `submitTrack` (3, 6b) · `createRoom` (1, 5) · `drawArtist` (3, 6a) · `refresh`/`subscribeRoom` (1, 6a) · `renderFinished`/`render` (4, 6d)
+| Datei | Inhalt |
+|---|---|
+| `js/config.js` | Supabase-/Spotify-Konfiguration, `JUDGES`, `THEMES`, `SUDDEN_THEMES` |
+| `js/state.js` | Zustand `S`, `$`/`esc`, Raum-/Mitglieder-/Runden-Abfragen, `resetLocalRoomState` |
+| `js/ui-common.js` | `mbConfirm`, `mbConfirmLeave`, `render()`-Verteiler, Closed-Screen, gemeinsame Bausteine |
+| `js/spotify.js` | Spotify-Login (PKCE), Token, Künstler-Pool, Web Playback |
+| `js/room.js` | Anmeldung, Raum laden/beitreten/erstellen/verlassen, Sync (Realtime + Poll mit Fingerabdruck), `init` |
+| `js/draft.js` | Draft, Skip, Sudden-Death-Draft |
+| `js/battle.js` | Songsuche, Einreichen, Startpunkt |
+| `js/jury.js` | Scorecards, eigener Entscheid, Auto-Jury, `roundDecision`, `finalizeRound`, Jury-Texte |
+| `js/ui-screens.js` | Bildschirme: Start, Lobby, Draft, Battle, Jury, Tiebreak, Endstand |
+| `js/main.js` | Start: genau ein `init()` + `render()`, nachdem alles geladen ist |
 
-Zusätzlich:
-- `app-4.js` ruft am Ende `init()` auf, **bevor** app-5 bis app-6d geladen sind (Race Condition).
-- `app-6d.js` überschreibt die Jury-Begründungen per `MutationObserver` im DOM (Zuordnung über Kartenindex).
-- `app.js` leert alle Juror-Bilder; der Ordner `assets/jury/` existiert nicht.
-- Cache-Busting über `BUILD` in `app.js` und `?v=` in `index.html`.
-
-Solange die Konsolidierung (Roadmap Phase 0) nicht abgeschlossen ist: **Vor jeder Änderung an einer Funktion mit `grep -n "function NAME(" app*.js` prüfen, welche Definition tatsächlich aktiv ist (die zuletzt geladene).** Nach der Konsolidierung diesen Abschnitt durch die neue Struktur ersetzen.
+Regeln:
+- Neue Funktionen in die thematisch passende Datei; eine Funktion nie in einer zweiten Datei neu definieren.
+- Top-Level-Code (Listener, Observer) läuft beim Laden – nur Funktionen aus derselben oder früheren Dateien direkt aufrufen.
+- Noch offen: `jury.js` überschreibt die Jury-Begründungen per `MutationObserver` (→ Roadmap 2.4); die Juror-Bilder werden in `config.js` geleert (`assets/jury/` fehlt, → 4.5).
+- Cache-Busting: `BUILD` in `app.js` und `?v=` in `index.html` erhöhen.
+- Die alten `app-1.js … app-6d.js` werden **nicht mehr geladen** und in Roadmap 2.5 gelöscht – nicht mehr bearbeiten.
 
 ## Arbeitsregeln
 
