@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "about": "Themen-Profile (Roadmap 3.1). Einzige Quelle für Frontend (js/config.js) und Jury (Edge Function). keywords.de/.en werden nur gegen Texte der jeweiligen Sprache geprüft; tags sind Stimmungs-/Genre-Tags im Stil von Last.fm/ListenBrainz (englisch, klein); energy = high|medium|low; era = {from,to} nur wenn das Thema eine Zeit vorgibt.",
+  "about": "Themen-Profile (Roadmap 3.1). Einzige Quelle für Frontend (js/config.js) und Jury (Edge Function). keywords.de/.en sind getrennt gepflegt und werden beide gezählt (Deutschrap mischt Englisch), zweideutige DE/EN-Wörter sind ausgeschlossen (tests/themes.test.js); tags sind Stimmungs-/Genre-Tags im Stil von Last.fm/ListenBrainz (englisch, klein); energy = high|medium|low; era = {from,to} nur wenn das Thema eine Zeit vorgibt.",
   "categories": [
     {
       "name": "Arena & Action",

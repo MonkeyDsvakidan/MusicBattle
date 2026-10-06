@@ -5,3 +5,6 @@ project_id = "MusicBattle"
 
 [functions.mb-ai-jury]
 verify_jwt = true
+
+[functions.mb-track-profile]
+verify_jwt = true
