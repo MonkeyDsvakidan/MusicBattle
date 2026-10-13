@@ -33,7 +33,23 @@ async function mbConfirmLeave(){
 
 function bindBrandHome(){const el=$("brandHome");if(el)el.onclick=openModeSelection}
 
-function roomExitControls(){if(!S.room)return"";return `<div class="actions" style="margin-top:14px"><button class="btn" id="leaveRoomBtn">Raum verlassen</button>${isHost()?`<button class="btn danger" id="newRoomBtn">Neuen Raum eröffnen</button>`:""}</div>`}
+function roomExitControls(){if(!S.room)return"";return `<div class="exitbar"><button class="btn ghost" id="leaveRoomBtn">Raum verlassen</button>${isHost()?`<button class="btn ghost danger" id="newRoomBtn">Neuer Raum</button>`:""}</div>`}
+
+// Fortschritt im Match (Roadmap 4.3): Lobby → Draft → Battle → Ergebnis
+function flowSteps(){
+  const st=S.room?.status,i=st==="lobby"?0:st==="draft"?1:["battle","tiebreak","sudden_draft"].includes(st)?2:st==="finished"?3:-1;
+  if(i<0)return"";
+  return `<nav class="flow" aria-label="Spielablauf"><ol>${["Lobby","Draft","Battle","Ergebnis"].map((l,n)=>`<li class="${n<i?"done":n===i?"now":""}"${n===i?' aria-current="step"':""}>${l}</li>`).join("")}</ol></nav>`;
+}
+
+// Pass & Play: beide Spieler auf diesem Gerät
+function isPassAndPlay(){return S.room?.device_mode==="single"&&ownsPlayerSlot(1)&&ownsPlayerSlot(2)}
+
+// Pass & Play im Battle: zuerst wählt Spieler 1, dann Spieler 2 (die Wahl des anderen bleibt verdeckt)
+function passPlayTurn(subs){if(!isPassAndPlay())return null;return !subs[0]?1:!subs[1]?2:null}
+
+// Grosse Anzeige „Wer ist dran?“ in der Farbe des Spielers
+function turnBanner(slotNo,text){return `<div class="turnbanner p${slotNo}" role="status"><small>WER IST DRAN?</small><strong>${esc(memberName(slotNo))}</strong>${text?`<span>${esc(text)}</span>`:""}</div>`}
 
 function bindRoomExitControls(){const leave=$("leaveRoomBtn");if(leave)leave.onclick=leaveCurrentRoom;const next=$("newRoomBtn");if(next)next.onclick=openNewRoom}
 
@@ -50,6 +66,7 @@ function render(){
   $("roomBadge").innerHTML=`<span class="chip">${esc(S.room.code)} · ${role()==="player"?(localSlots.length===2?"SPIELER 1 + 2":`SPIELER ${localSlots[0]}`):"JURY"}</span>`;
   if(S.room.status==="lobby")renderLobby();else if(S.room.status==="draft")renderDraft();else if(S.room.status==="battle")renderBattle();else if(S.room.status==="tiebreak")renderTiebreak();else if(S.room.status==="sudden_draft")renderSuddenDraft();else if(S.room.status==="finished")renderFinished();else if(S.room.status==="closed"){renderClosed();return}else renderLobby();
   renderMissingPlayerNotice();
+  $("app").insertAdjacentHTML("afterbegin",flowSteps());
 }
 
 // Host hat das Match verlassen → Raum ist für alle geschlossen (Entscheidung F)

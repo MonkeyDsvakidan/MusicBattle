@@ -7,7 +7,7 @@ Diese Datei wird in jeder Claude-Code-Sitzung geladen. Sie beschreibt das Projek
 Music Battle ist ein Browser-Spiel für zwei Spieler (plus optionale menschliche Juroren):
 
 1. **Lobby** – Spieler 1 erstellt einen Raum (Modus „1 Gerät · Pass & Play“ oder „2 Geräte · Realtime“), beide verbinden Spotify.
-2. **Blind Draft** – abwechselnd wird ein Künstler aus dem eigenen Spotify-Top-Pool gezogen und einer von 5 Runden zugeordnet (1 Skip pro Spieler).
+2. **Draft** – abwechselnd wird ein Künstler aus dem eigenen Spotify-Top-Pool gezogen und einer von 5 Runden zugeordnet (1 Skip pro Spieler).
 3. **Battle** – pro Runde ein Thema (z. B. „Nachtfahrt durch eine Grossstadt“). Jeder wählt einen Song seines Künstlers, die Songs werden gleichzeitig aufgedeckt und angespielt.
 4. **Jury** – menschliche Juroren (Scorecards 10–8 / 10–9), die automatische 5er-Jury oder der eigene Entscheid bestimmen den Rundensieger.
 5. **Match** – Runde 5 zählt doppelt, bei Gleichstand Sudden Death (Runde 6), danach Endstand mit Statistiken.
@@ -41,7 +41,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 |---|---|
 | `js/config.js` | Supabase-/Spotify-Konfiguration; `JUDGES` aus der Juror-Datei; `THEMES`, `SUDDEN_THEMES`, `themeProfile()` aus der Themen-Datei |
 | `js/state.js` | Zustand `S`, `$`/`esc`, Raum-/Mitglieder-/Runden-Abfragen, `resetLocalRoomState` |
-| `js/ui-common.js` | `mbConfirm`, `mbConfirmLeave`, `render()`-Verteiler, Closed-Screen, gemeinsame Bausteine |
+| `js/ui-common.js` | `mbConfirm`, `mbConfirmLeave`, `render()`-Verteiler (setzt die Fortschrittsanzeige `flowSteps()` darüber), Closed-Screen, gemeinsame Bausteine (`turnBanner`, `isPassAndPlay`, `passPlayTurn`, Ausgangsleiste) |
 | `js/spotify.js` | Spotify-Login (PKCE), Token, Künstler-Pool, Web Playback |
 | `js/room.js` | Anmeldung, Raum laden/beitreten/erstellen/verlassen, Sync (Realtime + Poll mit Fingerabdruck), `init` |
 | `js/draft.js` | Draft, Skip, Sudden-Death-Draft |
