@@ -1,15 +1,15 @@
 # CLAUDE.md – Music Battle
 
-Diese Datei wird in jeder Claude-Code-Sitzung geladen. Sie beschreibt das Projekt als Ganzes und die Regeln, nach denen gearbeitet wird. **Lies zu Beginn jeder Sitzung zusätzlich `ROADMAP.md`.**
+Diese Datei wird in jeder Claude-Code-Sitzung geladen. Sie beschreibt das Projekt als Ganzes und die Regeln, nach denen gearbeitet wird. **Lies zu Beginn jeder Sitzung zusätzlich `ROADMAP.md`.** Für Menschen gibt es `README.md` (Spielablauf, Setup, Deployment) – bei Änderungen am Ablauf oder Setup mitpflegen.
 
 ## Was das Projekt ist
 
 Music Battle ist ein Browser-Spiel für zwei Spieler (plus optionale menschliche Juroren):
 
-1. **Lobby** – Spieler 1 erstellt einen Raum (Modus „1 Gerät · Pass & Play“ oder „2 Geräte · Realtime“), beide verbinden Spotify.
+1. **Lobby** – Spieler 1 erstellt einen Raum (Modus „1 Gerät · Pass & Play“: ein Spotify-Konto für beide; oder „2 Geräte · Realtime“: jeder verbindet sein Spotify). Pro Screen genau eine Hauptaktion, Fortschrittsanzeige Lobby → Draft → Battle → Ergebnis.
 2. **Draft** – abwechselnd wird ein Künstler aus dem eigenen Spotify-Top-Pool gezogen und einer von 5 Runden zugeordnet (1 Skip pro Spieler).
-3. **Battle** – pro Runde ein Thema (z. B. „Nachtfahrt durch eine Grossstadt“). Jeder wählt einen Song seines Künstlers, die Songs werden gleichzeitig aufgedeckt und angespielt.
-4. **Jury** – menschliche Juroren (Scorecards 10–8 / 10–9), die automatische 5er-Jury oder der eigene Entscheid bestimmen den Rundensieger.
+3. **Battle** – pro Runde ein Thema (z. B. „Nachtfahrt durch eine Grossstadt“). Jeder wählt einen Song seines Künstlers (Pass & Play: zuerst Spieler 1, dann Spieler 2, die Wahl des anderen bleibt verdeckt), die Songs werden gleichzeitig aufgedeckt und angespielt.
+4. **Jury** – menschliche Juroren (Scorecards 10–8 / 10–9; sind welche im Raum, entscheiden nur sie), „Die Jury“ (fünf automatische Juroren, 10–10 bei Gleichstand/fehlenden Daten) oder der eigene Entscheid des Hosts (auch zum Überstimmen der Jury) bestimmen den Rundensieger.
 5. **Match** – Runde 5 zählt doppelt, bei Gleichstand Sudden Death (Runde 6), danach Endstand mit Statistiken.
 
 UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor allem Handy, auch Desktop.
@@ -18,7 +18,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 
 - **Frontend:** statisches HTML/CSS/Vanilla-JS, kein Build-Step, kein Framework. Deployment über GitHub Pages (`.github/workflows/pages.yml`, Push auf `main` = live).
 - **Backend:** Supabase-Projekt „MusicVote“ (`swgraidbdxpjqnvxacpq`): Postgres mit RLS, RPC-Funktionen `mb_*`, Realtime auf allen `mb_*`-Tabellen, anonyme Auth.
-- **Edge Functions:** `mb-track-profile` (3.3) sammelt nach dem Einreichen einmal pro Song die Daten (LRCLIB, MusicBrainz, ListenBrainz, Last.fm) und speichert das Profil in `mb_track_profiles`. `mb-jury` (3.8) bewertet eine Runde aus diesen Profilen mit der Jury-Engine (`_shared/jury-engine.mjs`) und speichert fünf Scorecards – keine Live-Abfragen, keine KI; fehlende Profile erstellt sie zuerst über `mb-track-profile`. `mb-ai-jury` (alt) wird nicht mehr aufgerufen. Gemeinsamer Code in `supabase/functions/_shared/` (`themes.json`, `jurors.json`, `track-features.mjs`, `jury-engine.mjs`). Beim Deploy über den Supabase-MCP alle importierten `_shared`-Dateien als `../_shared/…` mitgeben. Secrets: `LASTFM_API_KEY` (gesetzt); `OPENROUTER_API_KEY` wird nicht mehr gebraucht.
+- **Edge Functions:** `mb-track-profile` (3.3) sammelt nach dem Einreichen einmal pro Song die Daten (LRCLIB, MusicBrainz, ListenBrainz, Last.fm) und speichert das Profil in `mb_track_profiles`. `mb-jury` (3.8) bewertet eine Runde aus diesen Profilen mit der Jury-Engine (`_shared/jury-engine.mjs`) und speichert fünf Scorecards – keine Live-Abfragen, keine KI; fehlende Profile erstellt sie zuerst über `mb-track-profile`. `mb-ai-jury` (alt) wird nicht mehr aufgerufen und ist aus dem Repo entfernt; die deployte Funktion muss der Nutzer im Supabase-Dashboard löschen (der MCP kann keine Functions löschen). Gemeinsamer Code in `supabase/functions/_shared/` (`themes.json`, `jurors.json`, `track-features.mjs`, `jury-engine.mjs`). Beim Deploy über den Supabase-MCP alle importierten `_shared`-Dateien als `../_shared/…` mitgeben. Secrets: `LASTFM_API_KEY` (gesetzt); `OPENROUTER_API_KEY` wird nicht mehr gebraucht.
 - **Spotify:** OAuth PKCE im Browser, Web API für Top-Artists/Suche, Web Playback SDK zum Abspielen (Premium nötig).
 
 ### Datenmodell (public)
@@ -33,7 +33,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `mb_jury_scores` | Scorecards; `source` = `human` oder `ai`, `details` (jsonb) |
 | `mb_track_profiles` | Song-Profil je Spotify-Track (Daten für die Jury, keine Lyrics-Texte); nur serverseitig beschreibbar |
 
-## Code-Aufbau (seit Roadmap 2.2, BUILD 20261006-5)
+## Code-Aufbau (seit Roadmap 2.2)
 
 `index.html` lädt `app.js`. Der Loader lädt der Reihe nach die klassischen Skripte aus `js/` (globale Namen, kein `import`/`export`, kein Build-Step). **Jede Funktion existiert genau einmal** – es gibt keine Überschreibungen mehr.
 
@@ -41,13 +41,13 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 |---|---|
 | `js/config.js` | Supabase-/Spotify-Konfiguration; `JUDGES` aus der Juror-Datei; `THEMES`, `SUDDEN_THEMES`, `themeProfile()` aus der Themen-Datei |
 | `js/state.js` | Zustand `S`, `$`/`esc`, Raum-/Mitglieder-/Runden-Abfragen, `resetLocalRoomState` |
-| `js/ui-common.js` | `mbConfirm`, `mbConfirmLeave`, `render()`-Verteiler (setzt die Fortschrittsanzeige `flowSteps()` darüber), Closed-Screen, gemeinsame Bausteine (`turnBanner`, `isPassAndPlay`, `passPlayTurn`, Ausgangsleiste) |
+| `js/ui-common.js` | `mbConfirm`, `mbConfirmLeave`, `render()`-Verteiler (setzt die Fortschrittsanzeige `flowSteps()` darüber), Closed-Screen, gemeinsame Bausteine (`turnBanner`, `isPassAndPlay`, `passPlayTurn`, `cornerName`, `animAttr`, Ausgangsleiste) |
 | `js/spotify.js` | Spotify-Login (PKCE), Token, Künstler-Pool, Web Playback |
 | `js/room.js` | Anmeldung, Raum laden/beitreten/erstellen/verlassen, Sync (Realtime + Poll mit Fingerabdruck), `init` |
 | `js/draft.js` | Draft, Skip, Sudden-Death-Draft |
 | `js/battle.js` | Songsuche, Einreichen (stösst danach `mb-track-profile` im Hintergrund an), Startpunkt |
-| `js/jury.js` | Scorecards, eigener Entscheid, Auto-Jury (ruft `mb-jury` auf), `roundDecision`, `finalizeRound` |
-| `js/ui-screens.js` | Bildschirme: Start, Lobby, Draft, Battle, Jury, Tiebreak, Endstand |
+| `js/jury.js` | Scorecards, eigener Entscheid, „Die Jury“ (`runAIJury` ruft `mb-jury` auf), `roundDecision`, `finalizeRound` |
+| `js/ui-screens.js` | Bildschirme: Start, Lobby, Draft, Battle, Jury (Punktezettel `scorecardTable`, Gürtel `beltBanner`), Tiebreak, Endstand |
 | `js/main.js` | Start: genau ein `init()` + `render()`, nachdem alles geladen ist |
 
 Gemeinsame Daten: `supabase/functions/_shared/themes.json` enthält alle Themen mit Profil (Schlüsselwörter DE/EN, Tags, Energie, Ära); `jurors.json` die fünf Juror-Profile (Gewichte, Mindestdaten, Text-Bausteine, schwache Gewichte für allgemeine Wörter, Energie-Tags). Das Frontend lädt sie über `app.js` (GitHub Pages liefert das ganze Repo aus), die Jury-Edge-Function importiert sie ab Roadmap 3.8. Themen und Juroren nur dort ändern.
@@ -102,12 +102,17 @@ Es gibt keine automatischen Tests für das Frontend. Nach jeder Änderung den be
 6. 2-Geräte-Modus: Beitritt mit Code, Realtime-Sync auf beiden Geräten
 7. Raum verlassen / Modus wechseln / Seite neu laden mitten im Match
 
-Reine Logik (z. B. Jury-Bewertung) wird als reine Funktion geschrieben und mit `node --test` getestet. Tests liegen in `tests/*.test.js`; ausführen im Repo-Root mit `node --test`.
+Bildschirm-Zustände lassen sich auch ohne Datenbank prüfen (seit 4.2): neuen Code auf einen temporären Branch pushen, CSS/JS per `raw.githubusercontent.com` in die Live-Seite einspielen (`(0,eval)` für `js/`-Dateien, `<style>` für CSS), `mbSafeSync`/`reloadRoomNow` stilllegen, `S` mit Testdaten füllen und `render()` aufrufen – bei 375 px (`resize_window` mobile) und 1280 px. Danach Branch per Squash nach `main` übernehmen und löschen. Keine Testvariablen nach App-Funktionen benennen (z. B. nicht `juryScores`).
+
+Reine Logik (z. B. Jury-Bewertung) wird als reine Funktion geschrieben und mit `node --test` getestet. Tests liegen in `tests/*.test.js` und `tests/*.test.mjs`; ausführen im Repo-Root mit `node --test` (ohne Pfad).
 
 ## Glossar
 - **Slot** – Spielerplatz 1 oder 2 (A = Slot 1, B = Slot 2)
 - **Host** – Ersteller des Raums (Spieler 1), steuert Jury und Rundenwechsel
 - **Draft-Weight** – Gewicht eines Künstlers aus dem Spotify-Hörverhalten des Spielers
-- **Song-Profil** – vorab gesammelte, gespeicherte Daten zu einem Song (siehe Roadmap Phase 2)
+- **Song-Profil** – vorab gesammelte, gespeicherte Daten zu einem Song (siehe Roadmap Phase 3)
 - **Themen-Profil** – maschinenlesbare Beschreibung eines Rundenthemas
 - **Juror-Profil** – Gewichtung, nach der ein Juror Song- und Themen-Profil vergleicht
+- **Die Jury** – Name der automatischen Fünfer-Jury in der App (5.3); im Code `source = 'ai'`, `runAIJury`, `aiScores` (historische Namen, keine KI)
+- **Ecke** – Spielerseite im Battle: Pinke Ecke = Spieler A, Cyan Ecke = Spieler B
+- **Punktezettel / Gürtel** – Jury-Tabelle mit Total / Banner für den Runden- bzw. Matchsieg
