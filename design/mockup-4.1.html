@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Roadmap 4.1: Design-Mockups des Battle-Screens. Gewählt: Variante D mit Schrift-Kombi Sedgwick Ave + Bungee (Entscheidung E). Nur Vorlage, nicht Teil der App. -->
+</head>
+<body>
+<title>Music Battle Designrichtung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bungee&family=Sedgwick+Ave+Display&family=Bowlby+One&family=Barlow:wght@400;600;800&family=Big+Shoulders+Display:wght@700;900&family=Archivo+Black&family=Permanent+Marker&family=Work+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: drei Handy-Rahmen (375 px) nebeneinander, auf schmalen Bildschirmen untereinander; jede Variante hat ihre eigene feste Optik */
+:root{
+  --page:#eef0f3; --ink:#1b1f27; --sub:#5b6472; --rule:#d5d9e0; --tag:#1b1f27;
+  --f-ui:"Barlow",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--page:#14171d;--ink:#eef0f4;--sub:#9aa3b2;--rule:#2b313b;--tag:#eef0f4;color-scheme:dark}}
+:root[data-theme="dark"]{--page:#14171d;--ink:#eef0f4;--sub:#9aa3b2;--rule:#2b313b;--tag:#eef0f4;color-scheme:dark}
+body{background:var(--page);color:var(--ink);font-family:var(--f-ui);padding-inline:16px;padding-block:28px 48px}
+.intro{max-width:1220px;margin:0 auto 26px;display:grid;gap:8px}
+.intro h1{font:800 clamp(26px,4vw,38px)/1.05 var(--f-ui);margin:0;text-wrap:balance}
+.intro p{margin:0;color:var(--sub);max-width:68ch;line-height:1.55;font-size:15px}
+.board{max-width:1220px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,375px),1fr));gap:28px;justify-items:center}
+.variant{display:grid;gap:12px;width:100%;max-width:375px;min-width:0}
+.vhead{display:grid;gap:4px}
+.vhead .letter{font:700 12px var(--f-mono);letter-spacing:.14em;color:var(--sub)}
+.vhead h2{margin:0;font:800 22px var(--f-ui)}
+.vhead p{margin:0;color:var(--sub);font-size:14px;line-height:1.5}
+.phone{width:100%;max-width:375px;border-radius:30px;overflow:hidden;border:1px solid var(--rule);box-shadow:0 18px 40px rgba(0,0,0,.18)}
+.notes{margin:0;padding-left:18px;color:var(--sub);font-size:13.5px;line-height:1.55;display:grid;gap:3px}
+
+/* ---------- Gemeinsame Struktur der Mockups ---------- */
+.m{padding:18px 16px 22px;display:grid;gap:14px;font-variant-numeric:tabular-nums}
+.m .score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.m .score .p{display:grid;gap:2px}
+.m .score .p:last-child{text-align:right}
+.m .score .mid{text-align:center}
+.m .songs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.m .song{display:grid;gap:6px;min-width:0}
+.m .song .t{overflow-wrap:anywhere}
+.m .play{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border:0;cursor:pointer}
+.m .jury{display:grid;gap:8px}
+.m .j{display:grid;grid-template-columns:38px 1fr auto;gap:10px;align-items:center}
+.m .j .av{width:38px;height:38px;display:grid;place-items:center}
+.m .j .who{min-width:0}
+.m .j .who b,.m .j .who small{display:block}
+.m .j .who small{overflow-wrap:anywhere}
+.m .cta{min-height:52px;border:0;cursor:pointer;width:100%}
+.m .basis{font-size:11.5px}
+
+/* ---------- A · Boxring ---------- */
+.a{--bg:#15130f;--card:#201d17;--line:#3a342a;--gold:#e9b949;--paper:#f3ead6;--txt:#f5f0e6;--dim:#a99f8c;--red:#d9503f;
+  background:var(--bg);color:var(--txt);font-family:"Barlow",system-ui,sans-serif}
+.a .score{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.a .score .n{font:400 13px "Barlow";color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+.a .score .v{font:400 38px/1 "Anton",Impact,sans-serif;color:var(--txt)}
+.a .score .mid small{display:block;font:700 10px "Barlow";letter-spacing:.18em;color:var(--gold)}
+.a .score .mid b{font:400 18px "Anton",Impact,sans-serif;letter-spacing:.04em}
+.a .theme{text-align:center;display:grid;gap:4px}
+.a .theme small{font:700 10.5px "Barlow";letter-spacing:.2em;color:var(--gold)}
+.a .theme h3{margin:0;font:400 34px/1 "Anton",Impact,sans-serif;text-transform:uppercase;letter-spacing:.01em;text-wrap:balance}
+.a .song{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px;position:relative}
+.a .song .corner{font:700 10px "Barlow";letter-spacing:.16em;color:var(--dim)}
+.a .song.red{border-top:4px solid var(--red)} .a .song.blue{border-top:4px solid #4f7fd9}
+.a .song .t{font:400 19px/1.05 "Anton",Impact,sans-serif;text-transform:uppercase}
+.a .song .ar{font-size:13px;color:var(--dim)}
+.a .play{background:transparent;color:var(--txt);border:1px solid var(--line);border-radius:4px;font:800 13px "Barlow";text-transform:uppercase;letter-spacing:.08em}
+.a .cardhead{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--gold);padding-bottom:6px}
+.a .cardhead b{font:400 20px "Anton",Impact,sans-serif;letter-spacing:.03em}
+.a .cardhead span{font:700 11px "Barlow";color:var(--gold);letter-spacing:.14em}
+.a .scorecard{background:var(--paper);color:#1d1a14;border-radius:3px;padding:10px 12px;display:grid;gap:0}
+.a .scorecard .row{display:grid;grid-template-columns:1fr 34px 34px;gap:6px;align-items:center;padding:7px 0;border-bottom:1px dashed #b9ad93}
+.a .scorecard .row:last-child{border-bottom:0}
+.a .scorecard .h{font:800 10px "Barlow";letter-spacing:.14em;color:#6d6350;padding-top:0}
+.a .scorecard .nm{font:600 14px "Barlow";min-width:0}
+.a .scorecard .nm small{display:block;font:400 11.5px "Barlow";color:#6d6350;line-height:1.3}
+.a .scorecard .pt{font:400 22px "Anton",Impact,sans-serif;text-align:center}
+.a .scorecard .pt.w{color:#b23a2c}
+.a .scorecard .tot{font:400 26px "Anton",Impact,sans-serif}
+.a .basis{color:var(--dim)}
+.a .cta{background:var(--gold);color:#1d1a14;border-radius:4px;font:400 20px "Anton",Impact,sans-serif;letter-spacing:.06em;text-transform:uppercase}
+
+/* ---------- B · Mixtape ---------- */
+.b{--bg:#f2ede2;--card:#fffdf8;--ink:#1c1a17;--dim:#6c665c;--tape:#f5d547;--pink:#ff6b9a;--blue:#3d6bff;--line:#1c1a17;
+  background:var(--bg);color:var(--ink);font-family:"Work Sans",system-ui,sans-serif;
+  background-image:radial-gradient(rgba(28,26,23,.07) 1px,transparent 1px);background-size:14px 14px}
+.b .score{background:var(--card);border:2px solid var(--line);border-radius:10px;padding:8px 12px;box-shadow:4px 4px 0 var(--line)}
+.b .score .n{font:700 12px "Work Sans";text-transform:uppercase;letter-spacing:.08em}
+.b .score .v{font:400 34px/1 "Archivo Black",sans-serif}
+.b .score .mid small{display:block;font:600 10px "Work Sans";letter-spacing:.14em;color:var(--dim)}
+.b .score .mid b{font:400 15px "Archivo Black",sans-serif}
+.b .theme{display:grid;justify-items:center;gap:6px;padding-top:4px}
+.b .theme .tape{background:var(--tape);padding:3px 14px;transform:rotate(-2deg);font:700 11px "Work Sans";letter-spacing:.16em;text-transform:uppercase;box-shadow:0 1px 0 rgba(0,0,0,.15)}
+.b .theme h3{margin:0;font:400 31px/1.05 "Permanent Marker",cursive;text-align:center;text-wrap:balance}
+.b .song{background:var(--card);border:2px solid var(--line);border-radius:10px;padding:12px 10px 10px;box-shadow:4px 4px 0 var(--line)}
+.b .song:nth-child(1){transform:rotate(-1.2deg)} .b .song:nth-child(2){transform:rotate(1.2deg)}
+.b .song .reel{display:flex;gap:6px;align-items:center}
+.b .song .reel i{width:16px;height:16px;border-radius:50%;border:3px solid var(--line);display:block}
+.b .song .reel span{flex:1;height:3px;background:var(--line)}
+.b .song .t{font:400 18px/1.1 "Archivo Black",sans-serif}
+.b .song .ar{font-size:13px;color:var(--dim)}
+.b .song .side{font:700 10px "Work Sans";letter-spacing:.14em}
+.b .song.pa .side{color:var(--pink)} .b .song.pb .side{color:var(--blue)}
+.b .play{background:var(--ink);color:var(--card);border-radius:999px;font:700 13px "Work Sans"}
+.b .cardhead{display:flex;justify-content:space-between;align-items:center}
+.b .cardhead b{font:400 24px "Permanent Marker",cursive}
+.b .cardhead span{background:var(--ink);color:var(--card);padding:4px 10px;border-radius:999px;font:700 13px "Work Sans"}
+.b .j{background:var(--card);border:2px solid var(--line);border-radius:10px;padding:8px 10px}
+.b .j .av{border-radius:50%;background:var(--tape);border:2px solid var(--line);font:400 15px "Archivo Black",sans-serif}
+.b .j .who b{font:700 14px "Work Sans"}
+.b .j .who small{font-size:12px;color:var(--dim);line-height:1.35}
+.b .j .sc{font:400 17px "Archivo Black",sans-serif;white-space:nowrap}
+.b .j .sc em{font-style:normal;color:var(--pink)}
+.b .j .sc em.bl{color:var(--blue)}
+.b .basis{color:var(--dim)}
+.b .cta{background:var(--pink);color:#1c1a17;border:2px solid var(--line);border-radius:12px;box-shadow:4px 4px 0 var(--line);font:400 18px "Archivo Black",sans-serif}
+
+/* ---------- C · Clubnacht ---------- */
+.c{--bg:#170d24;--card:#22143a;--line:#3d2a5e;--hot:#ff3fa4;--cyan:#38e1ff;--txt:#f6f0ff;--dim:#b3a2cf;
+  background:var(--bg);color:var(--txt);font-family:"Barlow",system-ui,sans-serif;
+  background-image:radial-gradient(120% 60% at 50% -10%,rgba(255,63,164,.22),transparent 60%),radial-gradient(90% 50% at 100% 110%,rgba(56,225,255,.14),transparent 60%)}
+.c .score .n{font:600 12px "Barlow";color:var(--dim);text-transform:uppercase;letter-spacing:.12em}
+.c .score .v{font:900 44px/1 "Big Shoulders Display",sans-serif}
+.c .score .p:first-child .v{color:var(--hot);text-shadow:0 0 18px rgba(255,63,164,.5)}
+.c .score .p:last-child .v{color:var(--cyan);text-shadow:0 0 18px rgba(56,225,255,.45)}
+.c .score .mid small{display:block;font:700 10px "Barlow";letter-spacing:.2em;color:var(--dim)}
+.c .score .mid b{font:900 18px "Big Shoulders Display",sans-serif;letter-spacing:.06em}
+.c .theme{display:grid;gap:4px;text-align:center}
+.c .theme small{font:700 10.5px "Barlow";letter-spacing:.22em;color:var(--dim)}
+.c .theme h3{margin:0;font:900 38px/.95 "Big Shoulders Display",sans-serif;text-transform:uppercase;text-wrap:balance}
+.c .song{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+.c .song.pa{box-shadow:inset 0 0 0 1px rgba(255,63,164,.5),0 0 22px rgba(255,63,164,.16)}
+.c .song.pb{box-shadow:inset 0 0 0 1px rgba(56,225,255,.45),0 0 22px rgba(56,225,255,.12)}
+.c .song .disc{width:44px;height:44px;border-radius:50%;background:repeating-radial-gradient(circle,#0c0714 0 2px,#1d1230 2px 4px);position:relative}
+.c .song .disc:after{content:"";position:absolute;inset:15px;border-radius:50%;background:var(--hot)}
+.c .song.pb .disc:after{background:var(--cyan)}
+.c .song .t{font:900 20px/1 "Big Shoulders Display",sans-serif;text-transform:uppercase;letter-spacing:.02em}
+.c .song .ar{font-size:13px;color:var(--dim)}
+.c .play{background:rgba(255,255,255,.08);color:var(--txt);border-radius:12px;font:700 13px "Barlow";letter-spacing:.06em;text-transform:uppercase}
+.c .cardhead{display:flex;justify-content:space-between;align-items:baseline}
+.c .cardhead b{font:900 22px "Big Shoulders Display",sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.c .cardhead span{font:900 22px "Big Shoulders Display",sans-serif}
+.c .cardhead span i{font-style:normal;color:var(--hot)} .c .cardhead span u{text-decoration:none;color:var(--cyan)}
+.c .j{background:rgba(255,255,255,.04);border-radius:12px;padding:8px 10px}
+.c .j .av{border-radius:12px;background:linear-gradient(135deg,var(--hot),#8a3cff);font:900 17px "Big Shoulders Display",sans-serif}
+.c .j .who b{font:600 14px "Barlow"}
+.c .j .who small{font-size:12px;color:var(--dim);line-height:1.35}
+.c .j .sc{font:900 20px "Big Shoulders Display",sans-serif;white-space:nowrap}
+.c .j .sc .wa{color:var(--hot)} .c .j .sc .wb{color:var(--cyan)} .c .j .sc .tie{color:var(--dim)}
+.c .basis{color:var(--dim)}
+.c .cta{background:linear-gradient(90deg,var(--hot),#ff7a59);color:#1a0c22;border-radius:14px;font:900 21px "Big Shoulders Display",sans-serif;text-transform:uppercase;letter-spacing:.06em;box-shadow:0 8px 26px rgba(255,63,164,.35)}
+
+
+/* ---------- D · Titelkampf bei Nacht (A × C) ---------- */
+.d{--dhead:"Anton",Impact,sans-serif;--dnum:"Anton",Impact,sans-serif;--bg:#170d24;--card:#22143a;--line:#3d2a5e;--hot:#ff3fa4;--cyan:#38e1ff;--txt:#f6f0ff;--dim:#b8a8d4;--belt:#ffd166;
+  background:var(--bg);color:var(--txt);font-family:"Barlow",system-ui,sans-serif;
+  background-image:radial-gradient(70% 40% at 0% 0%,rgba(255,63,164,.20),transparent 70%),radial-gradient(70% 40% at 100% 0%,rgba(56,225,255,.16),transparent 70%)}
+.d .score{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.d .score .n{font:700 11px "Barlow";text-transform:uppercase;letter-spacing:.14em}
+.d .score .p:first-child .n{color:var(--hot)} .d .score .p:last-child .n{color:var(--cyan)}
+.d .score .v{font:400 40px/1 var(--dhead)}
+.d .score .p:first-child .v{text-shadow:0 0 16px rgba(255,63,164,.55)}
+.d .score .p:last-child .v{text-shadow:0 0 16px rgba(56,225,255,.5)}
+.d .score .mid small{display:block;font:700 10px "Barlow";letter-spacing:.2em;color:var(--dim)}
+.d .score .mid b{font:400 18px var(--dhead);letter-spacing:.04em}
+.d .theme{text-align:center;display:grid;gap:4px}
+.d .theme small{font:700 10.5px "Barlow";letter-spacing:.22em;color:var(--belt)}
+.d .theme h3{margin:0;font:400 34px/1 var(--dhead);text-transform:uppercase;text-wrap:balance}
+.d .versus{position:relative}
+.d .versus:after{content:"VS";position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:2px solid var(--belt);font:400 14px var(--dhead);color:var(--belt)}
+.d .song{background:var(--card);border-radius:10px;padding:12px}
+.d .song.pa{border-top:4px solid var(--hot);box-shadow:0 0 22px rgba(255,63,164,.18)}
+.d .song.pb{border-top:4px solid var(--cyan);box-shadow:0 0 22px rgba(56,225,255,.14)}
+.d .song .corner{font:700 10px "Barlow";letter-spacing:.16em}
+.d .song.pa .corner{color:var(--hot)} .d .song.pb .corner{color:var(--cyan)}
+.d .song .t{font:400 19px/1.05 var(--dhead);text-transform:uppercase}
+.d .song .ar{font-size:13px;color:var(--dim)}
+.d .play{background:rgba(255,255,255,.07);color:var(--txt);border:1px solid var(--line);border-radius:8px;font:800 13px "Barlow";text-transform:uppercase;letter-spacing:.08em}
+.d .cardhead{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--belt);padding-bottom:6px}
+.d .cardhead b{font:400 20px var(--dhead);letter-spacing:.03em;text-transform:uppercase}
+.d .cardhead span{font:400 20px var(--dhead);color:var(--txt)}
+.d .scorecard{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:4px 12px}
+.d .scorecard .row{display:grid;grid-template-columns:1fr 34px 34px;gap:6px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.d .scorecard .row:last-child{border-bottom:0}
+.d .scorecard .h{font:800 10px "Barlow";letter-spacing:.14em;color:var(--dim)}
+.d .scorecard .h .ca{color:var(--hot);text-align:center} .d .scorecard .h .cb{color:var(--cyan);text-align:center}
+.d .scorecard .nm{font:600 14px "Barlow";min-width:0}
+.d .scorecard .nm small{display:block;font:400 11.5px "Barlow";color:var(--dim);line-height:1.3}
+.d .scorecard .pt{font:400 22px var(--dhead);text-align:center;color:var(--dim)}
+.d .scorecard .pt.wa{color:var(--hot);text-shadow:0 0 10px rgba(255,63,164,.5)}
+.d .scorecard .pt.wb{color:var(--cyan);text-shadow:0 0 10px rgba(56,225,255,.45)}
+.d .scorecard .total .nm{font:400 16px var(--dhead);letter-spacing:.06em;text-transform:uppercase}
+.d .scorecard .total .pt{font-size:28px;color:var(--txt)}
+.d .belt{display:flex;align-items:center;justify-content:center;gap:8px;padding:9px;border-radius:999px;background:linear-gradient(90deg,rgba(255,209,102,.16),rgba(255,209,102,.04));border:1px solid rgba(255,209,102,.45);font:700 12px "Barlow";letter-spacing:.14em;color:var(--belt);text-transform:uppercase}
+.d .basis{color:var(--dim)}
+.d .cta{background:linear-gradient(90deg,var(--hot),#ff7a59);color:#1a0c22;border-radius:10px;font:400 20px var(--dhead);letter-spacing:.06em;text-transform:uppercase;box-shadow:0 8px 26px rgba(255,63,164,.35)}
+.d .score .v,.d .score .mid b,.d .cardhead span,.d .scorecard .pt,.d .versus:after{font-family:var(--dnum)}
+.d[data-font="bungee"]{--dhead:"Bungee",Impact,sans-serif;--dnum:"Bungee",Impact,sans-serif}
+.d[data-font="bungee"] .theme h3{font-size:25px;line-height:1.1}
+.d[data-font="bungee"] .song .t{font-size:14px;line-height:1.2}
+.d[data-font="bungee"] .cardhead b{font-size:16px}
+.d[data-font="bungee"] .scorecard .pt{font-size:18px}
+.d[data-font="bungee"] .score .v{font-size:32px}
+.d[data-font="bungee"] .cta{font-size:16px}
+.d[data-font="sedgwick"]{--dhead:"Sedgwick Ave Display","Permanent Marker",cursive;--dnum:"Anton",Impact,sans-serif}
+.d[data-font="sedgwick"] .theme h3{font-size:40px;text-transform:none;line-height:1;transform:rotate(-2deg)}
+.d[data-font="sedgwick"] .song .t{font-size:23px;text-transform:none}
+.d[data-font="sedgwick"] .cardhead b{font-size:24px;text-transform:none}
+.d[data-font="sedgwick"] .cta{font-size:24px;text-transform:none;letter-spacing:.02em}
+.d[data-font="sedgwick"] .scorecard .total .nm{font-size:20px;text-transform:none}
+.d[data-font="bowlby"]{--dhead:"Bowlby One",Impact,sans-serif;--dnum:"Bowlby One",Impact,sans-serif}
+.d[data-font="bowlby"] .theme h3{font-size:28px;line-height:1.05}
+.d[data-font="bowlby"] .song .t{font-size:16px;line-height:1.1}
+.d[data-font="bowlby"] .cardhead b{font-size:17px}
+.d[data-font="bowlby"] .scorecard .pt{font-size:19px}
+.d[data-font="bowlby"] .score .v{font-size:34px}
+.d[data-font="bowlby"] .cta{font-size:17px}
+.d[data-font="combo"]{--dhead:"Sedgwick Ave Display","Permanent Marker",cursive;--dnum:"Bungee",Impact,sans-serif}
+.d[data-font="combo"] .theme h3{font-size:40px;text-transform:none;line-height:1;transform:rotate(-2deg)}
+.d[data-font="combo"] .song .t{font-size:23px;text-transform:none}
+.d[data-font="combo"] .cardhead b{font-size:25px;text-transform:none}
+.d[data-font="combo"] .cardhead span{font-size:17px}
+.d[data-font="combo"] .score .v{font-size:32px}
+.d[data-font="combo"] .score .mid b{font-size:14px}
+.d[data-font="combo"] .scorecard .pt{font-size:18px}
+.d[data-font="combo"] .scorecard .total .nm{font-size:21px;text-transform:none}
+.d[data-font="combo"] .scorecard .total .pt{font-size:22px}
+.d[data-font="combo"] .versus:after{font-size:11px}
+.d[data-font="combo"] .cta{font-family:"Bungee",Impact,sans-serif;font-size:16px}
+.d[data-font="combo"] .play{font-family:"Bungee",Impact,sans-serif;font-weight:400;font-size:11px}
+.fontpick{display:grid;gap:8px}
+.fontpick .opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fontpick button{min-height:48px;border:1px solid var(--rule);background:transparent;color:var(--ink);border-radius:10px;cursor:pointer;display:grid;gap:1px;padding:6px 8px;text-align:left}
+.fontpick button b{font-size:17px;font-weight:400}
+.fontpick button small{font:600 11px var(--f-ui);color:var(--sub)}
+.fontpick button[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.fontpick .why{margin:0;color:var(--sub);font-size:13.5px;line-height:1.5;min-height:3em}
+.board .sep{grid-column:1/-1;width:100%;max-width:1220px;border-top:1px solid var(--rule);padding-top:14px;color:var(--sub);font:700 12px var(--f-mono);letter-spacing:.14em}
+
+@media (prefers-reduced-motion:no-preference){.m .cta{transition:transform .15s}.m .cta:active{transform:scale(.98)}}
+.m button:focus-visible{outline:3px solid currentColor;outline-offset:2px}
+</style>
+
+<header class="intro">
+  <h1>Welche Richtung soll Music Battle bekommen?</h1>
+  <p>Drei Varianten desselben Battle-Screens: Runde 3, Jury hat geurteilt, der Host übernimmt die Runde. Alles auf Handybreite (375 px). Die Juror-Bilder sind Platzhalter, die eigenen Avatare folgen in 4.5. Neu zuoberst: Variante D, die Mischung aus dem Boxthema von A und den Farben von C.</p>
+</header>
+
+<main class="board">
+
+<!-- ================= D ================= -->
+<section class="variant feature" aria-labelledby="hd" style="grid-column:1/-1">
+  <div class="vhead"><span class="letter">VARIANTE D · MISCHUNG A × C</span><h2 id="hd">Titelkampf bei Nacht</h2><p>Das Boxthema aus A mit Ecken, Punktezettel und Gürtel, in den Farben aus C: Pink gegen Cyan auf dunklem Violett, Gold nur für Titel und Sieg.</p></div>
+  <div class="fontpick" role="group" aria-label="Schrift für Variante D">
+    <div class="opts">
+      <button type="button" data-f="combo" aria-pressed="true" style="grid-column:1/-1"><b><span style="font-family:'Sedgwick Ave Display',cursive;font-size:21px">Sedgwick</span> <span style="font-family:'Bungee',sans-serif">+ BUNGEE</span></b><small>Deine Wahl: Graffiti-Titel, Leuchtschrift-Zahlen</small></button>
+      <button type="button" data-f="bungee" aria-pressed="false"><b style="font-family:'Bungee',sans-serif">BUNGEE</b><small>NYC-Leuchtschrift</small></button>
+      <button type="button" data-f="sedgwick" aria-pressed="false"><b style="font-family:'Sedgwick Ave Display',cursive;font-size:20px">Sedgwick Ave</b><small>Bronx-Graffiti</small></button>
+      <button type="button" data-f="bowlby" aria-pressed="false"><b style="font-family:'Bowlby One',sans-serif">BOWLBY</b><small>Fettes Boxplakat</small></button>
+      <button type="button" data-f="anton" aria-pressed="false"><b style="font-family:'Anton',sans-serif;font-size:19px">ANTON</b><small>Bisher (zum Vergleich)</small></button>
+    </div>
+    <p class="why" id="fontwhy"></p>
+  </div>
+  <div class="phone"><div class="m d" id="mockd" data-font="combo">
+    <div class="score"><div class="p"><span class="n">Lukas</span><span class="v">2</span></div><div class="mid"><small>RUNDE</small><b>3 / 5</b></div><div class="p"><span class="n">Mia</span><span class="v">1</span></div></div>
+    <div class="theme"><small>THEMA DER RUNDE</small><h3>Regentag in der Stadt</h3></div>
+    <div class="songs versus">
+      <div class="song pa"><span class="corner">PINKE ECKE · LUKAS</span><span class="t">Im Ascheregen</span><span class="ar">Casper</span><button class="play">▶ Abspielen</button></div>
+      <div class="song pb"><span class="corner">CYAN ECKE · MIA</span><span class="t">Roller</span><span class="ar">Apache 207</span><button class="play">▶ Abspielen</button></div>
+    </div>
+    <div class="cardhead"><b>Punktezettel</b><span>49 : 46</span></div>
+    <div class="scorecard">
+      <div class="row h"><span>JUROR</span><span class="ca">PINK</span><span class="cb">CYAN</span></div>
+      <div class="row"><span class="nm">Themenschnüffler<small>3 Motive im Text (regen, grau, nass), bei „Roller“ keines</small></span><span class="pt wa">10</span><span class="pt">8</span></div>
+      <div class="row"><span class="nm">Vibejunkie<small>Tags wie melancholic, rainy</small></span><span class="pt wa">10</span><span class="pt">9</span></div>
+      <div class="row"><span class="nm">Kollegah der Lyricboss<small>Mehr passende Zeilen zum Thema</small></span><span class="pt wa">10</span><span class="pt">9</span></div>
+      <div class="row"><span class="nm">Snoop Underdogg<small>„Roller“ ist der grössere Song, passt aber weniger</small></span><span class="pt">9</span><span class="pt wb">10</span></div>
+      <div class="row"><span class="nm">Dr. Körnli<small>Aus Kennersicht gleichwertig</small></span><span class="pt">10</span><span class="pt">10</span></div>
+      <div class="row total"><span class="nm">Total</span><span class="pt">49</span><span class="pt">46</span></div>
+    </div>
+    <div class="belt">★ Runde an Lukas · Pinke Ecke</div>
+    <span class="basis">Datenbasis · A: Lyrics, Tags, Hörerzahlen · B: Tags, Hörerzahlen</span>
+    <button class="cta">Runde 3 übernehmen</button>
+  </div></div>
+  <ul class="notes"><li>Schrift: Sedgwick Ave (Titel) + Bungee (Zahlen, Buttons) + Barlow (Text); oben umschaltbar zum Vergleich</li><li>Spielerfarben Pink/Cyan ziehen sich durch Ecke, Punkte und Leuchten</li><li>Gold nur für Thema, Punktezettel-Linie und Rundensieg („Gürtel“)</li></ul>
+</section>
+<div class="sep">ZUM VERGLEICH: DIE URSPRÜNGLICHEN VARIANTEN</div>
+
+<!-- ================= A ================= -->
+<section class="variant" aria-labelledby="ha">
+  <div class="vhead"><span class="letter">VARIANTE A</span><h2 id="ha">Boxring</h2><p>Battle als Titelkampf: rote und blaue Ecke, Gold-Akzent, die Jury als Punktezettel wie beim Boxen.</p></div>
+  <div class="phone"><div class="m a">
+    <div class="score"><div class="p"><span class="n">Lukas</span><span class="v">2</span></div><div class="mid"><small>RUNDE</small><b>3 / 5</b></div><div class="p"><span class="n">Mia</span><span class="v">1</span></div></div>
+    <div class="theme"><small>THEMA</small><h3>Regentag in der Stadt</h3></div>
+    <div class="songs">
+      <div class="song red"><span class="corner">ROTE ECKE · LUKAS</span><span class="t">Im Ascheregen</span><span class="ar">Casper</span><button class="play">▶ Abspielen</button></div>
+      <div class="song blue"><span class="corner">BLAUE ECKE · MIA</span><span class="t">Roller</span><span class="ar">Apache 207</span><button class="play">▶ Abspielen</button></div>
+    </div>
+    <div class="cardhead"><b>Punktezettel</b><span>LUKAS GEWINNT</span></div>
+    <div class="scorecard">
+      <div class="row h"><span>JUROR</span><span style="text-align:center">ROT</span><span style="text-align:center">BLAU</span></div>
+      <div class="row"><span class="nm">Themenschnüffler<small>3 Motive im Text (regen, grau, nass), bei „Roller“ keines</small></span><span class="pt w">10</span><span class="pt">8</span></div>
+      <div class="row"><span class="nm">Vibejunkie<small>Tags wie melancholic, rainy</small></span><span class="pt w">10</span><span class="pt">9</span></div>
+      <div class="row"><span class="nm">Kollegah der Lyricboss<small>Mehr passende Zeilen zum Thema</small></span><span class="pt w">10</span><span class="pt">9</span></div>
+      <div class="row"><span class="nm">Snoop Underdogg<small>„Roller“ ist der grössere Song, passt aber weniger</small></span><span class="pt">9</span><span class="pt w">10</span></div>
+      <div class="row"><span class="nm">Dr. Körnli<small>Aus Kennersicht gleichwertig</small></span><span class="pt">10</span><span class="pt">10</span></div>
+      <div class="row"><span class="nm"><b>Total</b></span><span class="tot" style="text-align:center">49</span><span class="tot" style="text-align:center">46</span></div>
+    </div>
+    <span class="basis">Datenbasis · A: Lyrics, Tags, Hörerzahlen · B: Tags, Hörerzahlen</span>
+    <button class="cta">Runde 3 übernehmen</button>
+  </div></div>
+  <ul class="notes"><li>Schrift: Anton (schmal, laut) + Barlow</li><li>Stärke: Punkte auf einen Blick, passt zu 10–9 / 10–8</li><li>Risiko: wirkt eher ernst als verspielt</li></ul>
+</section>
+
+<!-- ================= B ================= -->
+<section class="variant" aria-labelledby="hb">
+  <div class="vhead"><span class="letter">VARIANTE B</span><h2 id="hb">Mixtape</h2><p>Heller Look mit Kassette, Klebeband und Marker-Schrift. Verspielt wie ein selbst gebranntes Tape, mit harten Schatten.</p></div>
+  <div class="phone"><div class="m b">
+    <div class="score"><div class="p"><span class="n">Lukas</span><span class="v">2</span></div><div class="mid"><small>RUNDE</small><b>3 / 5</b></div><div class="p"><span class="n">Mia</span><span class="v">1</span></div></div>
+    <div class="theme"><span class="tape">Thema</span><h3>Regentag in der Stadt</h3></div>
+    <div class="songs">
+      <div class="song pa"><div class="reel"><i></i><span></span><i></i></div><span class="side">SEITE A · LUKAS</span><span class="t">Im Ascheregen</span><span class="ar">Casper</span><button class="play">▶ Abspielen</button></div>
+      <div class="song pb"><div class="reel"><i></i><span></span><i></i></div><span class="side">SEITE B · MIA</span><span class="t">Roller</span><span class="ar">Apache 207</span><button class="play">▶ Abspielen</button></div>
+    </div>
+    <div class="cardhead"><b>Die Jury sagt</b><span>49 : 46</span></div>
+    <div class="jury">
+      <div class="j"><span class="av">T</span><span class="who"><b>Themenschnüffler</b><small>3 Motive im Text, bei „Roller“ keines</small></span><span class="sc"><em>10</em>–8</span></div>
+      <div class="j"><span class="av">V</span><span class="who"><b>Vibejunkie</b><small>Tags wie melancholic, rainy</small></span><span class="sc"><em>10</em>–9</span></div>
+      <div class="j"><span class="av">K</span><span class="who"><b>Kollegah der Lyricboss</b><small>Mehr passende Zeilen</small></span><span class="sc"><em>10</em>–9</span></div>
+      <div class="j"><span class="av">S</span><span class="who"><b>Snoop Underdogg</b><small>„Roller“ grösser, passt weniger</small></span><span class="sc">9–<em class="bl">10</em></span></div>
+      <div class="j"><span class="av">D</span><span class="who"><b>Dr. Körnli</b><small>Gleichwertig</small></span><span class="sc">10–10</span></div>
+    </div>
+    <span class="basis">Datenbasis · A: Lyrics, Tags, Hörerzahlen · B: Tags, Hörerzahlen</span>
+    <button class="cta">Runde 3 übernehmen</button>
+  </div></div>
+  <ul class="notes"><li>Schrift: Permanent Marker + Archivo Black + Work Sans</li><li>Stärke: freundlich, hebt sich klar von anderen Apps ab</li><li>Risiko: hell, im dunklen Club grell; Marker sparsam einsetzen</li></ul>
+</section>
+
+<!-- ================= C ================= -->
+<section class="variant" aria-labelledby="hc">
+  <div class="vhead"><span class="letter">VARIANTE C</span><h2 id="hc">Clubnacht</h2><p>Dunkel wie der jetzige Stand, aber mit Pink und Cyan als Spielerfarben, Vinyl-Motiv und grosser schmaler Schrift.</p></div>
+  <div class="phone"><div class="m c">
+    <div class="score"><div class="p"><span class="n">Lukas</span><span class="v">2</span></div><div class="mid"><small>RUNDE</small><b>3 / 5</b></div><div class="p"><span class="n">Mia</span><span class="v">1</span></div></div>
+    <div class="theme"><small>THEMA</small><h3>Regentag in der Stadt</h3></div>
+    <div class="songs">
+      <div class="song pa"><span class="disc"></span><span class="t">Im Ascheregen</span><span class="ar">Casper · Lukas</span><button class="play">▶ Abspielen</button></div>
+      <div class="song pb"><span class="disc"></span><span class="t">Roller</span><span class="ar">Apache 207 · Mia</span><button class="play">▶ Abspielen</button></div>
+    </div>
+    <div class="cardhead"><b>Jury-Urteil</b><span><i>49</i> : <u>46</u></span></div>
+    <div class="jury">
+      <div class="j"><span class="av">T</span><span class="who"><b>Themenschnüffler</b><small>3 Motive im Text, bei „Roller“ keines</small></span><span class="sc"><span class="wa">10</span>–8</span></div>
+      <div class="j"><span class="av">V</span><span class="who"><b>Vibejunkie</b><small>Tags wie melancholic, rainy</small></span><span class="sc"><span class="wa">10</span>–9</span></div>
+      <div class="j"><span class="av">K</span><span class="who"><b>Kollegah der Lyricboss</b><small>Mehr passende Zeilen</small></span><span class="sc"><span class="wa">10</span>–9</span></div>
+      <div class="j"><span class="av">S</span><span class="who"><b>Snoop Underdogg</b><small>„Roller“ grösser, passt weniger</small></span><span class="sc">9–<span class="wb">10</span></span></div>
+      <div class="j"><span class="av">D</span><span class="who"><b>Dr. Körnli</b><small>Gleichwertig</small></span><span class="sc tie">10–10</span></div>
+    </div>
+    <span class="basis">Datenbasis · A: Lyrics, Tags, Hörerzahlen · B: Tags, Hörerzahlen</span>
+    <button class="cta">Runde 3 übernehmen</button>
+  </div></div>
+  <ul class="notes"><li>Schrift: Big Shoulders Display + Barlow</li><li>Stärke: nah am heutigen Stand, wirkt abends am besten</li><li>Risiko: Neon-Glow schnell zu viel; Kontrast der grauen Texte prüfen</li></ul>
+</section>
+
+</main>
+
+<script>
+(function(){
+  var why={
+    combo:"Sedgwick Ave für Thema, Songtitel und Überschriften (Hip-Hop), Bungee für Punkte, Spielstand und Buttons (Kampf, gut lesbar). Fliesstext bleibt Barlow.",
+    bungee:"Bungee ist den senkrechten Leuchtschildern in New Yorker Strassen nachempfunden. Laut, kantig und auch klein gut lesbar.",
+    sedgwick:"Sedgwick Ave ist nach der Strasse in der Bronx benannt, wo 1973 Hip-Hop entstand, und basiert auf echtem Graffiti-Handstyle. Nur für Titel, die Zahlen bleiben Anton.",
+    bowlby:"Bowlby One wirkt wie ein altes Boxkampf-Plakat vom Madison Square Garden: breit, schwer, sehr nach Titelkampf.",
+    anton:"Anton ist die bisherige Schrift aus A und D, schmal und laut, aber ohne New-York-Bezug."
+  };
+  var d=document.getElementById("mockd"),t=document.getElementById("fontwhy"),bs=document.querySelectorAll(".fontpick button");
+  function set(f){d.setAttribute("data-font",f);t.textContent=why[f];bs.forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.f===f))});try{localStorage.setItem("mbfont",f)}catch(e){}}
+  bs.forEach(function(b){b.addEventListener("click",function(){set(b.dataset.f)})});
+  set("combo");
+})();
+</script>
+
+</body>
+</html>

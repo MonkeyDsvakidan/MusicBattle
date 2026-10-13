@@ -155,7 +155,10 @@ Grundidee: Die Daten werden **einmal pro Song** gesammelt und gespeichert. Die f
 
 ## Phase 4 – Design: benutzerfreundlich mit Hip-Hop-Touch
 
-- [ ] 🟡 **4.1 Design-Richtung festlegen** (Entscheidung E): 2–3 Varianten als statische Mockups (ein Screen, z. B. Battle) vorschlagen, Nutzer wählt.
+- [x] 🟡 **4.1 Design-Richtung festlegen** (Entscheidung E): 2–3 Varianten als statische Mockups (ein Screen, z. B. Battle) vorschlagen, Nutzer wählt.
+  - *Erledigt 13.10.2026:* Battle-Screen (Runde 3, Jury-Urteil, Hauptaktion) in drei Varianten bei 375 px: A Boxring, B Mixtape, C Clubnacht. Nutzer: Boxthema aus A + Farben aus C → Mischung **D „Titelkampf bei Nacht“**; Schrift auf Wunsch „New York, Hip-Hop und Kampf“ → Kombi **Sedgwick Ave + Bungee**. Vorlage: `design/mockup-4.1.html` (Variante D, Schrift-Umschalter steht auf der Kombi).
+  - Vorgaben für 4.2: Hintergrund dunkles Violett `#170d24`, Flächen `#22143a`, Linien `#3d2a5e`, Text `#f6f0ff`, Nebentext `#b8a8d4`; Spieler A **Pink** `#ff3fa4`, Spieler B **Cyan** `#38e1ff` (Ecke, Punkte, leichtes Leuchten); **Gold** `#ffd166` nur für Thema, Punktezettel-Linie und Rundensieg („Gürtel“); Hauptbutton Verlauf Pink → `#ff7a59`. Schriften (Google Fonts): Sedgwick Ave Display für Thema, Songtitel, Überschriften (nicht in Grossbuchstaben, nie für Zahlen); Bungee für Spielstand, Punkte, Buttons; Barlow für Fliesstext. Elemente: Songs als „Ecken“ mit Farbstreifen oben und „VS“-Plakette, Jury als Punktezettel (Spalten Pink/Cyan, Total), Rundensieg als Gürtel-Banner.
+  - Für 4.2 prüfen: Kontrast des Nebentexts auf `#22143a`, Lesbarkeit von Sedgwick bei langen Themen (z. B. „Der letzte Song, bevor die Welt endet“) auf 375 px.
 - [ ] **4.2 Design-Tokens** in `styles.css` neu aufsetzen (Farben, Schriften, Abstände, Radien, Schatten). Ideen: kräftige Condensed-Display-Schrift für Titel, Sticker-/Tape-Elemente, Gold- oder Neon-Akzente, Boxkampf-Scorecards, Vinyl-/Kassetten-Motive – Lesbarkeit und Kontrast gehen vor.
 - [ ] **4.3 Ablauf vereinfachen:** Fortschrittsanzeige Lobby → Draft → Battle → Ergebnis, pro Screen genau eine klare Hauptaktion, weniger Erklärtext, Entwickler-Hinweise (z. B. Redirect-URI) aus der Lobby entfernen, „Wer ist dran?“ bei Pass & Play gross anzeigen.
 - [ ] **4.4 Screens umsetzen** in dieser Reihenfolge: Start/Modus → Lobby → Draft → Battle → Jury → Endstand. Nach jedem Screen Mobil-Check (375 px).
@@ -215,12 +218,13 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
   - *Teilantwort Nutzer 06.10.2026:* Ohne Juror im Raum muss „Selber entscheiden“ immer möglich sein – auch statt der Auto-Jury, wenn man sie nicht nutzen will. Offen: Darf der Host auch **mit** Juror im Raum selbst entscheiden/überstimmen? → in 1.1 klären.
 - ~~**C – Gleichstand bei einem Juror / zu wenig Daten:**~~ → entschieden 06.10.2026: Juror vergibt **10–10** und sagt offen „Gleichstand“ bzw. „zu wenig Daten“ (kein Münzwurf). Endet die ganze Jury unentschieden, wird die Runde nicht automatisch gewertet, sondern „Selber entscheiden“ angeboten. Selber entscheiden bleibt ohnehin nach jedem Jury-Urteil möglich (ohne Juror im Raum, siehe 1.1).
 - ~~**D – KI für Formulierungen behalten?**~~ → entschieden 06.10.2026: **nein**. Begründungen nur aus den Text-Bausteinen; OpenRouter-Aufruf entfällt mit 3.8 (Secret `OPENROUTER_API_KEY` kann danach gelöscht werden).
-- **E – Design-Richtung** (siehe 4.1).
+- ~~**E – Design-Richtung**~~ → entschieden 13.10.2026: Variante D „Titelkampf bei Nacht“ (Boxthema mit Ecken und Punktezettel, Farben Pink/Cyan auf dunklem Violett, Gold für Sieg), Schriften Sedgwick Ave + Bungee + Barlow (siehe 4.1).
 - ~~**F – Was passiert, wenn jemand das Match verlässt?**~~ → entschieden 06.10.2026: Host → Match endet für alle; Spieler 2 (2 Geräte) → Raum wartet auf Wiederbeitritt.
 
 ## Entscheidungslog
 *(Datum · Entscheidung · Begründung)*
 
+- 13.10.2026 · Entscheidung E: Design-Richtung „Titelkampf bei Nacht“ (Boxthema aus A, Farben aus C), Schriften Sedgwick Ave (Titel) + Bungee (Zahlen/Buttons) + Barlow (Text) · Wahl des Nutzers nach Mockups; Graffiti-Schrift für Hip-Hop, kantige Leuchtschrift für Kampf und Lesbarkeit der Punkte
 - 06.10.2026 · Jury soll ohne KI auf gespeicherten Songdaten urteilen · Wunsch des Nutzers, bessere Nachvollziehbarkeit und Zuverlässigkeit
 - 06.10.2026 · „Selber entscheiden“ soll immer verfügbar sein · Wunsch des Nutzers
 - 06.10.2026 · Supabase-Stand per MCP statt CLI ins Repo geholt: Remote-Migrationshistorie 1:1 übernommen, Dashboard-Änderungen als eigene idempotente Migration nachgetragen (statt einer einzigen Gesamt-Baseline) · so bleibt die Historie mit `supabase migration list` deckungsgleich und nichts muss in der Live-DB repariert werden
