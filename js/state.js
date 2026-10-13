@@ -41,7 +41,7 @@ function roomStorage(){return JSON.parse(localStorage.getItem("mb_online_room")|
 
  function currentSubs(){const rid=currentRound()?.id;return [S.subs.find(x=>x.round_id===rid&&x.player_slot===1),S.subs.find(x=>x.round_id===rid&&x.player_slot===2)]}
 
-function resetLocalRoomState(){clearRoom();if(channel){try{sb.removeChannel(channel)}catch{}channel=null}for(const n of [1,2])clearSpotifySlot(n);S.room=null;S.members=[];S.picks=[];S.rounds=[];S.subs=[];S.scores=[];S.membership=null;S.currentArtist=null;S.currentArtistSlot=null;S.aiReveal=0;S.notice="";S.error=""}
+function resetLocalRoomState(){rememberDeviceSpotify();clearRoom();if(channel){try{sb.removeChannel(channel)}catch{}channel=null}for(const n of [1,2])clearSpotifySlot(n);S.room=null;S.members=[];S.picks=[];S.rounds=[];S.subs=[];S.scores=[];S.membership=null;S.currentArtist=null;S.currentArtistSlot=null;S.aiReveal=0;S.notice="";S.error=""}
 
 function weightedMatchPoints(){
   let a=0,b=0;

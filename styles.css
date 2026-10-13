@@ -322,6 +322,8 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .suddencards .side:first-child{border-top:4px solid var(--a)}
 .suddencards .side:last-child{border-top:4px solid var(--b)}
 #copyCode{margin-top:var(--s2)}
+.spotifyline{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2);margin:0 0 var(--s4)}
+.spotifyline .btn{min-height:44px;font-size:11px}
 .juryarea>.scorecard,.juryarea>.belt,.juryarea>.mainaction,.juryarea>.override,.juryarea>.basis,.juryarea>.tiechoice{max-width:760px;margin-left:auto;margin-right:auto}
 
 /* ---------- Momente mit Wirkung (Roadmap 4.6) ----------

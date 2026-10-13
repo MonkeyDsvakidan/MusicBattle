@@ -33,7 +33,7 @@ async function spotifyCallback(){
  const body=new URLSearchParams({client_id:spotifyClientId(),grant_type:"authorization_code",code,redirect_uri:redirectUri(),code_verifier:v});
  const r=await fetch(SPOTIFY.token,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});
  if(!r.ok){S.error=`Spotify Token konnte nicht erstellt werden (${r.status}).`;history.replaceState({},"",location.pathname);return}
- storeSpotify(slotNo,await r.json());sessionStorage.removeItem("mb_pkce");sessionStorage.removeItem("mb_sp_state");sessionStorage.removeItem("mb_sp_slot");history.replaceState({},"",location.pathname);await hydrateSpotify(slotNo);
+ storeSpotify(slotNo,await r.json());sessionStorage.removeItem("mb_pkce");sessionStorage.removeItem("mb_sp_state");sessionStorage.removeItem("mb_sp_slot");history.replaceState({},"",location.pathname);await hydrateSpotify(slotNo);rememberDeviceSpotify();
 }
 
 function storeSpotify(slotNo,t){const s=S.spotify[slotNo];s.access=t.access_token;s.refresh=t.refresh_token||s.refresh;s.expires=Date.now()+((t.expires_in||3600)-60)*1000;sessionStorage.setItem(spotifyKey(slotNo,"access"),s.access);localStorage.setItem(spotifyKey(slotNo,"refresh"),s.refresh||"");localStorage.setItem(spotifyKey(slotNo,"expires"),String(s.expires))}
@@ -47,6 +47,29 @@ async function sp(slotNo,path){const t=await token(slotNo);if(!t)throw Error(`Sp
 function restorePool(slotNo){if(S.artistPools[slotNo]?.length)return;try{S.artistPools[slotNo]=JSON.parse(localStorage.getItem(poolKey(slotNo))||"[]")}catch{S.artistPools[slotNo]=[]}}
 
 function clearSpotifySlot(slotNo){const s=S.spotify[slotNo];s.access="";s.refresh="";s.expires=0;if(s.player){try{s.player.disconnect()}catch{}}s.player=null;s.deviceId="";sessionStorage.removeItem(spotifyKey(slotNo,"access"));localStorage.removeItem(spotifyKey(slotNo,"refresh"));localStorage.removeItem(spotifyKey(slotNo,"expires"));localStorage.removeItem(poolKey(slotNo));S.artistPools[slotNo]=[];S.spotifyProfiles[slotNo]=null}
+
+// Spotify-Anmeldung des Geräts über Matches hinweg (Roadmap 5.6, Entscheid: nicht löschen).
+// Beim Verlassen wird das Token des eigenen Spielerplatzes als „gespeicherte Anmeldung“ behalten und beim
+// nächsten Raum (erstellen oder als Spieler beitreten) automatisch verwendet. Abmelden auf der Startseite.
+const SAVED_SPOTIFY_KEY="mb_sp_saved";
+function savedSpotify(){try{const s=JSON.parse(localStorage.getItem(SAVED_SPOTIFY_KEY)||"null");return s?.refresh?s:null}catch{return null}}
+function rememberDeviceSpotify(){
+  const n=[1,2].find(k=>S.spotify[k]?.refresh&&(ownsPlayerSlot(k)||!S.room));
+  if(!n)return;
+  try{localStorage.setItem(SAVED_SPOTIFY_KEY,JSON.stringify({refresh:S.spotify[n].refresh,name:S.spotifyProfiles[n]?.display_name||savedSpotify()?.name||""}))}catch{}
+}
+function forgetSavedSpotify(){try{localStorage.removeItem(SAVED_SPOTIFY_KEY)}catch{}}
+async function useSavedSpotify(slotNo){
+  const saved=savedSpotify();
+  if(!saved||!ownsPlayerSlot(slotNo)||membershipForSlot(slotNo)?.spotify_ready)return false;
+  const s=S.spotify[slotNo];s.refresh=saved.refresh;s.access="";s.expires=0;
+  localStorage.setItem(spotifyKey(slotNo,"refresh"),saved.refresh);
+  await hydrateSpotify(slotNo);
+  if(membershipForSlot(slotNo)?.spotify_ready){rememberDeviceSpotify();return true}
+  // Abgelaufen oder widerrufen → vergessen und normal neu verbinden lassen
+  clearSpotifySlot(slotNo);forgetSavedSpotify();S.error="";S.notice="Die gespeicherte Spotify-Anmeldung ist abgelaufen. Bitte Spotify neu verbinden.";render();
+  return false;
+}
 
 function spotifyAccountKey(profile){return profile?.account_id || profile?.id || ""}
 
@@ -166,9 +189,29 @@ async function ensurePlayer(slotNo){
   });
 }
 
+// Ausweichen, wenn der Web-Player in diesem Browser nicht startet (iPhone, eingebaute Browser, kein DRM):
+// Song auf einem anderen Spotify-Gerät des Kontos abspielen, z. B. der geöffneten Spotify-App (Spotify Connect)
+async function connectDevice(playbackSlot){
+  const d=await sp(playbackSlot,"/me/player/devices");
+  const list=(d.devices||[]).filter(x=>!x.is_restricted&&x.id);
+  return (list.find(x=>x.is_active)||list.find(x=>x.type==="Smartphone")||list[0])?.id||"";
+}
+const NO_WEB_PLAYER="Dieser Browser kann Spotify nicht direkt abspielen. Öffne kurz die Spotify-App (einen Song starten und pausieren) und tippe dann nochmal auf Abspielen – oder öffne Music Battle in Chrome, Edge oder Firefox.";
+
 async function playSubmission(sub){
   try{
-    const slotNo=Number(sub.player_slot),playbackSlot=playbackSlotForBrowser(slotNo),dev=await ensurePlayer(slotNo),t=await token(playbackSlot);
+    const slotNo=Number(sub.player_slot),playbackSlot=playbackSlotForBrowser(slotNo),ss=S.spotify[playbackSlot];
+    let dev="";
+    if(!ss.webFailed){
+      try{dev=await Promise.race([ensurePlayer(slotNo),new Promise((_,no)=>setTimeout(()=>no(Error("Web-Player antwortet nicht")),8000))])}
+      catch(e){
+        // Premium- oder Login-Probleme betreffen auch die Spotify-App → normal melden
+        if(/Premium|Auth|Login/.test(e.message))throw e;
+        ss.webFailed=true;try{ss.player?.disconnect()}catch{}ss.player=null;ss.deviceId="";
+      }
+    }
+    if(ss.webFailed){dev=await connectDevice(playbackSlot);if(!dev)throw Error(NO_WEB_PLAYER);ss.connectDevice=dev}
+    const t=await token(playbackSlot);
     const r=await fetch(`${SPOTIFY.api}/me/player/play?device_id=${encodeURIComponent(dev)}`,{
       method:"PUT",
       headers:{Authorization:`Bearer ${t}`,"Content-Type":"application/json"},
@@ -184,7 +227,8 @@ async function playSubmission(sub){
 
 async function pause(slotNo){
   try{
-    const playbackSlot=playbackSlotForBrowser(slotNo);
+    const playbackSlot=playbackSlotForBrowser(slotNo),ss=S.spotify[playbackSlot];
+    if(ss?.webFailed&&ss.connectDevice){const t=await token(playbackSlot);await fetch(`${SPOTIFY.api}/me/player/pause?device_id=${encodeURIComponent(ss.connectDevice)}`,{method:"PUT",headers:{Authorization:`Bearer ${t}`}});return}
     await S.spotify[playbackSlot]?.player?.pause();
   }catch{}
 }
