@@ -183,7 +183,9 @@ Grundidee: Die Daten werden **einmal pro Song** gesammelt und gespeichert. Die f
 
 - [ ] **5.1** Kompletter Smoke-Test in beiden Gerätemodi, auf Handy und Desktop.
 - [ ] **5.2** `README.md` (Spielablauf, Setup, Deployment) und `CLAUDE.md` final aktualisieren.
-- [ ] **5.3** PWA-Manifest-Beschreibung und Texte an neue Jury anpassen („KI-Jury“ → neuer Name).
+- [x] **5.3** PWA-Manifest-Beschreibung und Texte an neue Jury anpassen („KI-Jury“ → neuer Name).
+  - *Erledigt 13.10.2026:* Name laut Nutzer: **„Die Jury“**. Geändert: Überschrift beim Urteil („Die Jury · fünf Persönlichkeiten“), Auswahl „Die Jury – Fünf Juroren urteilen lassen“ mit Knopf „Jury starten“ und Text „bewertet beide Songs anhand der gesammelten Songdaten“, Hinweis für Mitspieler, Endstand „Die Jury im Match“, Lobby „die Jury übernimmt bei Bedarf“ (vorher „Auto-Jury“), Manifest-Beschreibung („Music Battle mit Spotify: Künstler draften, Songs wählen, die Jury urteilt – zu zweit auf einem oder zwei Geräten.“). Menschliche Juroren bleiben „menschliche Jury“/„Juroren“. Kommentare im Code („Auto-Jury“) unverändert. BUILD `20261013-6`.
+  - Geprüft (vor dem Push eingespielt): Jury-Auswahl als Host und als Mitspieler, Lobby ohne Juroren, Endstand mit Jury-Bilanz; auf keinem Screen mehr „KI“; Manifest ist gültiges JSON.
 
 ---
 
@@ -240,6 +242,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 ## Entscheidungslog
 *(Datum · Entscheidung · Begründung)*
 
+- 13.10.2026 · Die automatische Jury heisst in der App „Die Jury“ (statt „KI-Jury“/„Auto-Jury“) · Entscheid des Nutzers (5.3); seit 3.8 urteilt sie ohne KI aus gespeicherten Songdaten
 - 13.10.2026 · Juroren werden nach „Alle Juroren aufdecken“ automatisch nacheinander gezeigt (kein Tippen pro Juror) · Spannung ohne zusätzliche Klicks; ein Button pro Screen (4.6)
 - 13.10.2026 · Juror-Avatare als eigene Unterwasser-Cartoonfiguren (Krebs, Qualle, Oktopus, Kugelfisch, Schildkröte) mit SpongeBob-artigem Stil statt SpongeBob-Figuren · Wunsch des Nutzers nach SpongeBob-Bezug; bestehende Figuren dürfen in der öffentlichen App nicht nachgebildet werden
 - 13.10.2026 · Jury-Ergebnis: „Jury überstimmen“ ist eingeklappt unter „Runde übernehmen“ (bei Unentschieden stehen die Auswahl-Buttons offen da) · eine klare Hauptaktion pro Screen; überstimmen bleibt jederzeit möglich (Entscheid des Nutzers 1.1)
