@@ -42,6 +42,9 @@ function flowSteps(){
   return `<nav class="flow" aria-label="Spielablauf"><ol>${["Lobby","Draft","Battle","Ergebnis"].map((l,n)=>`<li class="${n<i?"done":n===i?"now":""}"${n===i?' aria-current="step"':""}>${l}</li>`).join("")}</ol></nav>`;
 }
 
+// Ecke im Boxring je Spieler (Design „Titelkampf bei Nacht“, Roadmap 4.4)
+function cornerName(slotNo){return slotNo===1?"PINKE ECKE":"CYAN ECKE"}
+
 // Pass & Play: beide Spieler auf diesem Gerät
 function isPassAndPlay(){return S.room?.device_mode==="single"&&ownsPlayerSlot(1)&&ownsPlayerSlot(2)}
 

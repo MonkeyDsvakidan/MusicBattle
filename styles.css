@@ -171,8 +171,6 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .roundslot.selectable:hover{background:rgba(255,209,102,.08)}
 .roundnum{font:400 12px var(--f-num);color:var(--gold)}
 .pick{margin-top:var(--s2);padding:var(--s2);border-radius:var(--r-s);background:rgba(255,255,255,.04);font-size:13px;overflow-wrap:anywhere}
-.pick:nth-of-type(2){border-left:3px solid var(--a)}
-.pick:nth-of-type(3){border-left:3px solid var(--b)}
 .theme{margin-top:9px;color:var(--gold);font-size:12px;font-weight:700}
 
 /* ---------- Battle: Thema und Ecken ---------- */
@@ -273,6 +271,53 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .exitbar{display:flex;gap:var(--s2);flex-wrap:wrap;justify-content:center;margin-top:var(--s5);padding-top:var(--s4);border-top:1px solid var(--line)}
 .exitbar .btn{flex:0 1 auto;font-size:11px}
 
+/* ---------- Screens (Roadmap 4.4): Ecken, Punktezettel, Gürtel ---------- */
+.side.compact{display:grid;gap:var(--s2)}
+.side.compact .lockbadge{justify-self:start;margin:0}
+.slotcta{display:block;margin-top:2px;font:700 10px var(--f-text);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.pick.p1{border-left:3px solid var(--a)}
+.pick.p2{border-left:3px solid var(--b)}
+.pick.empty{color:var(--muted);font-style:italic}
+.basis{margin:0 0 var(--s3);font-size:13px}
+.scorecard{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:var(--r-m);padding:var(--s1) var(--s3)}
+.sc-row{display:grid;grid-template-columns:minmax(0,1fr) 56px 56px;gap:var(--s2);align-items:center;padding:var(--s3) 0;border-bottom:1px dashed var(--line)}
+.sc-row:last-child{border-bottom:0}
+.sc-head{padding:var(--s2) 0;font:700 10px var(--f-text);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.sc-head .ca,.sc-head .cb{text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc-head .ca{color:var(--a)}
+.sc-head .cb{color:var(--b)}
+.sc-name{display:grid;gap:2px;min-width:0}
+.sc-name b{font:700 15px var(--f-text)}
+.sc-name small{color:var(--muted);font-size:13px;line-height:1.4}
+.sc-name .sc-role{font:700 10px var(--f-text);letter-spacing:.12em;text-transform:uppercase}
+.sc-name .chip{justify-self:start;margin-top:var(--s1)}
+.scorecard .pt{font:400 22px var(--f-num);text-align:center;color:var(--muted)}
+.scorecard .pt.wa{color:var(--a);text-shadow:var(--text-glow-a)}
+.scorecard .pt.wb{color:var(--b);text-shadow:var(--text-glow-b)}
+.sc-total{border-top:2px solid var(--gold);border-bottom:0}
+.sc-total>span:first-child{font:400 22px var(--f-title)}
+.sc-total .pt{font-size:26px;color:var(--text)}
+.belt{display:flex;align-items:center;justify-content:center;gap:var(--s2);margin-top:var(--s4);padding:10px var(--s4);border-radius:var(--r-pill);background:linear-gradient(90deg,rgba(255,209,102,.18),rgba(255,209,102,.05));border:1px solid rgba(255,209,102,.55);font:700 13px var(--f-text);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);text-align:center}
+.belt.p1{box-shadow:var(--glow-a)}
+.belt.p2{box-shadow:var(--glow-b)}
+.override{margin-top:var(--s4);border-top:1px solid var(--line);padding-top:var(--s3)}
+.override summary{cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:center;font:700 13px var(--f-text);color:var(--muted);letter-spacing:.06em}
+.override summary:hover{color:var(--text)}
+.override p{margin-top:var(--s2)}
+.tiechoice{margin-top:var(--s4);border-color:var(--gold)}
+.finalscore.p1 h2{color:var(--a);text-shadow:var(--text-glow-a)}
+.finalscore.p2 h2{color:var(--b);text-shadow:var(--text-glow-b)}
+.finalscore .sa,.votes .sa{color:var(--a)}
+.finalscore .sb,.votes .sb{color:var(--b)}
+.finalscore .belt{margin:var(--s3) auto var(--s3);max-width:360px}
+.chip.p1{border-color:var(--a);color:var(--a)}
+.chip.p2{border-color:var(--b);color:var(--b)}
+.roundsummary{margin-top:var(--s2)}
+.suddencards .side:first-child{border-top:4px solid var(--a)}
+.suddencards .side:last-child{border-top:4px solid var(--b)}
+#copyCode{margin-top:var(--s2)}
+.juryarea>.scorecard,.juryarea>.belt,.juryarea>.mainaction,.juryarea>.override,.juryarea>.basis,.juryarea>.tiechoice{max-width:760px;margin-left:auto;margin-right:auto}
+
 /* ---------- In-App-Bestätigung (mbConfirm, Roadmap 1.6) ---------- */
 .mb-dialog-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:var(--s4);background:rgba(10,4,20,.75);backdrop-filter:blur(4px)}
 .mb-dialog{width:min(420px,100%);padding:var(--s5);background:var(--surface-2);border-top:4px solid var(--gold)}
@@ -289,7 +334,11 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 @media(max-width:900px){
   .hero,.grid2,.match{grid-template-columns:1fr}
   .hero-art{min-height:160px}
-  .roundgrid{grid-template-columns:repeat(2,1fr)}
+  .roundgrid{grid-template-columns:1fr}
+  .roundslot{min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:var(--s2)}
+  .roundslot .roundnum{grid-column:1/-1}
+  .roundslot .pick{margin-top:0}
+  .hero-art{display:none}
   .vs{justify-self:center;margin:calc(var(--s2) * -1) 0}
   .jurygrid{grid-template-columns:repeat(2,1fr)}
 }
