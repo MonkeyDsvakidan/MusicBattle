@@ -57,6 +57,7 @@ Regeln:
 - Top-Level-Code (Listener, Observer) läuft beim Laden – nur Funktionen aus derselben oder früheren Dateien direkt aufrufen.
 - Jury-Begründungen werden so angezeigt, wie die Edge Function sie speichert (kein Nachbearbeiten im DOM). Juror-Avatare: eigene Unterwasser-Cartoonfiguren in `assets/jury/<key>.svg` (4.5) – keine bestehenden Figuren oder echten Personen nachbilden.
 - Cache-Busting: `BUILD` in `app.js` und `?v=` in `index.html` erhöhen.
+- Animationen (4.6) nur über `animAttr(key,ms)` + CSS unter `@media (prefers-reduced-motion:no-preference)`; nie direkt beim Rendern starten, sonst beginnen sie bei jedem Realtime-Update neu.
 - Design (seit 4.2, Entscheidung E): Farben, Schriften, Abstände, Radien nur über die Tokens oben in `styles.css` (`--a` Pink = Spieler A, `--b` Cyan = Spieler B, `--gold` nur für Thema/Sieg). Sedgwick Ave (`--f-title`) für Themen, Songtitel, Überschriften – nie für Zahlen; Bungee (`--f-num`) für Punkte und Buttons; Barlow (`--f-text`) für Text. Vorlage: `design/mockup-4.1.html`.
 - Die früheren `app-1.js … app-6d.js` wurden in Roadmap 2.5 gelöscht (Stand davor: Git-Historie bis Commit `3715bcc`).
 

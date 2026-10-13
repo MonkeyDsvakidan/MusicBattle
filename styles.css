@@ -324,6 +324,38 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 #copyCode{margin-top:var(--s2)}
 .juryarea>.scorecard,.juryarea>.belt,.juryarea>.mainaction,.juryarea>.override,.juryarea>.basis,.juryarea>.tiechoice{max-width:760px;margin-left:auto;margin-right:auto}
 
+/* ---------- Momente mit Wirkung (Roadmap 4.6) ----------
+   Nur mit data-anim (siehe animAttr) und nur ohne „Bewegung reduzieren“. --elapsed ist negativ und setzt
+   eine laufende Animation nach einem neuen Rendern an der richtigen Stelle fort. */
+@media (prefers-reduced-motion:no-preference){
+  /* Song-Reveal: Karten klappen nacheinander auf, VS ploppt */
+  .match[data-anim] .side .selected{animation:mbFlipIn .55s cubic-bezier(.2,.8,.2,1.2) both;animation-delay:calc(var(--elapsed,0ms) + .1s)}
+  .match[data-anim] .side:last-child .selected{animation-delay:calc(var(--elapsed,0ms) + .45s)}
+  .match[data-anim] .vs{animation:mbPop .5s cubic-bezier(.2,.8,.2,1.4) both;animation-delay:calc(var(--elapsed,0ms) + .85s)}
+
+  /* Juroren nacheinander, Gewinnerpunkte mit Punch, danach Total und Gürtel */
+  .jury-reveal[data-anim] .sc-row:not(.sc-head),.jury-reveal[data-anim] .sc-reason{animation:mbRowIn .4s ease-out both;animation-delay:calc(var(--elapsed,0ms) + .2s + var(--i,0) * .45s)}
+  .jury-reveal[data-anim] .sc-row .pt.wa,.jury-reveal[data-anim] .sc-row .pt.wb{animation:mbPunch .45s cubic-bezier(.2,.8,.2,1.6) both;animation-delay:calc(var(--elapsed,0ms) + .45s + var(--i,0) * .45s)}
+  .jury-reveal[data-anim] .belt{animation:mbStamp .55s cubic-bezier(.2,.8,.2,1.3) both,mbShine 1.2s ease-out both;animation-delay:calc(var(--elapsed,0ms) + 3.1s),calc(var(--elapsed,0ms) + 3.5s)}
+  .jury-reveal[data-anim] .mainaction,.jury-reveal[data-anim] .override,.jury-reveal[data-anim] .tiechoice{animation:mbRowIn .4s ease-out both;animation-delay:calc(var(--elapsed,0ms) + 3.5s)}
+
+  /* Rundensieg bei menschlicher Jury / eigenem Entscheid */
+  .belt-moment[data-anim] .belt{animation:mbStamp .55s cubic-bezier(.2,.8,.2,1.3) both,mbShine 1.2s ease-out both;animation-delay:calc(var(--elapsed,0ms) + .15s),calc(var(--elapsed,0ms) + .6s)}
+
+  /* Matchsieg */
+  .finalwrap[data-anim] .finalscore h2{animation:mbPop .6s cubic-bezier(.2,.8,.2,1.4) both,mbGlow 1.6s ease-in-out both;animation-delay:calc(var(--elapsed,0ms) + .1s),calc(var(--elapsed,0ms) + .7s)}
+  .finalwrap[data-anim] .finalscore .big{animation:mbPunch .5s cubic-bezier(.2,.8,.2,1.6) both;animation-delay:calc(var(--elapsed,0ms) + .6s)}
+  .finalwrap[data-anim] .finalscore .belt{animation:mbStamp .6s cubic-bezier(.2,.8,.2,1.3) both,mbShine 1.4s ease-out both;animation-delay:calc(var(--elapsed,0ms) + 1.1s),calc(var(--elapsed,0ms) + 1.6s)}
+  .finalwrap[data-anim] .statsgrid,.finalwrap[data-anim] .roundsummary{animation:mbRowIn .45s ease-out both;animation-delay:calc(var(--elapsed,0ms) + 1.8s)}
+}
+@keyframes mbFlipIn{from{opacity:0;transform:perspective(600px) rotateX(-75deg)}to{opacity:1;transform:none}}
+@keyframes mbPop{0%{opacity:0;transform:scale(.4)}70%{opacity:1;transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes mbRowIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes mbPunch{0%{opacity:0;transform:scale(2.2)}60%{opacity:1;transform:scale(.9)}100%{transform:scale(1)}}
+@keyframes mbStamp{0%{opacity:0;transform:scale(1.6) rotate(-4deg)}70%{opacity:1;transform:scale(.96) rotate(1deg)}100%{transform:none}}
+@keyframes mbShine{0%{background-color:rgba(255,209,102,.45)}100%{background-color:transparent}}
+@keyframes mbGlow{0%,100%{filter:none}40%{filter:brightness(1.35) drop-shadow(0 0 12px currentColor)}}
+
 /* ---------- In-App-Bestätigung (mbConfirm, Roadmap 1.6) ---------- */
 .mb-dialog-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:var(--s4);background:rgba(10,4,20,.75);backdrop-filter:blur(4px)}
 .mb-dialog{width:min(420px,100%);padding:var(--s5);background:var(--surface-2);border-top:4px solid var(--gold)}

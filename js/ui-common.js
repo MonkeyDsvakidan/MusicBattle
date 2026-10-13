@@ -35,6 +35,17 @@ function bindBrandHome(){const el=$("brandHome");if(el)el.onclick=openModeSelect
 
 function roomExitControls(){if(!S.room)return"";return `<div class="exitbar"><button class="btn ghost" id="leaveRoomBtn">Raum verlassen</button>${isHost()?`<button class="btn ghost danger" id="newRoomBtn">Neuer Raum</button>`:""}</div>`}
 
+// Momente mit Wirkung (Roadmap 4.6): Startzeit je Moment merken. Solange die Animation läuft, bekommt das
+// Element data-anim und --elapsed (negativ) – ein neues Rendern (Realtime) setzt die Animation dort fort,
+// statt sie neu zu starten. Danach wird statisch gerendert. „Bewegung reduzieren“ regelt das CSS.
+function animAttr(key,durationMs){
+  S.anim=S.anim||{};
+  const now=Date.now();
+  if(!(key in S.anim))S.anim[key]=now;
+  const elapsed=now-S.anim[key];
+  return elapsed<durationMs?` data-anim style="--elapsed:-${elapsed}ms"`:"";
+}
+
 // Fortschritt im Match (Roadmap 4.3): Lobby → Draft → Battle → Ergebnis
 function flowSteps(){
   const st=S.room?.status,i=st==="lobby"?0:st==="draft"?1:["battle","tiebreak","sudden_draft"].includes(st)?2:st==="finished"?3:-1;
