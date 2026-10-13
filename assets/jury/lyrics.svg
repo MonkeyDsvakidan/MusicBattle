@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Kollegah der Lyricboss: Oktopus mit Krone, Mikrofon und Notizzetteln">
+  <!-- Roadmap 4.5: eigene Unterwasser-Cartoonfigur (Oktopus), keine bestehende Figur -->
+  <defs>
+    <radialGradient id="w" cx="40%" cy="30%" r="75%"><stop offset="0" stop-color="#3fb6e8"/><stop offset="1" stop-color="#14508f"/></radialGradient>
+    <filter id="k" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="12"/><feDisplacementMap in="SourceGraphic" scale="1.6"/></filter>
+  </defs>
+  <circle cx="48" cy="48" r="46" fill="url(#w)" stroke="#14091f" stroke-width="3"/>
+  <g filter="url(#k)" stroke="#14091f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="16" cy="20" r="2.6" fill="none" stroke="#e6f8ff" stroke-width="1.5"/>
+    <!-- Tentakel unten -->
+    <path d="M30 60 C24 70 30 78 22 84 M40 64 C38 74 44 80 38 88 M56 64 C58 74 52 80 58 88 M66 60 C72 70 66 78 74 84" fill="none" stroke="#ff4d6d" stroke-width="6"/>
+    <path d="M30 60 C24 70 30 78 22 84 M40 64 C38 74 44 80 38 88 M56 64 C58 74 52 80 58 88 M66 60 C72 70 66 78 74 84" fill="none" stroke="#14091f" stroke-width="1" stroke-dasharray="1 5"/>
+    <!-- Arm links mit Zettel -->
+    <path d="M26 54 C16 54 12 46 14 40" fill="none" stroke="#ff4d6d" stroke-width="6"/>
+    <path d="M4 26 L20 24 L22 42 L6 44 Z" fill="#fffbe8"/>
+    <path d="M8 31 L18 30 M8 35 L18 34 M8 39 L15 38" fill="none" stroke="#5a6bd8" stroke-width="1.6"/>
+    <!-- Arm rechts mit Mikrofon -->
+    <path d="M70 54 C80 54 84 48 82 40" fill="none" stroke="#ff4d6d" stroke-width="6"/>
+    <path d="M80 40 L84 26" fill="none" stroke="#14091f" stroke-width="4"/>
+    <circle cx="85" cy="21" r="7" fill="#d9d9e6"/>
+    <path d="M81 18 L89 24 M80 22 L88 27 M83 15 L90 20" fill="none" stroke="#14091f" stroke-width="1.2"/>
+    <!-- Kopf -->
+    <path d="M22 50 C20 30 32 18 48 18 C64 18 76 30 74 50 C72 62 62 66 48 66 C34 66 24 62 22 50 Z" fill="#ff4d6d"/>
+    <circle cx="34" cy="30" r="2.4" fill="#ff8fa3" stroke="none"/>
+    <circle cx="62" cy="28" r="3" fill="#ff8fa3" stroke="none"/>
+    <!-- Krone -->
+    <path d="M34 22 L32 8 L40 14 L48 4 L56 14 L64 8 L62 22 Z" fill="#ffd166"/>
+    <circle cx="48" cy="12" r="2.2" fill="#38e1ff"/>
+    <!-- selbstbewusste Augen mit Lidern -->
+    <ellipse cx="38" cy="42" rx="6" ry="6.5" fill="#ffffff"/>
+    <ellipse cx="58" cy="42" rx="6" ry="6.5" fill="#ffffff"/>
+    <circle cx="39" cy="44" r="2.6" fill="#14091f"/>
+    <circle cx="59" cy="44" r="2.6" fill="#14091f"/>
+    <path d="M31.5 40 C34 37 42 37 44.5 40 L44.5 37 C42 34 34 34 31.5 37 Z M51.5 40 C54 37 62 37 64.5 40 L64.5 37 C62 34 54 34 51.5 37 Z" fill="#ff4d6d"/>
+    <!-- Grinsen -->
+    <path d="M40 54 C45 58 52 58 57 53" fill="none"/>
+  </g>
+</svg>

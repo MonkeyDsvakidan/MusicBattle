@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Themenschnüffler: Einsiedlerkrebs mit Lupe">
+  <!-- Roadmap 4.5: eigene Unterwasser-Cartoonfigur (Einsiedlerkrebs), keine bestehende Figur -->
+  <defs>
+    <radialGradient id="w" cx="40%" cy="30%" r="75%"><stop offset="0" stop-color="#3fb6e8"/><stop offset="1" stop-color="#14508f"/></radialGradient>
+    <filter id="k" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="4"/><feDisplacementMap in="SourceGraphic" scale="1.6"/></filter>
+  </defs>
+  <circle cx="48" cy="48" r="46" fill="url(#w)" stroke="#14091f" stroke-width="3"/>
+  <g filter="url(#k)" stroke="#14091f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Luftblasen -->
+    <circle cx="80" cy="20" r="3.5" fill="none" stroke="#e6f8ff" stroke-width="1.6"/>
+    <circle cx="86" cy="30" r="2" fill="none" stroke="#e6f8ff" stroke-width="1.4"/>
+    <!-- Sand -->
+    <path d="M6 76 C24 70 40 74 56 71 C70 69 82 72 92 70 L90 80 C80 90 60 94 46 94 C30 94 14 88 6 76 Z" fill="#f2d18b"/>
+    <!-- Schneckenhaus -->
+    <path d="M50 70 C44 52 52 30 70 30 C84 30 90 44 86 56 C82 68 70 72 58 72 Z" fill="#ff7ab8"/>
+    <path d="M66 62 C58 60 56 50 62 45 C68 40 77 44 77 51 C77 56 72 58 69 55 C66 52 69 48 72 50" fill="none"/>
+    <path d="M54 66 L60 58 M76 36 L80 32" fill="none" stroke-width="2"/>
+    <!-- Körper -->
+    <ellipse cx="38" cy="64" rx="16" ry="10" fill="#ff6b4a"/>
+    <!-- Beinchen -->
+    <path d="M28 72 L24 78 M36 74 L35 80 M46 73 L48 79" fill="none"/>
+    <!-- Stielaugen -->
+    <path d="M33 56 L30 40 M43 56 L45 38" fill="none"/>
+    <circle cx="29" cy="35" r="6.5" fill="#ffffff"/>
+    <circle cx="46" cy="33" r="6.5" fill="#ffffff"/>
+    <circle cx="31" cy="35" r="2.6" fill="#14091f"/>
+    <circle cx="48" cy="33" r="2.6" fill="#14091f"/>
+    <!-- Mund -->
+    <path d="M33 66 C36 69 41 69 44 66" fill="none"/>
+    <!-- Schere mit Lupe -->
+    <path d="M24 62 C18 60 15 55 16 52" fill="none"/>
+    <path d="M12 52 C10 47 14 43 19 45 C22 46 22 50 19 52 Z" fill="#ff6b4a"/>
+    <path d="M14 46 L10 38" fill="none" stroke-width="3.4"/>
+    <circle cx="12" cy="29" r="8.5" fill="#bff0ff" fill-opacity=".7"/>
+    <path d="M8 26 C9 24 11 23 13 23" fill="none" stroke="#ffffff" stroke-width="2"/>
+    <!-- Schnüffelwölkchen -->
+    <path d="M56 26 C58 22 62 22 63 25 M60 18 C62 14 66 14 67 17" fill="none" stroke="#ffd166" stroke-width="2.2"/>
+  </g>
+</svg>

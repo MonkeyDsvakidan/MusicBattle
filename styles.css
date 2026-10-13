@@ -286,11 +286,17 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .sc-head .ca,.sc-head .cb{text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sc-head .ca{color:var(--a)}
 .sc-head .cb{color:var(--b)}
-.sc-name{display:grid;gap:2px;min-width:0}
+.sc-name{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--s3);align-items:start;min-width:0}
+.sc-text{display:grid;gap:2px;min-width:0}
+.sc-av{width:42px;height:42px;border-radius:50%}
+.avatars{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:var(--s3)}
+.avatars img{width:46px;height:46px;border-radius:50%}
 .sc-name b{font:700 15px var(--f-text)}
 .sc-name small{color:var(--muted);font-size:13px;line-height:1.4}
 .sc-name .sc-role{font:700 10px var(--f-text);letter-spacing:.12em;text-transform:uppercase}
-.sc-name .chip{justify-self:start;margin-top:var(--s1)}
+.sc-name{align-items:center}
+.sc-reason{grid-column:1/-1;color:var(--muted);font-size:13px;line-height:1.45;margin-top:calc(var(--s1) * -1)}
+.sc-reason .chip{margin-left:var(--s1);vertical-align:middle}
 .scorecard .pt{font:400 22px var(--f-num);text-align:center;color:var(--muted)}
 .scorecard .pt.wa{color:var(--a);text-shadow:var(--text-glow-a)}
 .scorecard .pt.wb{color:var(--b);text-shadow:var(--text-glow-b)}

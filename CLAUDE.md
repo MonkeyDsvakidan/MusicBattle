@@ -55,7 +55,7 @@ Gemeinsame Daten: `supabase/functions/_shared/themes.json` enthält alle Themen 
 Regeln:
 - Neue Funktionen in die thematisch passende Datei; eine Funktion nie in einer zweiten Datei neu definieren.
 - Top-Level-Code (Listener, Observer) läuft beim Laden – nur Funktionen aus derselben oder früheren Dateien direkt aufrufen.
-- Jury-Begründungen werden so angezeigt, wie die Edge Function sie speichert (kein Nachbearbeiten im DOM). Die Juror-Bilder werden in `config.js` geleert (`assets/jury/` fehlt, → 4.5).
+- Jury-Begründungen werden so angezeigt, wie die Edge Function sie speichert (kein Nachbearbeiten im DOM). Juror-Avatare: eigene Unterwasser-Cartoonfiguren in `assets/jury/<key>.svg` (4.5) – keine bestehenden Figuren oder echten Personen nachbilden.
 - Cache-Busting: `BUILD` in `app.js` und `?v=` in `index.html` erhöhen.
 - Design (seit 4.2, Entscheidung E): Farben, Schriften, Abstände, Radien nur über die Tokens oben in `styles.css` (`--a` Pink = Spieler A, `--b` Cyan = Spieler B, `--gold` nur für Thema/Sieg). Sedgwick Ave (`--f-title`) für Themen, Songtitel, Überschriften – nie für Zahlen; Bungee (`--f-num`) für Punkte und Buttons; Barlow (`--f-text`) für Text. Vorlage: `design/mockup-4.1.html`.
 - Die früheren `app-1.js … app-6d.js` wurden in Roadmap 2.5 gelöscht (Stand davor: Git-Historie bis Commit `3715bcc`).
