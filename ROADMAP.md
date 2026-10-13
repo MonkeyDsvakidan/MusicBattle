@@ -170,8 +170,8 @@ Grundidee: Die Daten werden **einmal pro Song** gesammelt und gespeichert. Die f
   - Für 4.4 notiert: Bei Pass & Play liegt die Suche von Spieler 2 unter der Karte von Spieler 1 – auf dem Handy muss man scrollen; aktive Seite hervorheben oder dorthin scrollen.
 - [ ] **4.4 Screens umsetzen** in dieser Reihenfolge: Start/Modus → Lobby → Draft → Battle → Jury → Endstand. Nach jedem Screen Mobil-Check (375 px).
 - [ ] **4.5 Juror-Avatare** als eigene Illustrationen (SVG), keine Fotos oder Abbildungen echter Personen.
-- [ ] **4.7 (optional)** Verdeckter Draft als Option beim Raum erstellen (Gegner-Künstler bis zum Battle verborgen) – Wunsch des Nutzers vom 06.10.2026; Bezeichnung „Blind Draft“ wurde in 4.3 gestrichen.
 - [ ] **4.6** Momente mit Wirkung: Song-Reveal, Juror-Aufdecken, Rundensieg, Matchsieg (dezente Animationen, `prefers-reduced-motion` respektieren).
+- [ ] **4.7 (optional)** Verdeckter Draft als Option beim Raum erstellen (Gegner-Künstler bis zum Battle verborgen) – Wunsch des Nutzers vom 06.10.2026; Bezeichnung „Blind Draft“ wurde in 4.3 gestrichen.
 
 ## Phase 5 – Abschluss
 
