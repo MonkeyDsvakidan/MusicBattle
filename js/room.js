@@ -5,9 +5,21 @@ window.MB_DEVICE_MODE_CHOICE=localStorage.getItem("mb_device_mode_choice")||"";
 
 async function ensureAnon(){const {data:{session}}=await sb.auth.getSession();if(session){S.user=session.user;return true}const {data,error}=await sb.auth.signInAnonymously({options:{data:{app:"music-battle"}}});if(error){S.error="Anonyme Anmeldung ist im Supabase-Projekt noch nicht aktiviert.";render();return false}S.user=data.user;return true}
 
-async function init(){await ensureAnon();const saved=roomStorage();if(saved?.room_id){await loadRoom(saved.room_id);subscribeRoom()}await spotifyCallback();if(saved?.room_id)await loadRoom(saved.room_id);render()}
+// Einladung per Link/QR (Roadmap 6.2): ?join=CODE&m=single|two → Einladungsseite statt Code abtippen
+function readInviteFromUrl(){
+  const q=new URLSearchParams(location.search),code=(q.get("join")||"").trim().toUpperCase();
+  if(!/^[A-Z0-9]{4,8}$/.test(code))return;
+  S.pendingJoin={code,mode:q.get("m")==="single"?"single":"two"};
+  history.replaceState({},"",location.pathname);
+}
+// Meldungen von mb_join_room auf Deutsch (6.2)
+function joinErrorText(msg){const m=String(msg||"");if(/room not found/i.test(m))return"Diesen Raum gibt es nicht (mehr). Frag nach einem neuen Link oder Code.";if(/one-device/i.test(m))return"Dieses Match läuft auf einem Gerät – du kannst nur als Juror beitreten.";if(/slots full/i.test(m))return"Beide Spielerplätze sind schon besetzt. Du kannst als Juror beitreten.";if(/display name/i.test(m))return"Bitte einen Namen eingeben (höchstens 30 Zeichen).";return m}
+function rememberName(name){try{if(name)localStorage.setItem("mb_last_name",name)}catch{}}
+function lastName(){try{return localStorage.getItem("mb_last_name")||""}catch{return""}}
 
-async function joinRoom(joinRole){S.error="";const code=$("joinCode").value.trim().toUpperCase(),name=$("joinName").value.trim();if(!code||!name){S.error="Raumcode und Name fehlen.";render();return}const {data,error}=await sb.rpc("mb_join_room",{p_room_code:code,p_display_name:name,p_role:joinRole});if(error){S.error=error.message;render();return}const row=data[0];saveRoom({room_id:row.room_id,code});await loadRoom(row.room_id);subscribeRoom();render();const slot=joinRole==="player"?ownedMemberships().find(m=>m.role==="player")?.player_slot:null;if(slot&&await useSavedSpotify(slot))render()}
+async function init(){readInviteFromUrl();await ensureAnon();const saved=roomStorage();if(saved?.room_id){await loadRoom(saved.room_id);subscribeRoom()}await spotifyCallback();if(saved?.room_id)await loadRoom(saved.room_id);if(S.pendingJoin&&S.room?.code===S.pendingJoin.code)S.pendingJoin=null;render()}
+
+async function joinRoom(joinRole){S.error="";const code=$("joinCode").value.trim().toUpperCase(),name=$("joinName").value.trim();if(!code||!name){S.error="Raumcode und Name fehlen.";render();return}const {data,error}=await sb.rpc("mb_join_room",{p_room_code:code,p_display_name:name,p_role:joinRole});if(error){S.error=joinErrorText(error.message);render();return}const row=data[0];rememberName(name);S.pendingJoin=null;saveRoom({room_id:row.room_id,code});await loadRoom(row.room_id);subscribeRoom();render();const slot=joinRole==="player"?ownedMemberships().find(m=>m.role==="player")?.player_slot:null;if(slot&&await useSavedSpotify(slot))render()}
 
 async function loadRoom(roomId){const [{data:room},{data:members},{data:picks},{data:rounds},{data:subs},{data:scores}]=await Promise.all([sb.from("mb_rooms").select("*").eq("id",roomId).single(),sb.from("mb_members").select("*").eq("room_id",roomId).order("joined_at"),sb.from("mb_draft_picks").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_rounds").select("*").eq("room_id",roomId).order("round_number"),sb.from("mb_submissions").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_jury_scores").select("*").eq("room_id",roomId).order("created_at")]);if(!room){clearRoom();return}S.room=room;S.members=members||[];S.picks=picks||[];S.rounds=rounds||[];S.subs=subs||[];S.scores=scores||[];S.membership=S.members.find(m=>m.user_id===S.user?.id)||null;restoreSpotify(1);restoreSpotify(2);restorePool(1);restorePool(2)}
 
@@ -60,6 +72,7 @@ async function createRoom(){
   const name=$("createName")?.value.trim()||"";
   const mode=window.MB_DEVICE_MODE_CHOICE;
   if(!name){S.error="Name ist erforderlich.";render();return}
+  rememberName(name);
   if(!["single","two"].includes(mode)){S.error="Bitte zuerst 1 Gerät oder 2 Geräte wählen.";renderLanding();return}
   const {data,error}=await sb.rpc("mb_create_room",{p_display_name:name,p_jury_mode:"auto",p_device_mode:mode});
   if(error){S.error=error.message;render();return}

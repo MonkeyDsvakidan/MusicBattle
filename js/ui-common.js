@@ -85,6 +85,7 @@ function matchScoreboard(){
 
 function render(){
   bindBrandHome();
+  if(S.user&&S.pendingJoin){renderInvite();return}
   if(!S.user||!S.room){renderLanding();return}
   const localSlots=ownedMemberships().filter(m=>m.role==="player").map(m=>m.player_slot).sort();
   $("roomBadge").innerHTML=`<span class="chip">${esc(S.room.code)} · ${role()==="player"?(localSlots.length===2?"SPIELER 1 + 2":`SPIELER ${localSlots[0]}`):"JURY"}</span>`;

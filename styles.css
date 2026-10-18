@@ -322,7 +322,16 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .roundsummary{margin-top:var(--s2)}
 .suddencards .side:first-child{border-top:4px solid var(--a)}
 .suddencards .side:last-child{border-top:4px solid var(--b)}
-#copyCode{margin-top:var(--s2)}
+.invite{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--s4);align-items:center;margin-top:var(--s3);padding:var(--s3);border:1px solid var(--line);border-radius:var(--r-m);background:var(--surface-2)}
+.invite .qr{width:132px;height:132px;padding:6px;border-radius:var(--r-s);background:#ffffff}
+.invite .qr svg{display:block;width:100%;height:100%}
+.invitetext{display:grid;gap:var(--s2);min-width:0}
+.invitetext p{margin:0;font-size:13px}
+.invitetext .btn{justify-self:start}
+.invitecard .roomcode{font-size:inherit}
+.invitecard input{margin-bottom:var(--s2)}
+.invitebtns{display:grid;gap:var(--s3)}
+@media(max-width:380px){.invite{grid-template-columns:1fr;justify-items:center;text-align:center}.invitetext .btn{justify-self:stretch}}
 .installhint{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:var(--s3);margin:0 0 var(--s4);padding:var(--s3);border:1px solid rgba(255,209,102,.45);border-radius:var(--r-m);background:rgba(255,209,102,.08)}
 .installhint p{margin:0;font-size:14px;line-height:1.45}
 .installicon{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--surface-3);color:var(--gold);font-size:18px}

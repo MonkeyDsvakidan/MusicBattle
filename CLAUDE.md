@@ -43,7 +43,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `js/state.js` | Zustand `S`, `$`/`esc`, Raum-/Mitglieder-/Runden-Abfragen, `resetLocalRoomState` |
 | `js/ui-common.js` | `mbConfirm`, `mbConfirmLeave`, `render()`-Verteiler (setzt die Fortschrittsanzeige `flowSteps()` darüber), Closed-Screen, gemeinsame Bausteine (`turnBanner`, `isPassAndPlay`, `passPlayTurn`, `cornerName`, `animAttr`, Ausgangsleiste) |
 | `js/spotify.js` | Spotify-Login (PKCE), Token, Künstler-Pool, Web Playback |
-| `js/room.js` | Anmeldung, Raum laden/beitreten/erstellen/verlassen, Sync (Realtime + Poll mit Fingerabdruck), `init` |
+| `js/room.js` | Anmeldung, Raum laden/beitreten/erstellen/verlassen, Sync (Realtime + Poll mit Fingerabdruck), `init`, Einladungslink `?join=CODE&m=…` (`readInviteFromUrl`, `joinErrorText`, letzter Name) |
 | `js/draft.js` | Draft, Skip, Sudden-Death-Draft |
 | `js/battle.js` | Songsuche, Einreichen (stösst danach `mb-track-profile` im Hintergrund an), Startpunkt |
 | `js/jury.js` | Scorecards, eigener Entscheid, „Die Jury“ (`runAIJury` ruft `mb-jury` auf), `roundDecision`, `finalizeRound` |

@@ -11,13 +11,40 @@ function renderLanding(){
     if($("spotifyLogout"))$("spotifyLogout").onclick=()=>{forgetSavedSpotify();renderLanding()};
     bindInstallHint();
     $("modeSingle").onclick=()=>setDeviceModeChoice("single");$("modeTwo").onclick=()=>setDeviceModeChoice("two");
-    $("juryJoinDirect").onclick=async()=>{const code=$("juryCode").value.trim().toUpperCase(),name=$("juryName").value.trim();if(!code||!name){S.error="Raumcode und Name fehlen.";renderLanding();return}const {data,error}=await sb.rpc("mb_join_room",{p_room_code:code,p_display_name:name,p_role:"juror"});if(error){S.error=error.message;renderLanding();return}const row=data[0];saveRoom({room_id:row.room_id,code});await loadRoom(row.room_id);subscribeRoom();render()};
+    $("juryJoinDirect").onclick=async()=>{const code=$("juryCode").value.trim().toUpperCase(),name=$("juryName").value.trim();if(!code||!name){S.error="Raumcode und Name fehlen.";renderLanding();return}const {data,error}=await sb.rpc("mb_join_room",{p_room_code:code,p_display_name:name,p_role:"juror"});if(error){S.error=joinErrorText(error.message);renderLanding();return}const row=data[0];saveRoom({room_id:row.room_id,code});await loadRoom(row.room_id);subscribeRoom();render()};
     return;
   }
   const single=mode==="single";
-  $("app").innerHTML=`<section class="card"><div class="sectionhead"><div><div class="eyebrow">${single?"1 GERÄT · PASS & PLAY":"2 GERÄTE · REALTIME"}</div><h2>${single?"Gemeinsam auf einem Gerät":"Jeder auf dem eigenen Gerät"}</h2></div><button class="btn ghost" id="changeMode">Modus ändern</button></div>${err}<div class="joincolumns"><div class="joinrole playerrole"><div><div class="eyebrow">SPIELER 1 · HOST</div><h3>Neues Match erstellen</h3><p class="muted">${single?"Du meldest danach auch Spieler 2 auf diesem Gerät an.":"Du erhältst einen Raumcode für Spieler 2."}</p></div><div><input id="createName" placeholder="Name Spieler 1"><button class="btn primary" id="createBtn">Raum erstellen</button></div></div>${single?`<div class="joinrole jurorrole"><div><div class="eyebrow">JUROR</div><h3>Bestehendem Raum beitreten</h3><p class="muted">Im Pass-&-Play-Modus kann Spieler 2 nicht von einem anderen Gerät beitreten.</p></div><div><input id="joinCode" maxlength="6" placeholder="Raumcode"><input id="joinName" placeholder="Dein Name"><button class="btn" id="joinJuror">Als Juror beitreten</button></div></div>`:`<div class="joinrole player2role"><div><div class="eyebrow">SPIELER 2</div><h3>Auf deinem Gerät beitreten</h3><p class="muted">Nimm den Raumcode von Spieler 1 und verbinde danach dein eigenes Spotify.</p></div><div><input id="joinCode" maxlength="6" placeholder="Raumcode"><input id="joinName" placeholder="Name Spieler 2"><button class="btn primary" id="joinPlayer">Als Spieler 2 beitreten</button><button class="btn" id="joinJuror">Stattdessen als Juror</button></div></div>`}</div></section>`;
+  $("app").innerHTML=`<section class="card"><div class="sectionhead"><div><div class="eyebrow">${single?"1 GERÄT · PASS & PLAY":"2 GERÄTE · REALTIME"}</div><h2>${single?"Gemeinsam auf einem Gerät":"Jeder auf dem eigenen Gerät"}</h2></div><button class="btn ghost" id="changeMode">Modus ändern</button></div>${err}<div class="joincolumns"><div class="joinrole playerrole"><div><div class="eyebrow">SPIELER 1 · HOST</div><h3>Neues Match erstellen</h3><p class="muted">${single?"Du meldest danach auch Spieler 2 auf diesem Gerät an.":"Du erhältst einen Raumcode für Spieler 2."}</p></div><div><input id="createName" placeholder="Name Spieler 1" value="${esc(lastName())}" autocomplete="nickname"><button class="btn primary" id="createBtn">Raum erstellen</button></div></div>${single?`<div class="joinrole jurorrole"><div><div class="eyebrow">JUROR</div><h3>Bestehendem Raum beitreten</h3><p class="muted">Im Pass-&-Play-Modus kann Spieler 2 nicht von einem anderen Gerät beitreten.</p></div><div><input id="joinCode" maxlength="6" placeholder="Raumcode"><input id="joinName" placeholder="Dein Name"><button class="btn" id="joinJuror">Als Juror beitreten</button></div></div>`:`<div class="joinrole player2role"><div><div class="eyebrow">SPIELER 2</div><h3>Auf deinem Gerät beitreten</h3><p class="muted">Nimm den Raumcode von Spieler 1 und verbinde danach dein eigenes Spotify.</p></div><div><input id="joinCode" maxlength="6" placeholder="Raumcode"><input id="joinName" placeholder="Name Spieler 2"><button class="btn primary" id="joinPlayer">Als Spieler 2 beitreten</button><button class="btn" id="joinJuror">Stattdessen als Juror</button></div></div>`}</div></section>`;
   $("changeMode").onclick=resetDeviceModeChoice;$("createBtn").onclick=createRoom;
   if($("joinPlayer"))$("joinPlayer").onclick=()=>joinRoom("player");$("joinJuror").onclick=()=>joinRoom("juror");
+}
+
+// Einladung (Roadmap 6.2, Entscheidung H): ein QR-Code für alle, Rollenwahl nach dem Scannen
+function inviteLink(){return `${location.origin}${location.pathname}?join=${encodeURIComponent(S.room.code)}&m=${S.room.device_mode==="two"?"two":"single"}`}
+function inviteBlock(isSingle){
+  const svg=S.qrCache?.link===inviteLink()?S.qrCache.svg:"";
+  return`<div class="invite"><div class="qr" id="inviteQr" role="img" aria-label="QR-Code zum Beitreten">${svg}</div><div class="invitetext"><b>${isSingle?"Juroren einladen":"Spieler 2 und Juroren einladen"}</b><p class="muted">QR-Code scannen oder Link teilen – direkt in den Raum, ohne Code abtippen.</p><button class="btn" id="shareInvite">Link teilen</button></div></div>`;
+}
+function loadQrLib(){return window.qrcode?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js";s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+async function bindInvite(){
+  const share=$("shareInvite");
+  if(share)share.onclick=async()=>{const url=inviteLink();
+    if(navigator.share){try{await navigator.share({title:"Music Battle",text:`Komm in mein Music Battle (Raum ${S.room.code})`,url});return}catch(e){if(e?.name==="AbortError")return}}
+    try{await navigator.clipboard.writeText(url);share.textContent="Link kopiert ✓"}catch{share.textContent=url}};
+  const el=$("inviteQr");if(!el||el.innerHTML)return;
+  try{await loadQrLib();const link=inviteLink(),q=qrcode(0,"M");q.addData(link);q.make();S.qrCache={link,svg:q.createSvgTag({cellSize:4,margin:2,scalable:true})};const now=$("inviteQr");if(now)now.innerHTML=S.qrCache.svg}
+  catch{el.remove()}
+}
+
+// Einladungsseite nach dem Scannen/Öffnen des Links
+function renderInvite(){
+  bindBrandHome();$("roomBadge").innerHTML="";
+  const j=S.pendingJoin,single=j.mode==="single";
+  $("app").innerHTML=`<section class="card invitecard"><div class="eyebrow">EINLADUNG</div><h2>Raum <span class="roomcode">${esc(j.code)}</span></h2><p class="muted">${single?"Dieses Match läuft auf einem Gerät – du kannst als Juror bewerten.":"Spiel als Spieler 2 mit oder bewerte als Juror."}</p>${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}<input type="hidden" id="joinCode" value="${esc(j.code)}"><label for="joinName">Dein Name</label><input id="joinName" value="${esc(lastName())}" placeholder="Dein Name" autocomplete="nickname" maxlength="30"><div class="mainaction invitebtns">${single?"":`<button class="btn primary" id="inviteP2">Als Spieler 2 beitreten</button>`}<button class="btn ${single?"primary":""}" id="inviteJuror">Als Juror beitreten</button></div><div class="actions centered"><button class="btn ghost" id="inviteCancel">Nicht beitreten</button></div></section>`;
+  if($("inviteP2"))$("inviteP2").onclick=()=>joinRoom("player");
+  $("inviteJuror").onclick=()=>joinRoom("juror");
+  $("inviteCancel").onclick=()=>{S.pendingJoin=null;S.error="";render()};
 }
 
 function renderLobby(){
@@ -40,14 +67,14 @@ function renderLobby(){
     const status=p.spotify_ready?`<span class="chip ok">Spotify bereit</span>`:shared?`<span class="chip">nutzt Spotify von Spieler 1</span>`:mine?`<button class="btn ${next===`connect${n}`?"primary":"green"}" data-connect-slot="${n}">Spotify verbinden</button>`:`<span class="chip">verbindet auf eigenem Gerät</span>`;
     return`<div class="member p${n}"><div><strong>${esc(p.display_name)}</strong><small>Spieler ${n}${n===1?" · Host":""}</small></div>${status}</div>`};
 
-  $("app").innerHTML=`<section class="card lobby"><div class="eyebrow">LOBBY · ${isSingle?"1 GERÄT · PASS & PLAY":"2 GERÄTE"}</div><h2 class="roomcode">${esc(S.room.code)}</h2>${isSingle?"":`<p class="muted">Spieler 2 und Juroren treten mit diesem Code bei.</p><button class="btn ghost" id="copyCode">Code kopieren</button>`}${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}${S.notice?`<div class="notice">${esc(S.notice)}</div>`:""}
+  $("app").innerHTML=`<section class="card lobby"><div class="eyebrow">LOBBY · ${isSingle?"1 GERÄT · PASS & PLAY":"2 GERÄTE"}</div><h2 class="roomcode">${esc(S.room.code)}</h2>${inviteBlock(isSingle)}${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}${S.notice?`<div class="notice">${esc(S.notice)}</div>`:""}
     <div class="stack" style="margin-top:14px">${row(1)}${row(2)}</div>
     ${isSingle&&isHost()&&!p2?`<div class="addp2"><label for="localPlayer2Name">Spieler 2</label><div class="playcontrols"><input id="localPlayer2Name" placeholder="Name Spieler 2" autocomplete="off"><button class="btn ${next==="addp2"?"primary":""}" id="addLocalP2">Hinzufügen</button></div></div>`:""}
     <p class="muted jurorline">Juroren: ${jurors.length?jurors.map(j=>esc(j.display_name)).join(", "):"keine – die Jury übernimmt bei Bedarf"}</p>
     ${isHost()?`<div class="mainaction">${ready?`<button class="btn primary" id="startDraftBtn">Draft starten</button>`:`<p class="muted">Noch offen: ${open.join(" · ")}</p>`}</div><div class="actions"><button class="btn ghost" id="changeModeLobby">Spielmodus ändern</button></div>`:`<p class="muted">${ready?"Der Host startet gleich den Draft.":`Noch offen: ${open.join(" · ")}`}</p>`}
     ${roomExitControls()}</section>`;
 
-  if($("copyCode"))$("copyCode").onclick=async()=>{try{await navigator.clipboard.writeText(S.room.code);$("copyCode").textContent="Kopiert ✓"}catch{$("copyCode").textContent=S.room.code}};
+  bindInvite();
   if($("addLocalP2"))$("addLocalP2").onclick=addLocalPlayer2;
   document.querySelectorAll("[data-connect-slot]").forEach(b=>b.onclick=()=>connectSpotify(Number(b.dataset.connectSlot)));
   if($("startDraftBtn"))$("startDraftBtn").onclick=startDraft;
