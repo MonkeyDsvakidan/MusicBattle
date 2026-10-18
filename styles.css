@@ -363,6 +363,9 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .voter.done{border-color:rgba(94,230,176,.5);color:var(--ok)}
 .votewait p{margin:var(--s3) 0 0}
 
+/* Vergrösserte Effekte (Punch, Stempel, 3D-Klappen) dürfen nicht über den Rand ragen – sonst zoomt das Handy kurz heraus (6.3.4) */
+.juryarea,.match{overflow-x:clip;overflow-clip-margin:20px}
+
 /* ---------- Momente mit Wirkung (Roadmap 4.6) ----------
    Nur mit data-anim (siehe animAttr) und nur ohne „Bewegung reduzieren“. --elapsed ist negativ und setzt
    eine laufende Animation nach einem neuen Rendern an der richtigen Stelle fort. */
