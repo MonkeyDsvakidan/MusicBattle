@@ -79,7 +79,8 @@ function scoreSummary(scores){let a=0,b=0;for(const s of scores){a+=s.score_a;b+
 /* jury-ui */
 // Rangfolge pro Runde (Entscheid 1.1): mit Juror im Raum zählt nur die menschliche Jury;
 // ohne Juror schlägt ein eigener Entscheid des Hosts die Auto-Jury. Nie gemischt.
-function isSelfDecision(s){return s?.source==="human"&&s?.details?.kind==="self_decision"}
+// Nur ein Eintrag des Hosts zählt als eigener Entscheid (6.3.4; die Datenbank verbietet ihn Juroren zusätzlich)
+function isSelfDecision(s){return s?.source==="human"&&s?.details?.kind==="self_decision"&&(!S.room?.host_user_id||s.juror_user_id===S.room.host_user_id)}
 
 // Abstimmung einer Runde auswerten (6.3.4). live: Juroren aus dem aktuellen Raum, sonst aus den Stimmen selbst
 function roundVoteResult(roundId,live=false){
