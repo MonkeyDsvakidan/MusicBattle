@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<!-- Roadmap 6.1: Vorlage für das App-Icon (Titelkampf bei Nacht). Rendern mit:
+     msedge --headless --disable-gpu --hide-scrollbars --window-size=512,512 --screenshot=icon-512.png design/app-icon.html
+     (180 und 192 px: ?size=180 bzw. ?size=192 anhängen und --window-size entsprechend setzen).
+     Inhalt bleibt im inneren 80-%-Kreis, damit das Icon auch als „maskable“ (Android) funktioniert. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&display=block">
+<style>
+  html,body{margin:0;padding:0;background:#170d24;overflow:hidden}
+  svg{display:block}
+</style>
+</head>
+<body>
+<svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="gp" cx="18%" cy="12%" r="70%"><stop offset="0" stop-color="#ff3fa4" stop-opacity=".55"/><stop offset="1" stop-color="#ff3fa4" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gc" cx="88%" cy="92%" r="70%"><stop offset="0" stop-color="#38e1ff" stop-opacity=".45"/><stop offset="1" stop-color="#38e1ff" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+  <rect width="512" height="512" fill="#170d24"/>
+  <rect width="512" height="512" fill="url(#gp)"/>
+  <rect width="512" height="512" fill="url(#gc)"/>
+  <!-- Gürtel-Ring -->
+  <circle cx="256" cy="256" r="196" fill="#22143a" stroke="#ffd166" stroke-width="14"/>
+  <circle cx="256" cy="256" r="174" fill="none" stroke="#ffd166" stroke-width="3" stroke-dasharray="2 14" stroke-linecap="round"/>
+  <!-- Sterne oben und unten -->
+  <path d="M256 62 l7 15 16 2 -12 11 3 16 -14 -8 -14 8 3 -16 -12 -11 16 -2 z" fill="#ffd166"/>
+  <path d="M256 412 l7 15 16 2 -12 11 3 16 -14 -8 -14 8 3 -16 -12 -11 16 -2 z" fill="#ffd166"/>
+  <!-- MB: M Pink, B Cyan, mit Leuchten -->
+  <g font-family="Bungee, 'Arial Black', sans-serif" font-size="170" text-anchor="middle" dominant-baseline="central">
+    <text x="190" y="262" fill="#ff3fa4" filter="url(#glow)" opacity=".8">M</text>
+    <text x="330" y="262" fill="#38e1ff" filter="url(#glow)" opacity=".8">B</text>
+    <text x="190" y="262" fill="#ff3fa4" stroke="#14091f" stroke-width="6" paint-order="stroke">M</text>
+    <text x="330" y="262" fill="#38e1ff" stroke="#14091f" stroke-width="6" paint-order="stroke">B</text>
+  </g>
+</svg>
+<script>
+  // ?size=180 → Icon in dieser Grösse rendern
+  const n=Number(new URLSearchParams(location.search).get("size"))||512, svg=document.getElementById("icon");
+  svg.setAttribute("width",n);svg.setAttribute("height",n);
+</script>
+</body>
+</html>

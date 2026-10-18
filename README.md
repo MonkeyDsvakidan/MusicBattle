@@ -4,6 +4,12 @@ Browser-Spiel für zwei Spieler: Künstler aus dem eigenen Spotify draften, pro 
 
 **Live:** https://monkeydsvakidan.github.io/MusicBattle/
 
+### Als App installieren
+
+- **iPhone/iPad:** Seite in Safari öffnen → **Teilen** → **„Zum Home-Bildschirm“**. Die App startet dann ohne Browserleiste. Abspielen läuft auf dem iPhone über die Spotify-App (Spotify öffnen, dann in Music Battle auf Abspielen tippen) – Spotify erlaubt den Web-Player dort nicht.
+- **Android (Chrome):** Menü → **„App installieren“** bzw. „Zum Startbildschirm hinzufügen“.
+- Die Spotify-Anmeldung bleibt auf dem Gerät gespeichert, bis man auf der Startseite **Abmelden** tippt.
+
 ## Spielablauf
 
 1. **Modus wählen** – *1 Gerät · Pass & Play* (ihr gebt ein Gerät hin und her, ein Spotify-Konto reicht) oder *2 Geräte · Realtime* (jeder auf seinem Gerät mit eigenem Spotify).

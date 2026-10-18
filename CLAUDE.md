@@ -57,6 +57,7 @@ Regeln:
 - Top-Level-Code (Listener, Observer) läuft beim Laden – nur Funktionen aus derselben oder früheren Dateien direkt aufrufen.
 - Jury-Begründungen werden so angezeigt, wie die Edge Function sie speichert (kein Nachbearbeiten im DOM). Juror-Avatare: eigene Unterwasser-Cartoonfiguren in `assets/jury/<key>.svg` (4.5) – keine bestehenden Figuren oder echten Personen nachbilden.
 - Cache-Busting: `BUILD` in `app.js` und `?v=` in `index.html` erhöhen.
+- App-Icon (6.1): Vorlage `design/app-icon.html`, PNGs in `assets/icons/` (180 = `apple-touch-icon`, 192/512 im Manifest). Nach Änderungen neu rendern (Befehl steht in der Vorlage). Spotify (5.6/5.7): Anmeldung bleibt als `mb_sp_saved` auf dem Gerät; startet der Web-Player nicht (iPhone, kein DRM), spielt `playSubmission` über Spotify Connect auf der Spotify-App.
 - Animationen (4.6) nur über `animAttr(key,ms)` + CSS unter `@media (prefers-reduced-motion:no-preference)`; nie direkt beim Rendern starten, sonst beginnen sie bei jedem Realtime-Update neu.
 - Design (seit 4.2, Entscheidung E): Farben, Schriften, Abstände, Radien nur über die Tokens oben in `styles.css` (`--a` Pink = Spieler A, `--b` Cyan = Spieler B, `--gold` nur für Thema/Sieg). Sedgwick Ave (`--f-title`) für Themen, Songtitel, Überschriften – nie für Zahlen; Bungee (`--f-num`) für Punkte und Buttons; Barlow (`--f-text`) für Text. Vorlage: `design/mockup-4.1.html`.
 - Die früheren `app-1.js … app-6d.js` wurden in Roadmap 2.5 gelöscht (Stand davor: Git-Historie bis Commit `3715bcc`).

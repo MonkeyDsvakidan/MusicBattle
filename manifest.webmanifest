@@ -1,11 +1,32 @@
 {
-  "name":"Music Battle",
-  "short_name":"Music Battle",
-  "start_url":"./",
-  "scope":"./",
-  "display":"standalone",
-  "background_color":"#170d24",
-  "theme_color":"#170d24",
-  "lang":"de-CH",
-  "description":"Music Battle mit Spotify: Künstler draften, Songs wählen, die Jury urteilt – zu zweit auf einem oder zwei Geräten."
+  "id": "./",
+  "name": "Music Battle",
+  "short_name": "Music Battle",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#170d24",
+  "theme_color": "#170d24",
+  "lang": "de-CH",
+  "description": "Music Battle mit Spotify: Künstler draften, Songs wählen, die Jury urteilt – zu zweit auf einem oder zwei Geräten.",
+  "icons": [
+    {
+      "src": "./assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }

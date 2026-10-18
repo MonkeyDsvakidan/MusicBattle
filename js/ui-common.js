@@ -56,6 +56,16 @@ function flowSteps(){
 // Ecke im Boxring je Spieler (Design „Titelkampf bei Nacht“, Roadmap 4.4)
 function cornerName(slotNo){return slotNo===1?"PINKE ECKE":"CYAN ECKE"}
 
+// Homescreen-App (Roadmap 6.1): Hinweis nur auf iPhone/iPad, solange Music Battle nicht als App geöffnet ist
+function isIosDevice(){return /iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)}
+function isStandaloneApp(){return navigator.standalone===true||matchMedia("(display-mode: standalone)").matches}
+function installHint(){
+  let off=false;try{off=localStorage.getItem("mb_install_hint_off")==="1"}catch{}
+  if(off||!isIosDevice()||isStandaloneApp())return"";
+  return`<div class="installhint" role="note"><span class="installicon" aria-hidden="true">⬆︎</span><p><b>Als App speichern:</b> unten auf <b>Teilen</b> tippen, dann <b>„Zum Home-Bildschirm“</b>.</p><button class="btn ghost" id="installHintOk">Ok</button></div>`;
+}
+function bindInstallHint(){const b=$("installHintOk");if(b)b.onclick=()=>{try{localStorage.setItem("mb_install_hint_off","1")}catch{}b.closest(".installhint")?.remove()}}
+
 // Pass & Play: beide Spieler auf diesem Gerät
 function isPassAndPlay(){return S.room?.device_mode==="single"&&ownsPlayerSlot(1)&&ownsPlayerSlot(2)}
 

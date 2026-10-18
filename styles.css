@@ -55,6 +55,7 @@ body{
   background-image:radial-gradient(70% 40rem at 0% 0%,rgba(255,63,164,.16),transparent 70%),radial-gradient(70% 40rem at 100% 0%,rgba(56,225,255,.12),transparent 70%);
   background-repeat:no-repeat;
   padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);
+  padding-top:env(safe-area-inset-top); /* Homescreen-App: Inhalt nicht unter der Statusleiste (6.1) */
 }
 h1,h2,h3{font-family:var(--f-title);font-weight:400;line-height:1.05;text-wrap:balance}
 h4{font:700 16px/1.25 var(--f-text);margin:var(--s1) 0}
@@ -322,6 +323,12 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .suddencards .side:first-child{border-top:4px solid var(--a)}
 .suddencards .side:last-child{border-top:4px solid var(--b)}
 #copyCode{margin-top:var(--s2)}
+.installhint{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:var(--s3);margin:0 0 var(--s4);padding:var(--s3);border:1px solid rgba(255,209,102,.45);border-radius:var(--r-m);background:rgba(255,209,102,.08)}
+.installhint p{margin:0;font-size:14px;line-height:1.45}
+.installicon{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--surface-3);color:var(--gold);font-size:18px}
+.installhint .btn{min-height:44px;padding:8px 14px;font-size:11px}
+.spotifyline{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2);margin:0 0 var(--s4)}
+.spotifyline .btn{min-height:44px;font-size:11px}
 .juryarea>.scorecard,.juryarea>.belt,.juryarea>.mainaction,.juryarea>.override,.juryarea>.basis,.juryarea>.tiechoice{max-width:760px;margin-left:auto;margin-right:auto}
 
 /* ---------- Momente mit Wirkung (Roadmap 4.6) ----------

@@ -7,7 +7,7 @@ async function ensureAnon(){const {data:{session}}=await sb.auth.getSession();if
 
 async function init(){await ensureAnon();const saved=roomStorage();if(saved?.room_id){await loadRoom(saved.room_id);subscribeRoom()}await spotifyCallback();if(saved?.room_id)await loadRoom(saved.room_id);render()}
 
-async function joinRoom(joinRole){S.error="";const code=$("joinCode").value.trim().toUpperCase(),name=$("joinName").value.trim();if(!code||!name){S.error="Raumcode und Name fehlen.";render();return}const {data,error}=await sb.rpc("mb_join_room",{p_room_code:code,p_display_name:name,p_role:joinRole});if(error){S.error=error.message;render();return}const row=data[0];saveRoom({room_id:row.room_id,code});await loadRoom(row.room_id);subscribeRoom();render()}
+async function joinRoom(joinRole){S.error="";const code=$("joinCode").value.trim().toUpperCase(),name=$("joinName").value.trim();if(!code||!name){S.error="Raumcode und Name fehlen.";render();return}const {data,error}=await sb.rpc("mb_join_room",{p_room_code:code,p_display_name:name,p_role:joinRole});if(error){S.error=error.message;render();return}const row=data[0];saveRoom({room_id:row.room_id,code});await loadRoom(row.room_id);subscribeRoom();render();const slot=joinRole==="player"?ownedMemberships().find(m=>m.role==="player")?.player_slot:null;if(slot&&await useSavedSpotify(slot))render()}
 
 async function loadRoom(roomId){const [{data:room},{data:members},{data:picks},{data:rounds},{data:subs},{data:scores}]=await Promise.all([sb.from("mb_rooms").select("*").eq("id",roomId).single(),sb.from("mb_members").select("*").eq("room_id",roomId).order("joined_at"),sb.from("mb_draft_picks").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_rounds").select("*").eq("room_id",roomId).order("round_number"),sb.from("mb_submissions").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_jury_scores").select("*").eq("room_id",roomId).order("created_at")]);if(!room){clearRoom();return}S.room=room;S.members=members||[];S.picks=picks||[];S.rounds=rounds||[];S.subs=subs||[];S.scores=scores||[];S.membership=S.members.find(m=>m.user_id===S.user?.id)||null;restoreSpotify(1);restoreSpotify(2);restorePool(1);restorePool(2)}
 
@@ -68,6 +68,7 @@ async function createRoom(){
   await loadRoom(row.room_id);
   subscribeRoom();
   render();
+  if(await useSavedSpotify(1))render();
 }
 
 async function leaveCurrentRoom(opts={}){if(!S.room?.id){resetLocalRoomState();render();return}if(!opts.skipConfirm&&!(await mbConfirmLeave()))return;const roomId=S.room.id;try{const {error}=await sb.rpc("mb_leave_room",{p_room_id:roomId});if(error)throw error}catch(e){console.warn("Room leave failed:",e)}resetLocalRoomState();render()}
