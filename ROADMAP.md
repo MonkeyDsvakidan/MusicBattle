@@ -195,8 +195,34 @@ Grundidee: Die Daten werden **einmal pro Song** gesammelt und gespeichert. Die f
   - *Erledigt 13.10.2026:* Name laut Nutzer: **„Die Jury“**. Geändert: Überschrift beim Urteil („Die Jury · fünf Persönlichkeiten“), Auswahl „Die Jury – Fünf Juroren urteilen lassen“ mit Knopf „Jury starten“ und Text „bewertet beide Songs anhand der gesammelten Songdaten“, Hinweis für Mitspieler, Endstand „Die Jury im Match“, Lobby „die Jury übernimmt bei Bedarf“ (vorher „Auto-Jury“), Manifest-Beschreibung („Music Battle mit Spotify: Künstler draften, Songs wählen, die Jury urteilt – zu zweit auf einem oder zwei Geräten.“). Menschliche Juroren bleiben „menschliche Jury“/„Juroren“. Kommentare im Code („Auto-Jury“) unverändert. BUILD `20261013-6`.
   - Geprüft (vor dem Push eingespielt): Jury-Auswahl als Host und als Mitspieler, Lobby ohne Juroren, Endstand mit Jury-Bilanz; auf keinem Screen mehr „KI“; Manifest ist gültiges JSON.
 - [ ] **5.4** Jury-Texte aus dem Smoke-Test korrigieren (Engine/`jurors.json`, Tests ergänzen): (a) Themenschnüffler sagt bei Ära-Themen „Beide treffen „2020 Banger“ gleich gut – Release 1989 und 2026“, obwohl beide das Jahr verfehlen → eigener 10–10-Text „beide verfehlen …“, wenn das Kern-Signal bei beiden 0 ist; (b) Vibejunkie-Gleichstand nennt „0 zu 1 passende Motive im Text“ – bei Gleichstand nur Fakten nennen, die tatsächlich gleich/ähnlich sind, oder neutral formulieren.
+  - *Hinweis 18.10.2026:* entfällt voraussichtlich, wenn die Jury nach 6.3 ersetzt wird (Entscheidung G) – erst danach entscheiden.
 - [ ] **5.5** Sudden Death: Überschrift zeigt doppelt „SUDDEN DEATH · SUDDEN DEATH“ (Rundenlabel + Kategorie) → Kategorie bei Runde 6 weglassen.
-- [ ] 🟡 **5.6** Spotify-Anmeldung bleibt nicht über Matches hinweg: „Raum verlassen“ löscht die Spotify-Tokens auf dem Gerät, für jedes neue Match muss man sich neu anmelden. Frage an Nutzer: so lassen (Datenschutz auf geteilten Geräten) oder Anmeldung behalten, bis man sich abmeldet?
+- [ ] **5.6** Spotify-Anmeldung bleibt nicht über Matches hinweg: „Raum verlassen“ löscht die Spotify-Tokens auf dem Gerät, für jedes neue Match muss man sich neu anmelden. Frage an Nutzer: so lassen (Datenschutz auf geteilten Geräten) oder Anmeldung behalten, bis man sich abmeldet?
+  - *Entscheid Nutzer 14.10.2026:* **nicht löschen.** Umsetzung programmiert auf Branch `tmp-5-6` (noch nicht live): beim Verlassen merkt sich das Gerät die Anmeldung (`mb_sp_saved`), neuer Raum/Beitritt als Spieler verbindet automatisch, Startseite zeigt „Spotify verbunden · Name“ mit „Abmelden“. Test mit Spotify-Anmeldung des Nutzers steht aus.
+- [ ] **5.7** Abspielen ohne Web-Player: verständliche Meldung statt „Failed to initialize player“ und Ausweichen auf die Spotify-App per Spotify Connect (mit Startpunkt), wenn der Web-Player nicht startet (iPhone, eingebaute Browser, kein DRM; Zeitgrenze 8 s). Auftrag Nutzer 14.10.2026; programmiert auf Branch `tmp-5-6`, Test mit geöffneter Spotify-App steht aus. Voraussetzung für 6.1 (auf dem iPhone gibt es keinen Web-Player).
+
+---
+
+## Phase 6 – Wünsche nach dem Smoke-Test (Nutzer, 18.10.2026)
+
+Reihenfolge: 6.1 → 6.2 → 6.3. 6.1 baut auf 5.6/5.7 auf; 6.3 ist der grösste Umbau und braucht vorher Entscheidung G.
+
+- [ ] **6.1 Auf dem iPhone zum Homescreen hinzufügen** (PWA). Ebenen: Frontend (`index.html`, `manifest.webmanifest`, neue Icons in `assets/icons/`), keine Datenbank/Edge Function.
+  - App-Icon im Titelkampf-Look (eigene Grafik): `apple-touch-icon` 180 px (PNG, iOS nutzt kein SVG), Manifest-Icons 192/512 px inkl. `maskable`, Startbild-/Statusleisten-Farbe `#170d24`. Vorhandene Meta-Tags (`apple-mobile-web-app-capable`, `…-status-bar-style`, `…-title`) prüfen.
+  - Kurze Anleitung in der App, nur auf dem iPhone in Safari und nur solange nicht installiert: „Teilen → Zum Home-Bildschirm“ (einmal ausblendbar).
+  - Risiken prüfen: (a) Die Homescreen-App hat auf iOS einen eigenen Speicher, getrennt von Safari → Spotify-Anmeldung und Raum gelten dort separat; (b) der Spotify-Login (Weiterleitung) muss in der Homescreen-App zurückfinden; (c) Abspielen geht auf dem iPhone nur über die Spotify-App (5.7).
+  - Test: am iPhone hinzufügen, öffnen, Raum erstellen, Spotify verbinden, Abspielen über die Spotify-App, App schliessen und wieder öffnen (Raum bleibt).
+- [ ] 🟡 **6.2 Einladen per QR-Code und Link statt Code abtippen.** Ebenen: Frontend (Lobby, Start/`init`), evtl. RPC `mb_join_room` unverändert; kein Build-Step (QR-Erzeugung als kleine Bibliothek vom CDN oder eigene Funktion).
+  - In der Lobby: QR-Code + Button „Link teilen“ (Teilen-Menü des Handys, sonst Link kopieren). Der Link enthält den Raumcode (z. B. `…/MusicBattle/?join=K7P2QX`).
+  - Wer den Link öffnet oder den QR-Code scannt, landet direkt im Beitritt zu diesem Raum: nur noch Name eingeben (letzter Name wird vorgeschlagen) → im Raum. Spotify wird danach wie gewohnt bzw. automatisch (5.6) verbunden.
+  - Pass & Play: QR nur für Juroren; 2 Geräte: für Spieler 2 und Juroren.
+  - Offene Fragen → Entscheidung H.
+  - Hinweis: Ein gescannter QR-Code öffnet auf dem iPhone Safari, nicht die Homescreen-App (6.1) – Beitritt muss in beiden funktionieren.
+- [ ] 🟡 **6.3 Neue Jury: Spieler stimmen in fünf Kategorien ab** (ersetzt „Die Jury“ mit fünf Persönlichkeiten). Ebenen: Frontend (neuer Abstimm-Screen, Punktezettel, Endstand), Datenbank (Speicherung der Stimmen: neue Migration oder `mb_jury_scores` mit neuer `source`; RLS; Realtime), Edge Function `mb-jury` und `mb-track-profile` (weiter nötig? → G), `jurors.json`/Avatare (Kategorien statt Juroren?).
+  - Idee des Nutzers: Nach dem Anhören fragt ein Screen in fünf Kategorien „Welcher Song gewinnt?“; aus den Kategorie-Siegen ergibt sich der Rundensieger (z. B. 3 von 5).
+  - Vorschlag Kategorien (aus den bisherigen Juroren abgeleitet): Thema, Vibe, Lyrics, Überraschung/Underdog, Kenner-Wahl – endgültig in G.
+  - Danach anpassen: Punktezettel (Kategorien statt Juroren), Gürtel, Animationen (4.6), Endstand-Statistik („Die Jury im Match“), README/CLAUDE.md, Tests; alte Scores in der DB bleiben unangetastet.
+  - Offene Fragen → Entscheidung G. Aufgabe 5.4 entfällt dann voraussichtlich.
 
 ---
 
@@ -249,10 +275,14 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 - ~~**D – KI für Formulierungen behalten?**~~ → entschieden 06.10.2026: **nein**. Begründungen nur aus den Text-Bausteinen; OpenRouter-Aufruf entfällt mit 3.8 (Secret `OPENROUTER_API_KEY` kann danach gelöscht werden).
 - ~~**E – Design-Richtung**~~ → entschieden 13.10.2026: Variante D „Titelkampf bei Nacht“ (Boxthema mit Ecken und Punktezettel, Farben Pink/Cyan auf dunklem Violett, Gold für Sieg), Schriften Sedgwick Ave + Bungee + Barlow (siehe 4.1).
 - ~~**F – Was passiert, wenn jemand das Match verlässt?**~~ → entschieden 06.10.2026: Host → Match endet für alle; Spieler 2 (2 Geräte) → Raum wartet auf Wiederbeitritt.
+- **G – Neue Jury mit fünf Kategorien (6.3):** (1) Welche fünf Kategorien und wie heissen sie? (2) Wer stimmt ab – beide Spieler, nur Juroren, alle zusammen? Was gilt, wenn jeder für den eigenen Song stimmt (z. B. Stimmen nur zählen, wenn sich beide einig sind, sonst Juroren/Unentschieden)? (3) Bei Pass & Play: gemeinsam auf einem Screen abstimmen oder nacheinander verdeckt? (4) Wie wird der Rundensieger bestimmt (Mehrheit 3 von 5; Gleichstand möglich?) und zählt Runde 5 weiterhin doppelt? (5) Was passiert mit der bisherigen automatischen Jury und den Songdaten – ganz weg, als Tipp/Hinweis pro Kategorie anzeigen, oder als Option behalten? (6) Bleiben menschliche Juroren mit Scorecards (10–8/10–9) bestehen oder stimmen sie auch in den Kategorien ab? (7) Unterwasser-Figuren als Kategorie-Symbole weiterverwenden?
+- **H – Einladung per QR/Link (6.2):** (1) Ein QR-Code mit Rollenauswahl nach dem Scannen (Spieler 2 / Juror) oder zwei getrennte QR-Codes? (2) Name beim Beitritt eingeben (mit Vorschlag) oder automatisch (z. B. „Juror 1“), später änderbar? (3) Soll der Link nach Matchbeginn für Spieler 2 noch funktionieren (Wiederbeitritt, Entscheidung F) – ja, vermutlich.
 
 ## Entscheidungslog
 *(Datum · Entscheidung · Begründung)*
 
+- 18.10.2026 · Neue Phase 6 aus Wünschen des Nutzers: Homescreen-App auf dem iPhone (6.1), Einladung per QR-Code/Link (6.2), Jury als Abstimmung der Spieler in fünf Kategorien statt fünf automatischer Persönlichkeiten (6.3) · Wunsch des Nutzers; Code abtippen ist zu mühsam, Jury soll von den Spielern kommen. Noch nicht umgesetzt, offene Fragen in G und H
+- 14.10.2026 · Spotify-Anmeldung bleibt beim Verlassen eines Raums auf dem Gerät gespeichert (Abmelden auf der Startseite) · Entscheid des Nutzers (5.6); weniger Anmeldungen bei mehreren Matches
 - 13.10.2026 · Die automatische Jury heisst in der App „Die Jury“ (statt „KI-Jury“/„Auto-Jury“) · Entscheid des Nutzers (5.3); seit 3.8 urteilt sie ohne KI aus gespeicherten Songdaten
 - 13.10.2026 · Juroren werden nach „Alle Juroren aufdecken“ automatisch nacheinander gezeigt (kein Tippen pro Juror) · Spannung ohne zusätzliche Klicks; ein Button pro Screen (4.6)
 - 13.10.2026 · Juror-Avatare als eigene Unterwasser-Cartoonfiguren (Krebs, Qualle, Oktopus, Kugelfisch, Schildkröte) mit SpongeBob-artigem Stil statt SpongeBob-Figuren · Wunsch des Nutzers nach SpongeBob-Bezug; bestehende Figuren dürfen in der öffentlichen App nicht nachgebildet werden
