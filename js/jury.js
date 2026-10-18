@@ -4,6 +4,23 @@
 
 async function submitHumanScore(winner,close){const r=currentRound(),subs=currentSubs();if(!r||!subs[0]||!subs[1])return;const a=winner===1?10:(close?9:8),b=winner===2?10:(close?9:8),{error}=await sb.from("mb_jury_scores").insert({round_id:r.id,room_id:S.room.id,source:"human",juror_user_id:S.user.id,juror_name:jurorMembership()?.display_name||"Juror",score_a:a,score_b:b,reason:close?"Knapper Entscheid":"Klarer Entscheid",details:{kind:"human"}});if(error)S.error=error.message;await reloadRoomNow()}
 
+// Kategorie-Abstimmung (Roadmap 6.3.3): Stimmzettel eines Mitglieds über die RPC speichern
+let castVotesRunning=false;
+async function castCategoryVotes(memberId){
+  const r=currentRound(),choices=S.ballot[memberId]||{};
+  if(!r||castVotesRunning)return;
+  if(!VOTE_CATEGORIES.every(c=>choices[c.key]===1||choices[c.key]===2)){S.error="Bitte in allen fünf Kategorien einen Song wählen.";render();return}
+  castVotesRunning=true;S.error="";
+  try{
+    const {error}=await sb.rpc("mb_cast_category_votes",{p_round_id:r.id,p_member_id:memberId,p_votes:choices});
+    if(error)throw error;
+    delete S.ballot[memberId];if(S.voteEditing===memberId)S.voteEditing="";
+    await reloadRoomNow();
+  }catch(e){S.error=voteErrorText(e?.message||String(e));render()}
+  finally{castVotesRunning=false}
+}
+function voteErrorText(m){if(/voting closed/i.test(m))return"Die Abstimmung für diese Runde ist schon geschlossen.";if(/only jurors/i.test(m))return"Es sind Juroren im Raum – nur sie stimmen ab.";if(/only players/i.test(m))return"Ohne Juroren stimmen die Spieler ab.";if(/not revealed/i.test(m))return"Abstimmen geht erst, wenn beide Songs aufgedeckt sind.";return m}
+
 let selfDecisionRunning=false;
 
 async function submitSelfDecision(winner){

@@ -21,7 +21,7 @@ async function init(){readInviteFromUrl();await ensureAnon();const saved=roomSto
 
 async function joinRoom(joinRole){S.error="";const code=$("joinCode").value.trim().toUpperCase(),name=$("joinName").value.trim();if(!code||!name){S.error="Raumcode und Name fehlen.";render();return}const {data,error}=await sb.rpc("mb_join_room",{p_room_code:code,p_display_name:name,p_role:joinRole});if(error){S.error=joinErrorText(error.message);render();return}const row=data[0];rememberName(name);S.pendingJoin=null;saveRoom({room_id:row.room_id,code});await loadRoom(row.room_id);subscribeRoom();render();const slot=joinRole==="player"?ownedMemberships().find(m=>m.role==="player")?.player_slot:null;if(slot&&await useSavedSpotify(slot))render()}
 
-async function loadRoom(roomId){const [{data:room},{data:members},{data:picks},{data:rounds},{data:subs},{data:scores}]=await Promise.all([sb.from("mb_rooms").select("*").eq("id",roomId).single(),sb.from("mb_members").select("*").eq("room_id",roomId).order("joined_at"),sb.from("mb_draft_picks").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_rounds").select("*").eq("room_id",roomId).order("round_number"),sb.from("mb_submissions").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_jury_scores").select("*").eq("room_id",roomId).order("created_at")]);if(!room){clearRoom();return}S.room=room;S.members=members||[];S.picks=picks||[];S.rounds=rounds||[];S.subs=subs||[];S.scores=scores||[];S.membership=S.members.find(m=>m.user_id===S.user?.id)||null;restoreSpotify(1);restoreSpotify(2);restorePool(1);restorePool(2)}
+async function loadRoom(roomId){const [{data:room},{data:members},{data:picks},{data:rounds},{data:subs},{data:scores},votesRes]=await Promise.all([sb.from("mb_rooms").select("*").eq("id",roomId).single(),sb.from("mb_members").select("*").eq("room_id",roomId).order("joined_at"),sb.from("mb_draft_picks").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_rounds").select("*").eq("room_id",roomId).order("round_number"),sb.from("mb_submissions").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_jury_scores").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_category_votes").select("*").eq("room_id",roomId).order("created_at")]);if(!room){clearRoom();return}S.votes=votesRes?.data||[];S.room=room;S.members=members||[];S.picks=picks||[];S.rounds=rounds||[];S.subs=subs||[];S.scores=scores||[];S.membership=S.members.find(m=>m.user_id===S.user?.id)||null;restoreSpotify(1);restoreSpotify(2);restorePool(1);restorePool(2)}
 
 async function addLocalPlayer2(){
   const name=$("localPlayer2Name")?.value.trim();
@@ -102,7 +102,7 @@ function mbEditingActive(){
 // Fingerabdruck der Raumdaten: Sync rendert nur, wenn sich etwas geändert hat.
 // Sonst ersetzt der 2,5-s-Poll laufend das DOM und Klicks/Eingaben gehen verloren.
 function mbRoomFingerprint(){
-  try{return JSON.stringify([S.room,S.members,S.picks,S.rounds,S.subs,S.scores])}catch{return String(Date.now())}
+  try{return JSON.stringify([S.room,S.members,S.picks,S.rounds,S.subs,S.scores,S.votes])}catch{return String(Date.now())}
 }
 
 // Getippten Text über einen Neuaufbau retten (nur innerhalb derselben Phase/Runde).
@@ -171,6 +171,7 @@ function subscribeRoom(){
     .on("postgres_changes",{event:"*",schema:"public",table:"mb_rounds",filter:`room_id=eq.${S.room.id}`},refresh)
     .on("postgres_changes",{event:"*",schema:"public",table:"mb_submissions",filter:`room_id=eq.${S.room.id}`},refresh)
     .on("postgres_changes",{event:"*",schema:"public",table:"mb_jury_scores",filter:`room_id=eq.${S.room.id}`},refresh)
+    .on("postgres_changes",{event:"*",schema:"public",table:"mb_category_votes",filter:`room_id=eq.${S.room.id}`},refresh)
     .subscribe(status=>{if(status==="SUBSCRIBED")reloadRoomNow()});
   startRoomFallbackPoll();
 }
