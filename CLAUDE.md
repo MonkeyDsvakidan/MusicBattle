@@ -32,7 +32,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `mb_submissions` | eingereichte Songs inkl. Spotify-Metadaten (ISRC, Release, Dauer …), `start_ms` |
 | `mb_jury_scores` | Scorecards; `source` = `human` oder `ai`, `details` (jsonb) |
 | `mb_track_profiles` | Song-Profil je Spotify-Track (Daten für die Jury, keine Lyrics-Texte); nur serverseitig beschreibbar |
-| `mb_category_votes` | Kategorie-Stimmen je Runde (6.3): Mitglied/Platz, Rolle, Kategorie `theme|vibe|lyrics|surprise|connoisseur`, Wahl 1/2; schreiben nur über RPC `mb_cast_category_votes(round, member, votes)` – mit Juroren im Raum nur Juroren, sonst Spieler; bis zur Wertung änderbar |
+| `mb_category_votes` | Kategorie-Stimmen je Runde (6.3): Mitglied/Platz, Rolle, Kategorie (`theme`, `vibe`, `lyrics`, `surprise`, `connoisseur`), Wahl 1/2; schreiben nur über RPC `mb_cast_category_votes(round, member, votes)` – mit Juroren im Raum nur Juroren, sonst Spieler; bis zur Wertung änderbar |
 
 ## Code-Aufbau (seit Roadmap 2.2)
 
