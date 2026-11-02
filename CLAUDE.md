@@ -25,14 +25,17 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 
 | Tabelle | Inhalt |
 |---|---|
-| `mb_rooms` | Raum, Code, Host, `status` (lobby → draft → battle → tiebreak → sudden_draft → finished), `current_round`, `device_mode` |
-| `mb_members` | Spieler/Juroren pro Raum, `player_slot`, Spotify-Status, Draft-Skip |
+| `mb_rooms` | Raum, Code, Host, `game` (`battle`/`quiz`), `status` (lobby → draft → battle → tiebreak → sudden_draft → finished; Quiz: lobby → quiz → finished), `current_round`, `device_mode`, Quiz: `quiz_kind`, `quiz_length`, `quiz_game_no`, `quiz_question_no` |
+| `mb_members` | Spieler/Juroren pro Raum, `player_slot`, Spotify-Status, Draft-Skip; Quiz: Rolle `quizzer` (ohne Platz), `quiz_track_count` |
 | `mb_draft_picks` | gezogene Künstler pro Runde/Slot inkl. `artist_draft_weight` |
 | `mb_rounds` | Thema, Kategorie, Status, `winner_slot` |
 | `mb_submissions` | eingereichte Songs inkl. Spotify-Metadaten (ISRC, Release, Dauer …), `start_ms` |
 | `mb_jury_scores` | Scorecards; `source` = `human` oder `ai`, `details` (jsonb) |
 | `mb_track_profiles` | Song-Profil je Spotify-Track (Daten für die Jury, keine Lyrics-Texte); nur serverseitig beschreibbar |
 | `mb_category_votes` | Kategorie-Stimmen je Runde (6.3): Mitglied/Platz, Rolle, Kategorie (`theme`, `vibe`, `lyrics`, `surprise`, `connoisseur`), Wahl 1/2; schreiben nur über RPC `mb_cast_category_votes(round, member, votes)` – mit Juroren im Raum nur Juroren, sonst Spieler; bis zur Wertung änderbar |
+| `mb_quiz_pool` | Quiz (7.1): Song-Metadaten der Verbundenen je Raum/Mitglied (Titel, Künstler, Album, Jahr, Cover, Quelle); Clients lesen nur eigene Zeilen, schreiben nur über `mb_quiz_set_pool` |
+| `mb_quiz_questions` / `mb_quiz_solutions` | Quiz-Fragen (`year`, `older`, `cover`, `whose`) mit `started_at`/`deadline_at`/`answer_count`, sichtbar ab `open`; Lösung getrennt, sichtbar erst nach `revealed`; nur serverseitig beschreibbar |
+| `mb_quiz_answers` | Quiz-Antworten (eine pro Person und Frage, `answer_ms` per Serveruhr, `points`); eigene sofort, fremde nach dem Aufdecken lesbar; schreiben nur über `mb_quiz_answer` |
 
 ## Code-Aufbau (seit Roadmap 2.2)
 
