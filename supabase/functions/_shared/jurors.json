@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "about": "Juror-Profile (Roadmap 3.5). Einzige Quelle für Frontend (JUDGES in js/config.js) und Jury-Engine (3.6). weights: Gewicht je Merkmal (Vokabular siehe features), negative Werte = Merkmal spricht dagegen. requires: Daten, ohne die die Stimme des Jurors als schwach gilt (Regel siehe Entscheidung C / 3.7). margins: Abstand der gewichteten Punkte, ab dem 10–8 (clear) statt 10–9 vergeben wird. texts: win/win_era/win_gate (mit {winner}, {loser}, {theme}, {facts}, {winner_value}, {loser_value}) für 10–9/10–8; tie (Gleichstand) und weak (zu wenig Daten) ergeben 10–10 ohne Gewinner (Entscheidung C). needs_signal: Kern-Merkmale; haben beide Songs dort kein Signal (≤ 0.05), entscheidet der Juror nicht über Nebenmerkmale, sondern gibt 10–10 (3.9).",
+  "about": "Juror-Profile (Roadmap 3.5). Einzige Quelle für Frontend (JUDGES in js/config.js) und Jury-Engine (3.6). weights: Gewicht je Merkmal (Vokabular siehe features), negative Werte = Merkmal spricht dagegen. requires: Daten, ohne die die Stimme des Jurors als schwach gilt (Regel siehe Entscheidung C / 3.7). margins: Abstand der gewichteten Punkte, ab dem 10–8 (clear) statt 10–9 vergeben wird. texts: win/win_era/win_gate (mit {winner}, {loser}, {theme}, {facts}, {winner_value}, {loser_value}) für 10–9/10–8; tie (Gleichstand) und weak (zu wenig Daten) ergeben 10–10 ohne Gewinner (Entscheidung C). needs_signal: Kern-Merkmale; haben beide Songs dort kein Signal (≤ 0.05), entscheidet der Juror nicht über Nebenmerkmale, sondern gibt 10–10 mit dem Text no_signal (3.9, 5.4).",
   "features": {
     "title_keywords": "Themen-Schlüsselwörter im Songtitel (gewichtet, weich gesättigt 0–1)",
     "lyrics_keywords": "Themen-Schlüsselwörter in den Lyrics, pro 100 Wörter (gewichtet, weich gesättigt 0–1)",
@@ -106,7 +106,7 @@
       ],
       "requires_mode": "any",
       "margins": {
-        "clear": 2.0
+        "clear": 2
       },
       "texts": {
         "win": [
@@ -121,6 +121,9 @@
         ],
         "tie": [
           "Beide treffen „{theme}“ gleich gut – {facts}. Unentschieden, 10–10."
+        ],
+        "no_signal": [
+          "Keiner der beiden trifft „{theme}“ erkennbar – {facts}. 10–10."
         ]
       },
       "needs_signal": [
@@ -157,6 +160,9 @@
         ],
         "tie": [
           "Gleicher Vibe auf beiden Seiten – {facts}. 10–10."
+        ],
+        "no_signal": [
+          "Bei beiden ist kein passender Vibe für „{theme}“ erkennbar – {facts}. 10–10."
         ]
       },
       "needs_signal": [
@@ -179,7 +185,7 @@
       ],
       "requires_mode": "all",
       "margins": {
-        "clear": 2.0
+        "clear": 2
       },
       "texts": {
         "win": [
@@ -191,6 +197,9 @@
         ],
         "tie": [
           "Textlich Kopf an Kopf – {facts}. 10–10."
+        ],
+        "no_signal": [
+          "Textlich trifft keiner der beiden „{theme}“ – {facts}. 10–10."
         ]
       },
       "needs_signal": [
@@ -215,7 +224,7 @@
       ],
       "requires_mode": "all",
       "margins": {
-        "clear": 2.0
+        "clear": 2
       },
       "texts": {
         "win": [

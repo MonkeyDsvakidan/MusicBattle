@@ -194,3 +194,25 @@ test("3.9: Themen-Schwelle von Snoop Underdogg vergleicht nur gemeinsam vorhande
   const c = byKey(scoreRound(ohneText, mitText, t, config, { year: YEAR })).underdog;
   assert.equal(c.verdict, "a", "fehlende Lyrics dürfen den Kleinen nicht thematisch disqualifizieren");
 });
+
+test("5.4: Ära-Thema, beide verfehlen das Jahr – „keiner trifft“ statt „beide treffen gleich gut“", () => {
+  const t2020 = theme("2020-banger");
+  const a = song({ title: "Je l' Sarajevo", id: "sa", release_year: 1989, tags: [] });
+  const b = song({ title: "On Go", id: "sb", release_year: 2026, tags: [] });
+  const c = byKey(scoreRound(a, b, t2020, config, { year: YEAR })).theme;
+  assert.equal(c.verdict, "tie");
+  assert.match(c.reason, /Keiner der beiden trifft „2020 Banger“/);
+  assert.match(c.reason, /Release 1989 und 2026/);
+  assert.ok(!/gleich gut/.test(c.reason));
+});
+
+test("5.4: Gleichstand nennt nur Fakten, die bei beiden gleich sind", () => {
+  const night = theme("nachtfahrt-grossstadt");
+  const tags = [{ name: "night", source: "lastfm" }];
+  const a = song({ title: "A", id: "va", tags }, "night " + filler(300));
+  const b = song({ title: "B", id: "vb", tags }, filler(300));
+  const c = byKey(scoreRound(a, b, night, config, { year: YEAR })).vibe;
+  assert.equal(c.verdict, "tie");
+  assert.ok(!/Motive im Text/.test(c.reason), "ungleiche Motiv-Zahlen nicht als Gleichstand nennen: " + c.reason);
+  assert.match(c.reason, /1 zu 1 passende Tags/);
+});

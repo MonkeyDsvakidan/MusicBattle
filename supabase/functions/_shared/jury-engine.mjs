@@ -3,7 +3,7 @@
 // und liefert je Juror eine Scorecard. Gleichstand oder fehlende Daten → 10–10 (Entscheidung C).
 import { normalizeText, keywordIndex, countKeywordHits, cleanTitle } from "./track-features.mjs";
 
-export const ENGINE_VERSION = 2;
+export const ENGINE_VERSION = 3;
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 const round2 = (x) => Math.round(x * 100) / 100;
@@ -251,19 +251,27 @@ export function scoreRound(songA, songB, theme, config, opts = {}) {
       const va = A.features[feature], vb = B.features[feature];
       if (va === null || va === undefined || vb === null || vb === undefined) continue;
       pa += weight * va; pb += weight * vb;
-      contrib.push({ feature, diff: weight * (va - vb) });
+      contrib.push({ feature, diff: weight * (va - vb), same: Math.abs(va - vb) < 0.02 });
     }
     pa = round2(pa); pb = round2(pb);
     let diff = pa - pb;
 
     // Ohne echtes Signal in den Kern-Merkmalen des Jurors kein Entscheid über Nebensachen (3.9)
+    let noSignal = false;
     if (Array.isArray(juror.needs_signal) && juror.needs_signal.length) {
       const signal = (F) => juror.needs_signal.some((ft) => (F.features[ft] ?? 0) > 0.05);
-      if (!signal(A) && !signal(B)) diff = 0;
+      if (!signal(A) && !signal(B)) { diff = 0; noSignal = true; }
     }
 
     if (Math.abs(diff) < eps) {
-      const facts = contrib.map((c) => tieFactText(c.feature, A, B)).filter(Boolean).slice(0, 2).join(", ") || "kein Song hebt sich ab";
+      // 5.4: Beide ohne Signal in den Kern-Merkmalen → eigener Text („keiner trifft …“) mit den Kern-Fakten;
+      // echter Gleichstand → nur Fakten nennen, die bei beiden Songs tatsächlich gleich sind
+      if (noSignal && juror.texts.no_signal?.length) {
+        const core = new Set(juror.needs_signal);
+        const facts = contrib.filter((c) => core.has(c.feature)).map((c) => tieFactText(c.feature, A, B)).filter(Boolean).slice(0, 2).join(", ") || "keine passenden Hinweise gefunden";
+        return { ...base, score_a: 10, score_b: 10, verdict: "tie", weak: false, reason: fill(pick(juror.texts.no_signal, seed), { theme: theme?.theme, facts }), facts: [facts], points: { a: pa, b: pb } };
+      }
+      const facts = contrib.filter((c) => c.same).map((c) => tieFactText(c.feature, A, B)).filter(Boolean).slice(0, 2).join(", ") || "kein Song hebt sich ab";
       return { ...base, score_a: 10, score_b: 10, verdict: "tie", weak: false, reason: fill(pick(juror.texts.tie, seed), { theme: theme?.theme, facts }), facts: [facts], points: { a: pa, b: pb } };
     }
 
