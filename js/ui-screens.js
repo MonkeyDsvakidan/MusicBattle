@@ -105,12 +105,12 @@ function renderBattle(){
   const r=currentRound(),picks=currentPicks(),subs=currentSubs();if(!r){$("app").innerHTML="<div class='card loading'>Runde wird vorbereitet…</div>";return}
   const both=Boolean(subs[0]&&subs[1]),hs=humanScores(),as=aiScores(),use=roundDecision(r.id,true).scores,summary=use.length?scoreSummary(use):null;
   const roundLabel=r.round_number===6?"SUDDEN DEATH":`RUNDE ${r.round_number} VON 5${r.round_number===5?" · DOPPELTE PUNKTE":""}`;
-  $("app").innerHTML=`<section class="card">${matchScoreboard()}<div class="battle-title"><div class="eyebrow">${roundLabel} · ${esc(r.category||"")}</div><h2>${esc(r.theme)}</h2></div>${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}${S.notice?`<div class="notice">${esc(S.notice)}</div>`:""}${!both&&passPlayTurn(subs)?turnBanner(passPlayTurn(subs),`Song wählen – ${memberName(3-passPlayTurn(subs))} schaut weg.`):""}<div class="match"${both?animAttr(`reveal:${r.id}`,1500):""}>${trackSide(1,picks[0],subs[0],both)}<div class="vs">VS</div>${trackSide(2,picks[1],subs[1],both)}</div>${both?renderJury(r,subs,hs,as,summary):`<p class="muted hint centered-text">Beide Songs werden gleichzeitig aufgedeckt.</p>`}${roomExitControls()}</section>`;
+  $("app").innerHTML=`<section class="card">${matchScoreboard()}<div class="battle-title"><div class="eyebrow">${roundLabel}${r.round_number===6||!r.category?"":` · ${esc(r.category)}`}</div><h2>${esc(r.theme)}</h2></div>${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}${S.notice?`<div class="notice">${esc(S.notice)}</div>`:""}${!both&&passPlayTurn(subs)?turnBanner(passPlayTurn(subs),`Song wählen – ${memberName(3-passPlayTurn(subs))} schaut weg.`):""}<div class="match"${both?animAttr(`reveal:${r.id}`,1500):""}>${trackSide(1,picks[0],subs[0],both)}<div class="vs">VS</div>${trackSide(2,picks[1],subs[1],both)}</div>${both?renderJury(r,subs,hs,as,summary):`<p class="muted hint centered-text">Beide Songs werden gleichzeitig aufgedeckt.</p>`}${roomExitControls()}</section>`;
   document.querySelectorAll("[data-search-slot]").forEach(b=>b.onclick=()=>searchTracks(Number(b.dataset.searchSlot)));document.querySelectorAll(".track").forEach(x=>x.onclick=()=>{const n=Number(x.dataset.slot),t=(S.searchResults[n]||[]).find(t=>t.id===x.dataset.id);if(t)submitTrack(n,t)});
   // Pass & Play: beim Wechsel zu Spieler 2 einmal zu seiner Suche scrollen
   const turn=both?null:passPlayTurn(subs);if(turn&&S.lastPassTurn!==`${r.id}:${turn}`){S.lastPassTurn=`${r.id}:${turn}`;if(turn===2)$(`songSearch2`)?.closest(".side")?.scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})}
   [1,2].forEach(n=>{const el=$(`start${n}`);if(el&&ownsPlayerSlot(n)){el.oninput=()=>{$(`startLabel${n}`).textContent=el.value+"s"};el.onchange=()=>updateStart(n,Number(el.value)*1000)}});document.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>playSubmission(subs[Number(b.dataset.play)-1]));document.querySelectorAll("[data-pause]").forEach(b=>b.onclick=()=>pause(Number(b.dataset.pause)));
-  if($("runAI"))$("runAI").onclick=runAIJury;if($("finalize"))$("finalize").onclick=finalizeRound;document.querySelectorAll("[data-human]").forEach(b=>b.onclick=()=>submitHumanScore(Number(b.dataset.human),b.dataset.close==="1"));document.querySelectorAll("[data-self-winner]").forEach(b=>b.onclick=()=>submitSelfDecision(Number(b.dataset.selfWinner)));if($("revealAllAI"))$("revealAllAI").onclick=()=>{S.aiReveal=5;render();document.querySelector(".jury-reveal")?.scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})};bindRoomExitControls();
+  if($("runAI"))$("runAI").onclick=runAIJury;if($("finalize"))$("finalize").onclick=finalizeRound;document.querySelectorAll("[data-human]").forEach(b=>b.onclick=()=>submitHumanScore(Number(b.dataset.human),b.dataset.close==="1"));document.querySelectorAll("[data-self-winner]").forEach(b=>b.onclick=()=>submitSelfDecision(Number(b.dataset.selfWinner)));bindVoting();if($("revealAllAI"))$("revealAllAI").onclick=()=>{S.aiReveal=5;render();document.querySelector(".jury-reveal")?.scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})};bindRoomExitControls();
 }
 
 function selfDecisionButtons(subs){return`<button class="btn" data-self-winner="1">A · ${esc(subs[0].song_name)}</button><button class="btn" data-self-winner="2">B · ${esc(subs[1].song_name)}</button>`}
@@ -121,20 +121,85 @@ function finalizeLabel(r){return r.round_number===5?"Runde 5 übernehmen · ×2"
 function juryDataBasis(scores){const b=scores.find(x=>x.details?.data_basis)?.details?.data_basis;if(!b)return"";const f=l=>l?.length?l.join(", "):"keine Zusatzdaten";return`<p class="muted basis">Datenbasis · A: ${esc(f(b.a))} · B: ${esc(f(b.b))}</p>`}
 
 // Punktezettel wie beim Boxen (Roadmap 4.4): eine Zeile pro Juror, Spalten Pink/Cyan, Gewinnerpunkte leuchten
-function scorecardTable(rows,total){
+function scorecardTable(rows,total,firstColumn="Juror"){
   const pt=(v,o,side)=>`<span class="pt${v>o?` w${side}`:""}" role="cell">${v}</span>`;
-  return`<div class="scorecard" role="table" aria-label="Punktezettel"><div class="sc-row sc-head" role="row"><span role="columnheader">Juror</span><span class="ca" role="columnheader">${esc(memberName(1))}</span><span class="cb" role="columnheader">${esc(memberName(2))}</span></div>${rows.map((x,i)=>`<div class="sc-row" role="row" style="--i:${i}"><span class="sc-name" role="cell">${x.image?`<img class="sc-av" src="${esc(x.image)}" alt="">`:""}<span class="sc-text"><b>${esc(x.name)}</b>${x.role?`<small class="sc-role">${esc(x.role)}</small>`:""}</span></span>${pt(x.a,x.b,"a")}${pt(x.b,x.a,"b")}${x.reason||x.weak?`<span class="sc-reason" role="cell">${x.reason?esc(x.reason):""}${x.weak?` <span class="chip">zu wenig Daten</span>`:""}</span>`:""}</div>`).join("")}${total?`<div class="sc-row sc-total" role="row" style="--i:${rows.length}"><span role="cell">Total</span>${pt(total.a,total.b,"a")}${pt(total.b,total.a,"b")}</div>`:""}</div>`;
+  return`<div class="scorecard" role="table" aria-label="Punktezettel"><div class="sc-row sc-head" role="row"><span role="columnheader">${esc(firstColumn)}</span><span class="ca" role="columnheader">${esc(memberName(1))}</span><span class="cb" role="columnheader">${esc(memberName(2))}</span></div>${rows.map((x,i)=>`<div class="sc-row" role="row" style="--i:${i}"><span class="sc-name" role="cell">${x.image?`<img class="sc-av" src="${esc(x.image)}" alt="">`:""}<span class="sc-text"><b>${esc(x.name)}</b>${x.role?`<small class="sc-role">${esc(x.role)}</small>`:""}</span></span>${pt(x.a,x.b,"a")}${pt(x.b,x.a,"b")}${x.reason||x.weak?`<span class="sc-reason" role="cell">${x.reason?esc(x.reason):""}${x.weak?` <span class="chip">zu wenig Daten</span>`:""}</span>`:""}</div>`).join("")}${total?`<div class="sc-row sc-total" role="row" style="--i:${rows.length}"><span role="cell">Total</span>${pt(total.a,total.b,"a")}${pt(total.b,total.a,"b")}</div>`:""}</div>`;
 }
 
 // Gürtel-Banner für den Rundensieg (slot 1/2) oder ein Unentschieden (slot null)
 function beltBanner(slot,text){return`<div class="belt${slot?` p${slot}`:""}" role="status">★ ${esc(text)}</div>`}
+
+// Kategorie-Abstimmung (Roadmap 6.3.3, Entscheidung G): Stimmzettel, Pass-&-Play-Übergabe, Wartezustand
+function renderVoting(r,subs){
+  const roundVotes=S.votes.filter(v=>v.round_id===r.id),eligible=eligibleVoters(S.members),progress=voteProgress(roundVotes,eligible);
+  const hasJurors=S.members.some(m=>m.role==="juror");
+  const mine=eligible.filter(m=>m.user_id===S.user.id).sort((a,b)=>(a.player_slot||0)-(b.player_slot||0));
+  const isDone=m=>!progress.missing.some(x=>x.id===m.id);
+  const editing=mine.find(m=>m.id===S.voteEditing);
+  const voter=editing||mine.find(m=>!isDone(m));
+  const head=t=>`<div class="sectionhead"><div><div class="eyebrow">ABSTIMMUNG · FÜNF KATEGORIEN</div><h2>${t}</h2></div><span class="chip">${progress.done} von ${progress.total} abgestimmt</span></div>`;
+  const waitingFor=progress.missing.map(m=>esc(m.display_name)).join(", ");
+
+  // Pass & Play: nach Spieler 1 das Gerät weitergeben, Stimmen bleiben verdeckt
+  if(voter&&mine.length>1&&!editing&&mine.some(isDone)&&S.voteHandover!==`${r.id}:${voter.id}`){
+    return`<div class="juryarea">${head("Stimmen von "+esc(mine.find(isDone).display_name)+" sind drin")}${turnBanner(voter.player_slot,`Gerät an ${voter.display_name} geben – die Stimmen bleiben verdeckt.`)}<div class="mainaction"><button class="btn primary" id="voteHandover">Ich bin ${esc(voter.display_name)} – abstimmen</button></div></div>`;
+  }
+
+  // Option „Die Jury“ (6.3.5, Entscheidung G): Host ohne Juroren, solange noch niemand abgestimmt hat
+  const juryOption=isHost()&&!hasJurors&&!roundVotes.length?`<div class="juryoption"><button class="btn ghost" id="runAI">Stattdessen Die Jury urteilen lassen</button></div>`:"";
+
+  // Stimmzettel
+  if(voter){
+    const own=Object.fromEntries(roundVotes.filter(v=>v.voter_member_id===voter.id).map(v=>[v.category,v.choice]));
+    const choices=S.ballot[voter.id]||(S.ballot[voter.id]=editing?{...own}:{});
+    const ready=VOTE_CATEGORIES.every(c=>choices[c.key]===1||choices[c.key]===2);
+    const who=voter.role==="juror"?`Deine Stimme, ${esc(voter.display_name)}`:mine.length>1?`${esc(voter.display_name)} stimmt ab`:"Deine Stimme";
+    const banner=mine.length>1?turnBanner(voter.player_slot,"Wähle in jeder Kategorie den besseren Song."):"";
+    return`<div class="juryarea">${head(who)}${banner}${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}<div class="ballot" data-member="${voter.id}">${VOTE_CATEGORIES.map(c=>`<fieldset class="votecat"><legend><span class="votelabel">${esc(c.label)}</span><span class="votequestion">${esc(c.question)}</span></legend><div class="votechoices">${[1,2].map(n=>`<button type="button" class="votebtn v${n}" data-cat="${c.key}" data-choice="${n}" aria-pressed="${choices[c.key]===n}"><small>${cornerName(n)}</small><b>${esc(subs[n-1].song_name)}</b></button>`).join("")}</div></fieldset>`).join("")}</div><div class="mainaction"><button class="btn primary" id="castVotes" ${ready?"":"disabled"}>${editing?"Änderung speichern":"Stimmen abgeben"}</button></div>${editing?`<div class="actions centered"><button class="btn ghost" id="voteEditCancel">Abbrechen</button></div>`:""}${editing?"":juryOption}</div>`;
+  }
+
+  // Alle haben abgestimmt → Ergebnis (6.3.4): Kategorien nacheinander aufdecken, Gürtel, Wertung
+  if(progress.complete){
+    const res=categoryResult(roundVotes,{hasJurors}),self=S.scores.find(s=>s.round_id===r.id&&isSelfDecision(s));
+    const rows=res.categories.map(c=>({name:c.label,a:c.a,b:c.b,reason:c.winner?"":"Gleichstand – zählt für keinen"}));
+    const who=hasJurors?`${progress.total} Juror${progress.total===1?"":"en"}`:"die Spieler";
+    const belt=res.winner?beltBanner(res.winner,`Runde an ${memberName(res.winner)} · ${res.won[res.winner===1?"a":"b"]} zu ${res.won[res.winner===1?"b":"a"]} Kategorien`):beltBanner(null,"Unentschieden – der Host entscheidet");
+    const host=res.winner
+      ?`<div class="mainaction"><button class="btn primary" id="finalize">${finalizeLabel(r)}</button></div>`
+      :`<div class="choice tiechoice"><h3>Wer gewinnt die Runde?</h3><p class="muted">${res.won.a} zu ${res.won.b} Kategorien – der Host wählt den Rundensieger.</p><div class="actions">${selfDecisionButtons(subs)}</div></div>`;
+    const others=res.winner?`<p class="muted centered-text">Der Host übernimmt die Runde.</p>`:`<p class="muted centered-text">Unentschieden – der Host wählt den Rundensieger.</p>`;
+    return`<div class="juryarea jury-reveal"${animAttr(`vote:${r.id}`,4500)}><div class="sectionhead"><div><div class="eyebrow">ABSTIMMUNG · ERGEBNIS</div><h2>Punktezettel</h2></div><span class="chip">abgestimmt: ${who}</span></div>${scorecardTable(rows,res.won,"Kategorie")}${belt}${self?"":isHost()?host:others}</div>`;
+  }
+
+  // Alle eigenen Stimmen abgegeben (oder dieses Gerät stimmt nicht ab)
+  const canEdit=mine.length===1&&!progress.complete;
+  const status=mine.length?"Deine Stimmen sind abgegeben ✓":hasJurors?"Die Juroren stimmen ab":"Die Spieler stimmen ab";
+  return`<div class="juryarea">${head(progress.complete?"Alle haben abgestimmt":status)}${progress.complete?`<p class="muted centered-text">Die Auswertung folgt.</p>`:`<div class="votewait"><div class="avatars">${eligible.map(m=>`<span class="voter${isDone(m)?" done":""}">${isDone(m)?"✓":"…"} ${esc(m.display_name)}</span>`).join("")}</div><p class="muted">Warte auf: ${waitingFor}</p></div>`}${canEdit?`<div class="actions centered"><button class="btn ghost" id="voteEdit">Stimmen ändern</button></div>`:""}</div>`;
+}
+
+function bindVoting(){
+  document.querySelectorAll(".votebtn").forEach(b=>b.onclick=()=>{
+    const memberId=b.closest(".ballot").dataset.member,cat=b.dataset.cat,choice=Number(b.dataset.choice);
+    (S.ballot[memberId]||(S.ballot[memberId]={}))[cat]=choice;
+    b.closest(".votechoices").querySelectorAll(".votebtn").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    const done=VOTE_CATEGORIES.every(c=>S.ballot[memberId][c.key]===1||S.ballot[memberId][c.key]===2);
+    if($("castVotes"))$("castVotes").disabled=!done;
+  });
+  if($("castVotes"))$("castVotes").onclick=()=>castCategoryVotes(document.querySelector(".ballot").dataset.member);
+  if($("voteHandover"))$("voteHandover").onclick=()=>{const r=currentRound(),next=eligibleVoters(S.members).filter(m=>m.user_id===S.user.id).sort((a,b)=>(a.player_slot||0)-(b.player_slot||0)).find(m=>!voteProgress(S.votes.filter(v=>v.round_id===r.id),[m]).complete);if(r&&next)S.voteHandover=`${r.id}:${next.id}`;render();window.scrollTo(0,document.querySelector(".juryarea")?.offsetTop||0)};
+  if($("voteEdit"))$("voteEdit").onclick=()=>{const m=eligibleVoters(S.members).find(x=>x.user_id===S.user.id);if(m){S.voteEditing=m.id;delete S.ballot[m.id];render()}};
+  if($("voteEditCancel"))$("voteEditCancel").onclick=()=>{const id=S.voteEditing;S.voteEditing="";delete S.ballot[id];render()};
+}
 
 function renderJury(r,subs,hs,as,summary){
   const self=hs.filter(isSelfDecision).slice(-1)[0],jurors=S.members.filter(m=>m.role==="juror");
   hs=hs.filter(s=>!isSelfDecision(s));
   const finalizeBtn=`<div class="mainaction"><button class="btn primary" id="finalize">${finalizeLabel(r)}</button></div>`;
 
-  // Menschlicher Juror: eigene Scorecard abgeben
+  // Kategorie-Abstimmung ist der Normalfall (6.3.3); „Die Jury“ nur, wenn sie für diese Runde schon gelaufen ist
+  if(!as.length&&!(self&&!jurors.length))return renderVoting(r,subs);
+
+  // Menschlicher Juror: eigene Scorecard abgeben (alte Runden)
   if(role()==="juror"){
     const mine=hs.find(x=>x.juror_user_id===S.user.id);
     if(mine)return`<div class="juryarea"><div class="notice success">Deine Scorecard wurde abgegeben: ${mine.score_a}–${mine.score_b}</div></div>`;
@@ -176,8 +241,11 @@ function renderTiebreak(){const p=weightedMatchPoints();$("app").innerHTML=`<sec
 function renderSuddenDraft(){const picks=S.picks.filter(p=>p.round_number===6),turn=picks.some(p=>p.player_slot===1)?2:1,mine=ownsPlayerSlot(turn),r=S.rounds.find(x=>x.round_number===6);$("app").innerHTML=`<section class="card">${matchScoreboard()}<div class="battle-title"><div class="eyebrow">SUDDEN DEATH · NEUE KÜNSTLER</div><h2>${esc(r?.theme||"Alles oder nichts")}</h2></div>${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}<div class="suddencards">${[1,2].map(n=>{const p=picks.find(x=>x.player_slot===n);return`<div class="side"><div class="eyebrow">${cornerName(n)} · ${esc(memberName(n))}</div>${p?`<h3>${esc(p.artist_name)}</h3><span class="chip">Künstler fixiert</span>`:(turn===n&&mine?`${S.currentArtist&&S.currentArtistSlot===n?`<div class="artistdraw">${S.currentArtist.image?`<img src="${esc(S.currentArtist.image)}">`:""}<h2>${esc(S.currentArtist.name)}</h2><button class="btn primary" id="lockSudden">Künstler übernehmen</button></div>`:`<button class="btn primary" id="drawSudden">Neuen Künstler ziehen</button>`}`:`<p class="muted">Wartet…</p>`)}</div>`}).join("")}</div>${roomExitControls()}</section>`;if($("drawSudden"))$("drawSudden").onclick=()=>drawArtist(turn);if($("lockSudden"))$("lockSudden").onclick=placeSuddenArtist;bindRoomExitControls();if(isHost()&&picks.length===2)sb.rpc("mb_begin_sudden_battle",{p_room_id:S.room.id}).then(()=>reloadRoomNow())}
 
 function renderFinished(){
-  const p=weightedMatchPoints(),winner=p.a===p.b?null:(p.a>p.b?1:2),completed=S.rounds.filter(r=>r.status==="complete"&&r.winner_slot).sort((a,b)=>a.round_number-b.round_number),margins=completed.map(r=>({r,m:roundJuryMargin(r.id)})).filter(x=>x.m),closest=[...margins].sort((a,b)=>a.m.margin-b.m.margin)[0],strongest=[...margins].sort((a,b)=>b.m.margin-a.m.margin)[0],ai=S.scores.filter(s=>s.source==="ai"),jurorVotes={};
+  const p=weightedMatchPoints(),winner=p.a===p.b?null:(p.a>p.b?1:2),completed=S.rounds.filter(r=>r.status==="complete"&&r.winner_slot).sort((a,b)=>a.round_number-b.round_number),allMargins=completed.map(r=>({r,m:roundJuryMargin(r.id)})).filter(x=>x.m),margins=allMargins.some(x=>x.m.unit)?allMargins.filter(x=>x.m.unit):allMargins /* nicht Jury-Punkte mit Kategorien vergleichen */,closest=[...margins].sort((a,b)=>a.m.margin-b.m.margin)[0],strongest=[...margins].sort((a,b)=>b.m.margin-a.m.margin)[0],ai=S.scores.filter(s=>s.source==="ai"),jurorVotes={};
   // Bilanz je Juror: Punkte für A, für B, Remis (10–10 zählt nicht mehr als Punkt für B)
+  // Kategorien-Bilanz über alle Abstimmungs-Runden (6.3.5)
+  const catWins=Object.fromEntries(VOTE_CATEGORIES.map(c=>[c.key,[0,0,0]]));let voteRounds=0;
+  for(const r of completed){const v=roundVoteResult(r.id);if(!v)continue;voteRounds++;for(const c of v.categories)catWins[c.key][c.winner===1?0:c.winner===2?1:2]++}
   for(const s of ai){const k=s.juror_name||s.juror_key||"Juror";if(!jurorVotes[k])jurorVotes[k]=[0,0,0];if(s.score_a>s.score_b)jurorVotes[k][0]++;else if(s.score_b>s.score_a)jurorVotes[k][1]++;else jurorVotes[k][2]++}
-  $("app").innerHTML=`<section class="card finalwrap"${animAttr(`final:${S.room.id}`,3500)}><div class="finalscore${winner?` p${winner}`:""}"><div class="eyebrow">MATCH BEENDET</div><h2>${winner?`${esc(memberName(winner))} gewinnt`:"Unentschieden"}</h2><div class="big"><span class="sa">${p.a}</span> – <span class="sb">${p.b}</span></div>${winner?beltBanner(winner,`Champion · ${cornerName(winner)}`):""}<p class="muted">Matchpunkte · Runde 5 zählte doppelt${S.rounds.some(r=>r.round_number===6)?" · inkl. Sudden Death":""}</p></div><div class="statsgrid"><div class="statcard"><span>Gewonnene Battles</span><b>${completed.filter(r=>r.winner_slot===1).length} – ${completed.filter(r=>r.winner_slot===2).length}</b></div><div class="statcard"><span>Knappstes Jury-Battle</span><b>${closest?`Runde ${closest.r.round_number} · ${closest.m.a}–${closest.m.b}`:"–"}</b></div><div class="statcard"><span>Klarster Jury-Entscheid</span><b>${strongest?`Runde ${strongest.r.round_number} · ${strongest.m.a}–${strongest.m.b}`:"–"}</b></div></div><div class="eyebrow">RUNDEN</div><div class="roundsummary">${completed.map(r=>`<div class="member p${r.winner_slot}"><div><strong>${r.round_number===6?"Sudden Death":`Runde ${r.round_number}${r.round_number===5?" · ×2":""}`}</strong><small>${esc(r.theme)}${roundDecision(r.id).kind==="self"?" · Eigener Entscheid":""}</small></div><span class="chip p${r.winner_slot}">${esc(memberName(r.winner_slot))}</span></div>`).join("")}</div>${Object.keys(jurorVotes).length?`<div class="divider"></div><div class="eyebrow">DIE JURY IM MATCH</div><div class="jurorstats">${Object.entries(jurorVotes).map(([name,v])=>`<div class="member"><strong>${esc(name)}</strong><span class="votes"><span class="sa">${esc(memberName(1))} ${v[0]}</span> · <span class="sb">${v[1]} ${esc(memberName(2))}</span>${v[2]?` · ${v[2]} remis`:""}</span></div>`).join("")}</div>`:""}${roomExitControls()}</section>`;bindRoomExitControls();
+  $("app").innerHTML=`<section class="card finalwrap"${animAttr(`final:${S.room.id}`,3500)}><div class="finalscore${winner?` p${winner}`:""}"><div class="eyebrow">MATCH BEENDET</div><h2>${winner?`${esc(memberName(winner))} gewinnt`:"Unentschieden"}</h2><div class="big"><span class="sa">${p.a}</span> – <span class="sb">${p.b}</span></div>${winner?beltBanner(winner,`Champion · ${cornerName(winner)}`):""}<p class="muted">Matchpunkte · Runde 5 zählte doppelt${S.rounds.some(r=>r.round_number===6)?" · inkl. Sudden Death":""}</p></div><div class="statsgrid"><div class="statcard"><span>Gewonnene Battles</span><b>${completed.filter(r=>r.winner_slot===1).length} – ${completed.filter(r=>r.winner_slot===2).length}</b></div><div class="statcard"><span>Knappste Runde</span><b>${closest?`Runde ${closest.r.round_number} · ${closest.m.a}–${closest.m.b}${closest.m.unit?" Kat.":""}`:"–"}</b></div><div class="statcard"><span>Klarste Runde</span><b>${strongest?`Runde ${strongest.r.round_number} · ${strongest.m.a}–${strongest.m.b}${strongest.m.unit?" Kat.":""}`:"–"}</b></div></div><div class="eyebrow">RUNDEN</div><div class="roundsummary">${completed.map(r=>`<div class="member p${r.winner_slot}"><div><strong>${r.round_number===6?"Sudden Death":`Runde ${r.round_number}${r.round_number===5?" · ×2":""}`}</strong><small>${esc(r.theme)}${roundDecision(r.id).kind==="self"?" · Eigener Entscheid":""}</small></div><span class="chip p${r.winner_slot}">${esc(memberName(r.winner_slot))}</span></div>`).join("")}</div>${voteRounds?`<div class="divider"></div><div class="eyebrow">KATEGORIEN IM MATCH</div><div class="jurorstats">${VOTE_CATEGORIES.map(c=>{const v=catWins[c.key];return`<div class="member"><strong>${esc(c.label)}</strong><span class="votes"><span class="sa">${esc(memberName(1))} ${v[0]}</span> · <span class="sb">${v[1]} ${esc(memberName(2))}</span>${v[2]?` · ${v[2]} offen`:""}</span></div>`}).join("")}</div>`:""}${Object.keys(jurorVotes).length?`<div class="divider"></div><div class="eyebrow">DIE JURY IM MATCH</div><div class="jurorstats">${Object.entries(jurorVotes).map(([name,v])=>`<div class="member"><strong>${esc(name)}</strong><span class="votes"><span class="sa">${esc(memberName(1))} ${v[0]}</span> · <span class="sb">${v[1]} ${esc(memberName(2))}</span>${v[2]?` · ${v[2]} remis`:""}</span></div>`).join("")}</div>`:""}${roomExitControls()}</section>`;bindRoomExitControls();
 }

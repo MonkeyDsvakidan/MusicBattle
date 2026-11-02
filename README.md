@@ -16,13 +16,13 @@ Browser-Spiel für zwei Spieler: Künstler aus dem eigenen Spotify draften, pro 
 2. **Lobby** – Spieler 1 erstellt einen Raum und verbindet Spotify. Spieler 2 wird auf demselben Gerät hinzugefügt oder tritt bei, indem er den **QR-Code in der Lobby scannt** oder den geteilten **Link** öffnet (Rolle wählen, Name bestätigen – fertig). Juroren treten genauso bei (ohne Spotify). Der Raumcode zum Abtippen funktioniert weiterhin. Oben zeigt eine Fortschrittsanzeige Lobby → Draft → Battle → Ergebnis.
 3. **Draft** – Abwechselnd wird ein zufälliger Künstler aus dem eigenen Spotify-Top-Pool gezogen und einer der fünf Runden zugeordnet. Jeder Spieler hat einen Skip.
 4. **Battle** – Jede Runde hat ein Thema (z. B. „Regentag in der Stadt“). Jeder sucht einen Song seines Künstlers und reicht ihn ein; die Wahl bleibt verdeckt, bis beide eingereicht haben. Bei Pass & Play wählt zuerst Spieler 1, dann Spieler 2. Danach werden die Songs aufgedeckt und angespielt (Startpunkt einstellbar).
-5. **Jury** – eine von drei Möglichkeiten:
-   - **Menschliche Juroren** vergeben Scorecards (10–8 klar, 10–9 knapp). Sind Juroren im Raum, entscheiden nur sie.
-   - **Die Jury** – fünf automatische Juroren mit eigener Persönlichkeit bewerten beide Songs anhand gesammelter Songdaten (siehe unten) und werden nacheinander aufgedeckt.
-   - **Selber entscheiden** – ohne Juroren im Raum wählt der Host den Rundensieger (zählt als 10–9). Das Urteil der Jury kann der Host so auch überstimmen.
-6. **Match** – Fünf Runden, Runde 5 zählt doppelt. Steht es danach unentschieden, folgt **Sudden Death** mit neuen Künstlern. Am Ende zeigt der Endstand Sieger, Statistiken und die Bilanz jedes Jurors.
+5. **Abstimmung** – nach dem Anhören wird in fünf Kategorien abgestimmt: **Thema, Vibe, Lyrics, Überraschung, Kenner-Wahl** („Welcher Song gewinnt?“ – Pinke oder Cyan Ecke).
+   - Sind **Juroren** im Raum, stimmen nur sie ab (jeder auf seinem Gerät). Ohne Juroren stimmen die **Spieler** ab; bei Pass & Play nacheinander und verdeckt („Gerät an Mia geben“).
+   - Pro Kategorie gewinnt die Mehrheit, Gleichstand zählt für keinen. Wer mehr Kategorien gewinnt, gewinnt die Runde – die Kategorien werden nacheinander aufgedeckt, danach der Gürtel „Runde an …“. Steht es gleich, wählt der Host den Rundensieger.
+   - Option für den Host (ohne Juroren, solange noch niemand abgestimmt hat): **„Stattdessen Die Jury urteilen lassen“** – fünf automatische Juroren bewerten die Songs anhand gesammelter Songdaten (siehe unten); ihr Urteil kann der Host überstimmen.
+6. **Match** – Fünf Runden, Runde 5 zählt doppelt. Steht es danach unentschieden, folgt **Sudden Death** mit neuen Künstlern. Am Ende zeigt der Endstand Sieger, Statistiken, die Bilanz je Kategorie und – falls benutzt – die Bilanz der Jury.
 
-### Die Jury
+### Die Jury (Option)
 
 | Juror | Figur | Achtet auf |
 |---|---|---|

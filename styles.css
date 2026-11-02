@@ -56,6 +56,7 @@ body{
   background-repeat:no-repeat;
   padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);
   padding-top:env(safe-area-inset-top); /* Homescreen-App: Inhalt nicht unter der Statusleiste (6.1) */
+  overflow-x:clip; /* 3D-Aufdeck-Animation (4.6) darf kurz nicht seitlich scrollen lassen */
 }
 h1,h2,h3{font-family:var(--f-title);font-weight:400;line-height:1.05;text-wrap:balance}
 h4{font:700 16px/1.25 var(--f-text);margin:var(--s1) 0}
@@ -339,6 +340,33 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .spotifyline{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2);margin:0 0 var(--s4)}
 .spotifyline .btn{min-height:44px;font-size:11px}
 .juryarea>.scorecard,.juryarea>.belt,.juryarea>.mainaction,.juryarea>.override,.juryarea>.basis,.juryarea>.tiechoice{max-width:760px;margin-left:auto;margin-right:auto}
+
+/* ---------- Kategorie-Abstimmung (Roadmap 6.3.3) ---------- */
+.ballot{display:grid;gap:var(--s3);max-width:760px;margin:0 auto}
+.votecat{margin:0;padding:var(--s3);border:1px solid var(--line);border-radius:var(--r-m);background:var(--surface-2);min-width:0}
+.votecat legend{display:grid;gap:2px;padding:0;margin-bottom:var(--s2);float:left;width:100%}
+.votecat legend+*{clear:both}
+.votelabel{font:400 13px var(--f-num);letter-spacing:.04em;color:var(--gold)}
+.votequestion{font-size:14px;color:var(--text)}
+.votechoices{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2)}
+.votebtn{display:grid;gap:2px;align-content:center;min-height:60px;padding:var(--s2) var(--s3);border-radius:var(--r-m);border:2px solid var(--line-strong);background:var(--field);color:var(--text);text-align:left;cursor:pointer;touch-action:manipulation;min-width:0}
+.votebtn small{font:700 10px var(--f-text);letter-spacing:.12em;color:var(--muted)}
+.votebtn b{font:700 14px/1.25 var(--f-text);overflow-wrap:anywhere}
+.votebtn.v1 small{color:var(--a)}
+.votebtn.v2 small{color:var(--b)}
+.votebtn.v1[aria-pressed="true"]{border-color:var(--a);background:rgba(255,63,164,.16);box-shadow:var(--glow-a)}
+.votebtn.v2[aria-pressed="true"]{border-color:var(--b);background:rgba(56,225,255,.14);box-shadow:var(--glow-b)}
+.votebtn[aria-pressed="true"] b::before{content:"✓ "}
+.juryoption{display:flex;justify-content:center;margin-top:var(--s3)}
+.juryoption .btn{font-size:11px}
+.votewait{text-align:center;padding:var(--s4);border:1px solid var(--line);border-radius:var(--r-m);background:var(--surface-2);max-width:760px;margin:0 auto}
+.votewait .avatars{gap:var(--s2)}
+.voter{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--r-pill);border:1px solid var(--line-strong);font:700 13px var(--f-text);color:var(--muted)}
+.voter.done{border-color:rgba(94,230,176,.5);color:var(--ok)}
+.votewait p{margin:var(--s3) 0 0}
+
+/* Vergrösserte Effekte (Punch, Stempel, 3D-Klappen) dürfen nicht über den Rand ragen – sonst zoomt das Handy kurz heraus (6.3.4) */
+.juryarea,.match{overflow-x:clip;overflow-clip-margin:20px}
 
 /* ---------- Momente mit Wirkung (Roadmap 4.6) ----------
    Nur mit data-anim (siehe animAttr) und nur ohne „Bewegung reduzieren“. --elapsed ist negativ und setzt

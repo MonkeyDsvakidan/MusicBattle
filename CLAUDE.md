@@ -9,7 +9,7 @@ Music Battle ist ein Browser-Spiel für zwei Spieler (plus optionale menschliche
 1. **Lobby** – Spieler 1 erstellt einen Raum (Modus „1 Gerät · Pass & Play“: ein Spotify-Konto für beide; oder „2 Geräte · Realtime“: jeder verbindet sein Spotify). Pro Screen genau eine Hauptaktion, Fortschrittsanzeige Lobby → Draft → Battle → Ergebnis.
 2. **Draft** – abwechselnd wird ein Künstler aus dem eigenen Spotify-Top-Pool gezogen und einer von 5 Runden zugeordnet (1 Skip pro Spieler).
 3. **Battle** – pro Runde ein Thema (z. B. „Nachtfahrt durch eine Grossstadt“). Jeder wählt einen Song seines Künstlers (Pass & Play: zuerst Spieler 1, dann Spieler 2, die Wahl des anderen bleibt verdeckt), die Songs werden gleichzeitig aufgedeckt und angespielt.
-4. **Jury** – menschliche Juroren (Scorecards 10–8 / 10–9; sind welche im Raum, entscheiden nur sie), „Die Jury“ (fünf automatische Juroren, 10–10 bei Gleichstand/fehlenden Daten) oder der eigene Entscheid des Hosts (auch zum Überstimmen der Jury) bestimmen den Rundensieger.
+4. **Abstimmung** (seit 6.3, Entscheidung G) – Abstimmung in fünf Kategorien (Thema, Vibe, Lyrics, Überraschung, Kenner-Wahl): mit Juroren im Raum stimmen nur sie, sonst die Spieler (Pass & Play nacheinander verdeckt); Mehrheit je Kategorie, Gleichstand zählt für keinen; mehr Kategorien = Rundensieg, Gleichstand → Host entscheidet (auch mit Juroren). Option für den Host ohne Juroren: „Die Jury“ (fünf automatische Juroren, 10–10 bei Gleichstand/fehlenden Daten), deren Urteil er überstimmen kann. Alte Juroren-Scorecards (10–8/10–9) werden nur noch für frühere Runden angezeigt.
 5. **Match** – Runde 5 zählt doppelt, bei Gleichstand Sudden Death (Runde 6), danach Endstand mit Statistiken.
 
 UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor allem Handy, auch Desktop.
@@ -100,7 +100,7 @@ Es gibt keine automatischen Tests für das Frontend. Nach jeder Änderung den be
 1. Raum erstellen (1 Gerät) → Spieler 2 hinzufügen → Spotify verbinden → Draft starten
 2. Draft: Künstler ziehen, Skip nutzen, alle 10 Picks setzen → Themen erscheinen
 3. Battle: Song suchen, einreichen, gleichzeitiges Aufdecken, Abspielen/Pause, Startpunkt
-4. Jury: automatische Jury · eigener Entscheid · menschlicher Juror (zweiter Browser) · Runde übernehmen
+4. Abstimmung: Pass & Play nacheinander verdeckt · 2 Geräte · mit Juroren (eigene Geräte) · Gleichstand → Host · Option „Die Jury“ · Runde übernehmen
 5. Runde 5 doppelt, Unentschieden → Sudden Death → Endstand
 6. 2-Geräte-Modus: Beitritt mit Code, Realtime-Sync auf beiden Geräten
 7. Raum verlassen / Modus wechseln / Seite neu laden mitten im Match
@@ -118,4 +118,5 @@ Reine Logik (z. B. Jury-Bewertung) wird als reine Funktion geschrieben und mit `
 - **Juror-Profil** – Gewichtung, nach der ein Juror Song- und Themen-Profil vergleicht
 - **Die Jury** – Name der automatischen Fünfer-Jury in der App (5.3); im Code `source = 'ai'`, `runAIJury`, `aiScores` (historische Namen, keine KI)
 - **Ecke** – Spielerseite im Battle: Pinke Ecke = Spieler A, Cyan Ecke = Spieler B
-- **Punktezettel / Gürtel** – Jury-Tabelle mit Total / Banner für den Runden- bzw. Matchsieg
+- **Punktezettel / Gürtel** – Tabelle (Kategorien bzw. Juroren) mit Total / Banner für den Runden- bzw. Matchsieg
+- **Kategorie-Abstimmung** – Normalfall der Rundenwertung seit 6.3 (`mb_category_votes`, `js/votes.js`); Kategorien `theme`, `vibe`, `lyrics`, `surprise`, `connoisseur`
