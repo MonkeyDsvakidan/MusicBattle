@@ -14,13 +14,13 @@ Browser-Spiel für zwei Spieler: Künstler aus dem eigenen Spotify draften, pro 
 
 1. **Modus wählen** – *1 Gerät · Pass & Play* (ihr gebt ein Gerät hin und her, ein Spotify-Konto reicht) oder *2 Geräte · Realtime* (jeder auf seinem Gerät mit eigenem Spotify).
 2. **Lobby** – Spieler 1 erstellt einen Raum und verbindet Spotify. Spieler 2 wird auf demselben Gerät hinzugefügt oder tritt bei, indem er den **QR-Code in der Lobby scannt** oder den geteilten **Link** öffnet (Rolle wählen, Name bestätigen – fertig). Juroren treten genauso bei (ohne Spotify). Der Raumcode zum Abtippen funktioniert weiterhin. Oben zeigt eine Fortschrittsanzeige Lobby → Draft → Battle → Ergebnis.
-3. **Draft** – Abwechselnd wird ein zufälliger Künstler aus dem eigenen Spotify-Top-Pool gezogen und einer der fünf Runden zugeordnet. Jeder Spieler hat einen Skip.
+3. **Draft** – Abwechselnd wird ein zufälliger Künstler aus dem eigenen Spotify-Top-Pool gezogen und einer der fünf Runden zugeordnet. Jeder Spieler hat einen Skip. Hip-Hop-Künstler kommen bevorzugt dran (Pop seltener), Hörbuch-Autoren werden aussortiert.
 4. **Battle** – Jede Runde hat ein Thema (z. B. „Regentag in der Stadt“). Jeder sucht einen Song seines Künstlers und reicht ihn ein; die Wahl bleibt verdeckt, bis beide eingereicht haben. Bei Pass & Play wählt zuerst Spieler 1, dann Spieler 2. Danach werden die Songs aufgedeckt und angespielt (Startpunkt einstellbar).
 5. **Abstimmung** – nach dem Anhören wird in fünf Kategorien abgestimmt: **Thema, Vibe, Lyrics, Überraschung, Kenner-Wahl** („Welcher Song gewinnt?“ – Pinke oder Cyan Ecke).
    - Sind **Juroren** im Raum, stimmen nur sie ab (jeder auf seinem Gerät). Ohne Juroren stimmen die **Spieler** ab; bei Pass & Play nacheinander und verdeckt („Gerät an Mia geben“).
    - Pro Kategorie gewinnt die Mehrheit, Gleichstand zählt für keinen. Wer mehr Kategorien gewinnt, gewinnt die Runde – die Kategorien werden nacheinander aufgedeckt, danach der Gürtel „Runde an …“. Steht es gleich, wählt der Host den Rundensieger.
    - Option für den Host (ohne Juroren, solange noch niemand abgestimmt hat): **„Stattdessen Die Jury urteilen lassen“** – fünf automatische Juroren bewerten die Songs anhand gesammelter Songdaten (siehe unten); ihr Urteil kann der Host überstimmen.
-6. **Match** – Fünf Runden, Runde 5 zählt doppelt. Steht es danach unentschieden, folgt **Sudden Death** mit neuen Künstlern. Am Ende zeigt der Endstand Sieger, Statistiken, die Bilanz je Kategorie und – falls benutzt – die Bilanz der Jury.
+6. **Match** – Fünf Runden, Runde 5 zählt doppelt. Steht es danach unentschieden, folgt **Sudden Death** mit neuen Künstlern. Am Ende zeigt der Endstand Sieger, Statistiken, die Bilanz je Kategorie und – falls benutzt – die Bilanz der Jury. Mit **Rematch** startet der Host direkt ein neues Match mit denselben Leuten (alle wechseln automatisch, Spotify bleibt verbunden, es geht gleich mit dem Draft los).
 
 ### Die Jury (Option)
 

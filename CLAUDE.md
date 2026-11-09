@@ -25,7 +25,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 
 | Tabelle | Inhalt |
 |---|---|
-| `mb_rooms` | Raum, Code, Host, `game` (`battle`/`quiz`), `status` (lobby → draft → battle → tiebreak → sudden_draft → finished; Quiz: lobby → quiz → finished), `current_round`, `device_mode`, Quiz: `quiz_kind`, `quiz_length`, `quiz_game_no`, `quiz_question_no` |
+| `mb_rooms` | Raum, Code, Host, `game` (`battle`/`quiz`), `status` (lobby → draft → battle → tiebreak → sudden_draft → finished; Quiz: lobby → quiz → finished), `current_round`, `device_mode`, Quiz: `quiz_kind`, `quiz_length`, `quiz_game_no`, `quiz_question_no`; `rematch_room_id` (6.6, RPC `mb_rematch`: neuer Raum mit denselben Mitgliedern direkt im Draft) |
 | `mb_members` | Spieler/Juroren pro Raum, `player_slot`, Spotify-Status, Draft-Skip; Quiz: Rolle `quizzer` (ohne Platz), `quiz_track_count` |
 | `mb_draft_picks` | gezogene Künstler pro Runde/Slot inkl. `artist_draft_weight` |
 | `mb_rounds` | Thema, Kategorie, Status, `winner_slot` |
@@ -46,9 +46,10 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `js/config.js` | Supabase-/Spotify-Konfiguration; `JUDGES` aus der Juror-Datei; `THEMES`, `SUDDEN_THEMES`, `themeProfile()` aus der Themen-Datei |
 | `js/state.js` | Zustand `S`, `$`/`esc`, Raum-/Mitglieder-/Runden-Abfragen, `resetLocalRoomState` |
 | `js/ui-common.js` | `mbConfirm`, `mbConfirmLeave`, `render()`-Verteiler (setzt die Fortschrittsanzeige `flowSteps()` darüber), Closed-Screen, gemeinsame Bausteine (`turnBanner`, `isPassAndPlay`, `passPlayTurn`, `cornerName`, `animAttr`, Ausgangsleiste) |
-| `js/spotify.js` | Spotify-Login (PKCE), Token, Künstler-Pool, Web Playback |
-| `js/room.js` | Anmeldung, Raum laden/beitreten/erstellen/verlassen, Sync (Realtime + Poll mit Fingerabdruck), `init`, Einladungslink `?join=CODE&m=…` (`readInviteFromUrl`, `joinErrorText`, letzter Name) |
-| `js/draft.js` | Draft, Skip, Sudden-Death-Draft |
+| `js/artist-filter.js` | Draft-Pool (6.4/6.5): Kapitel-Titel/Hörbuch-Autoren erkennen (`looksLikeChapterTitle`, `chapterArtistIds`), Hip-Hop-Gewicht (`genreGroup`, `effectiveDraftWeight`); reine Funktionen, auch für `node --test` exportiert |
+| `js/spotify.js` | Spotify-Login (PKCE), Token, Künstler-Pool (ohne Hörbuch-Autoren), Web Playback |
+| `js/room.js` | Anmeldung, Raum laden/beitreten/erstellen/verlassen, Sync (Realtime + Poll mit Fingerabdruck), `init`, Einladungslink `?join=CODE&m=…` (`readInviteFromUrl`, `joinErrorText`, letzter Name), Rematch (`startRematch`, `followRematch`: alle Geräte folgen `mb_rooms.rematch_room_id`) |
+| `js/draft.js` | Draft (Ziehen gewichtet nach Hörverhalten + Genre, Hörbuch-Prüfung per Suche), Skip, Sudden-Death-Draft |
 | `js/battle.js` | Songsuche, Einreichen (stösst danach `mb-track-profile` im Hintergrund an), Startpunkt |
 | `js/votes.js` | Kategorie-Abstimmung (6.3): `VOTE_CATEGORIES` (Schlüssel, Name, Frage), reine Auswertung `categoryResult`, `voteProgress`, `eligibleVoters`; auch für `node --test` exportiert |
 | `js/jury.js` | Scorecards, eigener Entscheid, „Die Jury“ (`runAIJury` ruft `mb-jury` auf), `roundDecision`, `finalizeRound` |
@@ -104,7 +105,7 @@ Es gibt keine automatischen Tests für das Frontend. Nach jeder Änderung den be
 2. Draft: Künstler ziehen, Skip nutzen, alle 10 Picks setzen → Themen erscheinen
 3. Battle: Song suchen, einreichen, gleichzeitiges Aufdecken, Abspielen/Pause, Startpunkt
 4. Abstimmung: Pass & Play nacheinander verdeckt · 2 Geräte · mit Juroren (eigene Geräte) · Gleichstand → Host · Option „Die Jury“ · Runde übernehmen
-5. Runde 5 doppelt, Unentschieden → Sudden Death → Endstand
+5. Runde 5 doppelt, Unentschieden → Sudden Death → Endstand → Rematch (alle Geräte wechseln)
 6. 2-Geräte-Modus: Beitritt mit Code, Realtime-Sync auf beiden Geräten
 7. Raum verlassen / Modus wechseln / Seite neu laden mitten im Match
 
