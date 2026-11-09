@@ -36,6 +36,10 @@ Browser-Spiel für zwei Spieler: Künstler aus dem eigenen Spotify draften, pro 
 
 Jeder Juror vergibt 10–9 oder 10–8. Fehlen die nötigen Daten oder liegen beide Songs gleichauf, gibt er offen 10–10 („zu wenig Daten“ / „Gleichstand“). Endet die ganze Jury unentschieden, entscheidet der Host. Die Jury nutzt **keine KI**: Die Bewertung ist eine feste, getestete Regel (`supabase/functions/_shared/jury-engine.mjs`), die Begründungen kommen aus Textbausteinen mit echten Werten (z. B. „3 passende Motive im Text, bei „Roller“ keines“).
 
+## Werkzeug: Alben-Fix (kein Teil des Spiels)
+
+Unter `…/MusicBattle/?tool=alben` ersetzt der Alben-Fix Singles in den eigenen Spotify-Playlists und gelikten Songs durch die Version aus einem gespeicherten Album (Albumversion liken, Single entliken). Zuerst läuft ein Testlauf, geändert wird erst nach Bestätigung; optional nur für ein Album. Nutzt die Spotify-App des Spiels mit eigener Anmeldung, Code in `tools/`.
+
 ## Technik
 
 - **Frontend:** statisches HTML, CSS und Vanilla-JavaScript ohne Build-Step und ohne Framework. `index.html` lädt `app.js`, das die Daten (`themes.json`, `jurors.json`) und danach die Skripte in `js/` lädt.
