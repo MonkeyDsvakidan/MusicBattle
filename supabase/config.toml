@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.mb-jury]
 verify_jwt = true
+
+[functions.mb-quiz-start]
+verify_jwt = true
