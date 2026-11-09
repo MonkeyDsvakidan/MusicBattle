@@ -17,7 +17,7 @@ function joinErrorText(msg){const m=String(msg||"");if(/room not found/i.test(m)
 function rememberName(name){try{if(name)localStorage.setItem("mb_last_name",name)}catch{}}
 function lastName(){try{return localStorage.getItem("mb_last_name")||""}catch{return""}}
 
-async function init(){readInviteFromUrl();await ensureAnon();const saved=roomStorage();if(saved?.room_id){await loadRoom(saved.room_id);subscribeRoom()}await spotifyCallback();if(saved?.room_id)await loadRoom(saved.room_id);if(S.pendingJoin&&S.room?.code===S.pendingJoin.code)S.pendingJoin=null;render()}
+async function init(){readInviteFromUrl();await ensureAnon();const saved=roomStorage();if(saved?.room_id){await loadRoom(saved.room_id);subscribeRoom()}await spotifyCallback();if(saved?.room_id){await loadRoom(saved.room_id);await followRematch()}if(S.pendingJoin&&S.room?.code===S.pendingJoin.code)S.pendingJoin=null;render()}
 
 async function joinRoom(joinRole){S.error="";const code=$("joinCode").value.trim().toUpperCase(),name=$("joinName").value.trim();if(!code||!name){S.error="Raumcode und Name fehlen.";render();return}const {data,error}=await sb.rpc("mb_join_room",{p_room_code:code,p_display_name:name,p_role:joinRole});if(error){S.error=joinErrorText(error.message);render();return}const row=data[0];rememberName(name);S.pendingJoin=null;saveRoom({room_id:row.room_id,code});await loadRoom(row.room_id);subscribeRoom();render();const slot=joinRole==="player"?ownedMemberships().find(m=>m.role==="player")?.player_slot:null;if(slot&&await useSavedSpotify(slot))render()}
 
@@ -88,6 +88,34 @@ async function leaveCurrentRoom(opts={}){if(!S.room?.id){resetLocalRoomState();r
 
 async function openNewRoom(){await leaveCurrentRoom()}
 
+// Rematch (6.6): Host startet vom Endstand ein neues Match mit denselben Leuten, direkt im Draft.
+function rematchErrorText(msg){const m=String(msg||"");if(/players missing/i.test(m))return"Für ein Rematch müssen beide Spieler noch im Raum sein und Spotify verbunden haben.";if(/only host/i.test(m))return"Nur der Host kann ein Rematch starten.";return m}
+async function startRematch(){
+  if(!isHost()||S.room?.status!=="finished"||S.rematchBusy)return;
+  S.rematchBusy=true;S.error="";
+  try{
+    const {error}=await sb.rpc("mb_rematch",{p_room_id:S.room.id});
+    if(error){S.error=rematchErrorText(error.message);render();return}
+    await reloadRoomNow();
+  }finally{S.rematchBusy=false}
+}
+// Zeigt der Raum auf ein Rematch, wechseln alle Geräte automatisch dorthin. Spotify-Anmeldung und
+// Künstler-Pools hängen am Gerät/Spielerplatz und bleiben erhalten (nicht resetLocalRoomState verwenden).
+async function followRematch(){
+  const next=S.room?.rematch_room_id;
+  if(!next||S.followingRematch)return false;
+  S.followingRematch=true;
+  try{
+    const {data}=await sb.from("mb_rooms").select("id,code").eq("id",next).maybeSingle();
+    if(!data)return false;
+    saveRoom({room_id:data.id,code:data.code});
+    S.currentArtist=null;S.currentArtistSlot=null;S.ballot={};S.voteHandover="";S.voteEditing="";S.aiReveal=0;S.notice="";S.error="";S.searchResults={1:[],2:[]};S.searchQuery={1:"",2:""};
+    await loadRoom(data.id);
+    subscribeRoom();
+    return true;
+  }finally{S.followingRematch=false}
+}
+
 let channel=null;
 
  let refreshTimer=null;
@@ -129,6 +157,7 @@ async function mbSafeSync(){
   if(!S.room?.id)return;
   try{
     await loadRoom(S.room.id);
+    await followRematch();
     if(!mbPendingRender&&mbRoomFingerprint()===mbLastFingerprint)return;
     if(mbEditingActive()){mbPendingRender=true;return}
     mbPendingRender=false;mbRenderKeepingInputs();
@@ -138,6 +167,7 @@ async function mbSafeSync(){
 async function reloadRoomNow(){
   if(!S.room?.id)return;
   await loadRoom(S.room.id);
+  await followRematch();
   mbLastFingerprint=mbRoomFingerprint();
   render();
 }

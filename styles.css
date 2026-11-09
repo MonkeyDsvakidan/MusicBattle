@@ -457,3 +457,8 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
   .track>.chip{grid-column:1/-1;justify-content:center}
   .finalscore .big{font-size:38px}
 }
+
+/* Rematch vom Endstand (6.6) */
+.actions.rematch{justify-content:center}
+.actions.rematch .btn{min-width:min(100%,260px)}
+.finalwrap .muted.center{text-align:center}
