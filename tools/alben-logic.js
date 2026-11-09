@@ -111,6 +111,16 @@ function albPlan(playlists,liked,chosen){
   return {playlistOps,likeUris,unlikeUris};
 }
 
+// Anzeige-Reihenfolge (Wunsch des Nutzers): nach Künstler, dann Album, dann Position im Album.
+// Album = Ziel-Album, wenn es eins gibt, sonst die Single. Künstler = erster Künstler des Songs.
+function albArtistName(row){return row?.track?.artists?.[0]?.name||""}
+function albSortRows(rows){
+  const coll=new Intl.Collator("de",{sensitivity:"base",numeric:true});
+  const album=r=>r.decision?.target?.album?.name||r.track?.album?.name||"";
+  const pos=r=>r.decision?.target?.track?.track_number??r.track?.track_number??0;
+  return [...rows].sort((x,y)=>coll.compare(albArtistName(x),albArtistName(y))||coll.compare(album(x),album(y))||pos(x)-pos(y)||coll.compare(x.track?.name||"",y.track?.name||""));
+}
+
 function albChunks(list,size){const out=[];for(let i=0;i<list.length;i+=size)out.push(list.slice(i,i+size));return out}
 
-if(typeof module!=="undefined")module.exports={albBaseTitle,albIsTrack,albIsSingle,albYear,albMatchesFilter,albBuildIndex,albCandidates,albRank,albClassify,albCollectSingles,albPlan,albChunks,ALB_UNSURE_MS};
+if(typeof module!=="undefined")module.exports={albBaseTitle,albIsTrack,albIsSingle,albYear,albMatchesFilter,albBuildIndex,albCandidates,albRank,albClassify,albCollectSingles,albPlan,albArtistName,albSortRows,albChunks,ALB_UNSURE_MS};

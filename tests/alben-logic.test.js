@@ -94,3 +94,10 @@ test("Pakete für die Spotify-Grenzen",()=>{
   assert.deepEqual(albChunks([1,2,3,4,5],2),[[1,2],[3,4],[5]]);
   assert.deepEqual(albChunks([],40),[]);
 });
+
+test("Liste nach Künstler, dann Album, dann Position im Album sortiert",()=>{
+  const {albSortRows}=require("../tools/alben-logic.js");
+  const row=(artist,title,album,no)=>({track:{name:title,artists:[{name:artist}],album:{name:"Single "+title}},decision:album?{target:{album:{name:album},track:{track_number:no}}}:{target:null}});
+  const rows=[row("Eno","Ferrari","D-TEC",5),row("apache 207","Roller","Platte",2),row("Eno","Lila","Sehr gut",1),row("Eno","Intro","D-TEC",1),row("Ufo361","Ohne",null),row("Eno","Ohne Album",null)];
+  assert.deepEqual(albSortRows(rows).map(r=>r.track.name),["Roller","Intro","Ferrari","Lila","Ohne Album","Ohne"]);
+});
