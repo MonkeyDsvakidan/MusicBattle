@@ -133,6 +133,41 @@ function quizRevealPlay(q,sol){
   return null;
 }
 
+// ── Solo (7.8): alleine spielen, bester Punktestand je Fragenzahl auf dem Gerät ──
+// Reine Funktion: Highscore-Speicher {"10":{points,at}, …, last:{key,isNew,previous}} mit dem Ergebnis eines Quiz
+// aktualisieren. gameKey (Raum:Quiz-Nr.) macht das Eintragen wiederholbar – ein Neuaufbau zählt nicht doppelt.
+function soloHighscore(store,length,points,gameKey,today=""){
+  const s={...(store||{})},k=String(length),p=Number(points)||0;
+  if(s.last?.key===gameKey)return{store:s,isNew:s.last.isNew,previous:s.last.previous,best:s[k]?.points??null};
+  const previous=s[k]?.points??null,isNew=p>0&&(previous===null||p>previous);
+  if(isNew)s[k]={points:p,at:today};
+  s.last={key:gameKey,isNew,previous};
+  return{store:s,isNew,previous,best:s[k]?.points??null};
+}
+const QUIZ_BEST_KEY="mb_quiz_best";
+function readQuizBest(){try{return JSON.parse(localStorage.getItem(QUIZ_BEST_KEY)||"{}")||{}}catch{return{}}}
+function recordSoloResult(length,points,gameKey){
+  const r=soloHighscore(readQuizBest(),length,points,gameKey,new Date().toLocaleDateString("sv-SE"));   // lokales Datum JJJJ-MM-TT
+  try{localStorage.setItem(QUIZ_BEST_KEY,JSON.stringify(r.store))}catch{}
+  return r;
+}
+function isSoloQuiz(){return S.members.filter(m=>m.role==="quizzer").length===1}
+
+// „Alleine spielen“: Quiz-Raum erstellen, Songs vom Spotify des Geräts laden und – wenn es reicht – direkt mit Frage 1 starten.
+// Ohne gespeicherte Spotify-Anmeldung landet man in der Lobby mit „Spotify verbinden“ und startet danach selbst.
+async function startSoloQuiz(){
+  S.error="";
+  const name=$("createName")?.value.trim()||lastName()||"Solo";
+  rememberName(name);
+  const {data,error}=await sb.rpc("mb_create_quiz_room",{p_display_name:name,p_kind:"music",p_length:Number(S.soloLength)||10});
+  if(error){S.error=quizErrorText(error.message);render();return}
+  const row=data[0];
+  saveRoom({room_id:row.room_id,code:row.room_code});
+  await loadRoom(row.room_id);subscribeRoom();render();
+  await autoQuizSpotify();
+  if(quizPoolSummary(S.members).enough)await startQuiz();
+}
+
 function quizMembership(){return (typeof S!=="undefined"&&S.members||[]).find(m=>m.user_id===S.user?.id&&m.role==="quizzer")||null}
 
 // Eigene Spotify-Songs laden: Top-Songs (4 Wochen, 6 Monate, 1 Jahr) und bis zu 200 gespeicherte Songs.
@@ -221,6 +256,7 @@ async function startQuiz(){
     const r=await sb.functions.invoke("mb-quiz-start",{body:{room_id:S.room.id}});
     if(r.error){let b={};try{b=await r.error.context.json()}catch{}S.error=quizStartErrorText(b,r.error.message)}
   }finally{S.quizStarting=false;await reloadRoomNow()}
+  if(!S.error&&S.room?.status==="quiz"&&isSoloQuiz()&&!quizCurrentQuestion())await openNextQuestion();
 }
 function quizStartErrorText(b,fallback){
   if(b?.error==="pool too small")return`Zu wenig Songs: Aus ${b.songs} Songs entstehen nur ${b.questions} von ${b.needed} Fragen. Wählt weniger Fragen oder verbindet mehr Spotify-Konten.`;
@@ -325,4 +361,4 @@ if(typeof window!=="undefined")setInterval(quizTick,250);   // nur im Browser (n
 
 function quizErrorText(msg){const m=String(msg||"");if(/answer closed/i.test(m))return"Zu spät – die Zeit ist abgelaufen.";if(/already answered/i.test(m))return"Du hast schon geantwortet.";if(/question still open/i.test(m))return"Die Frage läuft noch.";if(/quiz full/i.test(m))return"Das Quiz ist voll (höchstens 20 Personen).";if(/quiz running/i.test(m))return"Das Quiz läuft schon – Songs kannst du erst vor dem nächsten Quiz ändern.";if(/not a room member/i.test(m))return"Du bist nicht (mehr) in diesem Quiz-Raum.";if(/too many tracks/i.test(m))return"Zu viele Songs auf einmal.";return m}
 
-if(typeof module!=="undefined")module.exports={QUIZ_POOL_MAX,QUIZ_POOL_MIN,quizSongKey,quizCoverUrl,quizReleaseYear,buildQuizPool,quizPoolSummary,quizStandings,quizRemainingMs,coverPixelSize,quizAnswerText,quizSolutionText,quizRevealPlay};
+if(typeof module!=="undefined")module.exports={QUIZ_POOL_MAX,QUIZ_POOL_MIN,quizSongKey,quizCoverUrl,quizReleaseYear,buildQuizPool,quizPoolSummary,quizStandings,quizRemainingMs,coverPixelSize,quizAnswerText,quizSolutionText,quizRevealPlay,soloHighscore};

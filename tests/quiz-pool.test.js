@@ -125,3 +125,20 @@ test("Antwort- und Lösungstexte",()=>{
   assert.deepEqual(quizRevealPlay({kind:"cover"},{play:{track_id:"x",start_ms:0}}),{track_id:"x",start_ms:0});
   assert.equal(quizRevealPlay({kind:"year"},{year:1}),null);
 });
+
+const {soloHighscore}=require("../js/quiz.js");
+test("Solo-Highscore je Fragenzahl, wiederholbar ohne Doppelzählung",()=>{
+  let r=soloHighscore({},10,4200,"raum:1","2026-11-10");
+  assert.equal(r.isNew,true);assert.equal(r.previous,null);assert.equal(r.best,4200);
+  assert.deepEqual(r.store["10"],{points:4200,at:"2026-11-10"});
+  const again=soloHighscore(r.store,10,4200,"raum:1");
+  assert.equal(again.isNew,true,"gleiches Quiz nochmals angezeigt: bleibt „neu“");
+  r=soloHighscore(r.store,10,3900,"raum:2");
+  assert.equal(r.isNew,false);assert.equal(r.best,4200);assert.equal(r.previous,4200);
+  r=soloHighscore(r.store,10,5100,"raum:3");
+  assert.equal(r.isNew,true);assert.equal(r.previous,4200);assert.equal(r.best,5100);
+  r=soloHighscore(r.store,15,2000,"raum:4");
+  assert.equal(r.isNew,true);assert.equal(r.store["10"].points,5100,"andere Länge unabhängig");
+  assert.equal(soloHighscore({},20,0,"raum:5").isNew,false,"0 Punkte ist kein Highscore");
+  assert.equal(soloHighscore(null,10,100,"x").isNew,true);
+});

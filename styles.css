@@ -531,3 +531,8 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
   .quizfinal[data-anim] .podium .place2{animation-delay:calc(var(--elapsed,0ms) + .6s)}
   .quizfinal[data-anim] .podium .place1{animation-delay:calc(var(--elapsed,0ms) + 1.1s)}
 }
+
+/* Quiz (7.8): Solo */
+.solorole .lengthpick{margin-bottom:var(--s3)}
+.bestline{margin:var(--s2) 0 0;color:var(--gold);font-weight:700}
+.quizfinal .finalscore .num{font:400 16px var(--f-num);color:var(--gold)}

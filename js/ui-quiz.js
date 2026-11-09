@@ -1,12 +1,20 @@
-/* ui-quiz.js – Bildschirme des Spotify-Quiz (Roadmap Phase 7): Start, Einladung, Lobby (7.5), Fragen (7.6), Endstand (7.7).
+/* ui-quiz.js – Bildschirme des Spotify-Quiz (Roadmap Phase 7): Start, Einladung, Lobby (7.5), Fragen (7.6), Endstand (7.7), Solo (7.8).
    Klassisches Skript, globale Namen. */
 
 // Startseite → „Quiz“: Quiz erstellen oder mit Code mitspielen
 function renderQuizLanding(err){
-  $("app").innerHTML=`<section class="card"><div class="sectionhead"><div><div class="eyebrow">MUSIK-QUIZ · BETA</div><h2>Wer kennt seine Musik?</h2></div><button class="btn ghost" id="changeMode">Modus ändern</button></div>${err}<p class="muted">Fragen aus den Spotify-Songs der Mitspieler: Erscheinungsjahr, welcher Song ist älter, welches Album gehört zum Cover. Wer schneller richtig liegt, bekommt mehr Punkte.</p><div class="joincolumns"><div class="joinrole playerrole"><div><div class="eyebrow">HOST</div><h3>Quiz erstellen</h3><p class="muted">Du lädst die anderen per QR-Code ein. Auf deinem Gerät läuft die Musik.</p></div><div><input id="createName" placeholder="Dein Name" value="${esc(lastName())}" autocomplete="nickname"><button class="btn primary" id="createQuizBtn">Quiz erstellen</button></div></div><div class="joinrole player2role"><div><div class="eyebrow">MITSPIELEN</div><h3>Mit Code beitreten</h3><p class="muted">Am einfachsten scannst du den QR-Code des Hosts.</p></div><div><input id="joinCode" maxlength="6" placeholder="Raumcode"><input id="joinName" placeholder="Dein Name" value="${esc(lastName())}"><button class="btn" id="joinQuizBtn">Mitspielen</button></div></div></div></section>`;
+  $("app").innerHTML=`<section class="card"><div class="sectionhead"><div><div class="eyebrow">MUSIK-QUIZ · BETA</div><h2>Wer kennt seine Musik?</h2></div><button class="btn ghost" id="changeMode">Modus ändern</button></div>${err}<p class="muted">Fragen aus den Spotify-Songs der Mitspieler: Erscheinungsjahr, welcher Song ist älter, welches Album gehört zum Cover. Wer schneller richtig liegt, bekommt mehr Punkte.</p><div class="joincolumns"><div class="joinrole playerrole"><div><div class="eyebrow">HOST</div><h3>Quiz erstellen</h3><p class="muted">Du lädst die anderen per QR-Code ein. Auf deinem Gerät läuft die Musik.</p></div><div><input id="createName" placeholder="Dein Name" value="${esc(lastName())}" autocomplete="nickname"><button class="btn primary" id="createQuizBtn">Quiz erstellen</button></div></div><div class="joinrole solorole"><div><div class="eyebrow">SOLO</div><h3>Alleine spielen</h3><p class="muted">Fragen aus deinen eigenen Spotify-Songs, ohne Warten. Dein bester Punktestand bleibt auf diesem Gerät.</p>${quizBestLine()}</div><div><div class="lengthpick" role="group" aria-label="Anzahl Fragen">${[10,15,20].map(n=>`<button class="btn${n===(Number(S.soloLength)||10)?" on":""}" data-solo-length="${n}" aria-pressed="${n===(Number(S.soloLength)||10)}">${n} Fragen</button>`).join("")}</div><button class="btn primary" id="soloQuizBtn">Alleine spielen</button></div></div><div class="joinrole player2role"><div><div class="eyebrow">MITSPIELEN</div><h3>Mit Code beitreten</h3><p class="muted">Am einfachsten scannst du den QR-Code des Hosts.</p></div><div><input id="joinCode" maxlength="6" placeholder="Raumcode"><input id="joinName" placeholder="Dein Name" value="${esc(lastName())}"><button class="btn" id="joinQuizBtn">Mitspielen</button></div></div></div></section>`;
   $("changeMode").onclick=resetDeviceModeChoice;
   $("createQuizBtn").onclick=createQuizRoom;
   $("joinQuizBtn").onclick=()=>joinRoom("quizzer");
+  $("soloQuizBtn").onclick=startSoloQuiz;
+  document.querySelectorAll("[data-solo-length]").forEach(b=>b.onclick=()=>{S.soloLength=Number(b.dataset.soloLength);renderQuizLanding(err)});
+}
+
+// Highscores des Geräts (Solo) als eine Zeile
+function quizBestLine(){
+  const best=readQuizBest(),parts=[10,15,20].filter(n=>best[n]).map(n=>`${n} Fragen: ${Number(best[n].points).toLocaleString("de-CH")}`);
+  return parts.length?`<p class="bestline">★ Highscore · ${parts.join(" · ")}</p>`:"";
 }
 
 // Einladungsseite nach dem Scannen (?join=CODE&m=quiz)
@@ -124,6 +132,7 @@ function renderQuizFinished(){
   const title=!table.length?"Quiz beendet":single?`${esc(top[0].name)} gewinnt`:"Gleichstand an der Spitze";
   const fastest=table.filter(r=>r.fastestMs!==null).sort((x,y)=>x.fastestMs-y.fastestMs)[0];
   const me=table.find(r=>r.member_id===quizMembership()?.id);
+  if(table.length===1)return renderSoloFinished(table[0],total);
   const podium=table.slice(0,3),order=podium.length===3?[podium[1],podium[0],podium[2]]:podium.length===2?[podium[1],podium[0]]:podium;
   const step=r=>`<div class="step place${Math.min(r.place,3)}"><b class="pl">${r.place}.</b><strong>${esc(r.name)}</strong><span>${pts(r.points)}</span></div>`;
   $("app").innerHTML=`<section class="card finalwrap quizfinal"${animAttr(`quizfinal:${S.room.id}:${S.room.quiz_game_no}`,2500)}>
@@ -133,6 +142,22 @@ function renderQuizFinished(){
     <div class="quizstand"><div class="eyebrow">RANGLISTE</div><ol>${table.map(r=>`<li><span>${r.place}. ${esc(r.name)}<small>${r.scored} / ${total} Treffer${r.fastestMs!==null?` · schnellste ${quizSeconds(r.fastestMs)}`:""}</small></span><b>${pts(r.points)}</b></li>`).join("")}</ol></div>
     ${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}
     ${isHost()?`<div class="actions rematch"><button class="btn primary" id="quizAgain"${S.quizStarting?" disabled":""}>${S.quizStarting?"Neue Fragen werden erstellt …":"Nochmal"}</button></div><p class="muted center">Gleiche Runde, neue Fragen – schon gespielte Songs kommen möglichst nicht nochmals.</p>`:`<p class="muted center">Der Host kann nochmal starten – mit neuen Fragen.</p>`}
+    ${roomExitControls()}</section>`;
+  bindRoomExitControls();
+  if($("quizAgain"))$("quizAgain").onclick=startQuiz;
+}
+
+// Solo-Endstand (7.8): eigenes Ergebnis, Highscore je Fragenzahl (auf dem Gerät), „Nochmal“
+function renderSoloFinished(me,total){
+  const pts=n=>Number(n||0).toLocaleString("de-CH");
+  const len=Number(S.room.quiz_length)||total;
+  const hs=recordSoloResult(len,me.points,`${S.room.id}:${S.room.quiz_game_no}`);
+  const best=hs.isNew?`<div class="belt" role="status">★ Neuer Highscore</div>${hs.previous!==null?`<p class="muted">Bisher: ${pts(hs.previous)}</p>`:""}`:`<p class="muted">Highscore (${len} Fragen): <b class="num">${pts(hs.best)}</b></p>`;
+  $("app").innerHTML=`<section class="card finalwrap quizfinal"${animAttr(`quizfinal:${S.room.id}:${S.room.quiz_game_no}`,2500)}>
+    <div class="finalscore"><div class="eyebrow">SOLO · ${total} FRAGEN</div><h2>Dein Ergebnis</h2><div class="big">${pts(me.points)}</div>${best}</div>
+    <div class="statsgrid"><div class="statcard"><span>Treffer</span><b>${me.scored} / ${total}</b></div><div class="statcard"><span>Schnellste Antwort</span><b>${me.fastestMs!==null?quizSeconds(me.fastestMs):"–"}</b></div><div class="statcard"><span>Beantwortet</span><b>${me.answered} / ${total}</b></div></div>
+    ${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}
+    ${isHost()?`<div class="actions rematch"><button class="btn primary" id="quizAgain"${S.quizStarting?" disabled":""}>${S.quizStarting?"Neue Fragen werden erstellt …":"Nochmal"}</button></div><p class="muted center">Neue Fragen – schon gespielte Songs kommen möglichst nicht nochmals.</p>`:""}
     ${roomExitControls()}</section>`;
   bindRoomExitControls();
   if($("quizAgain"))$("quizAgain").onclick=startQuiz;
