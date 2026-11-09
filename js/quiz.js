@@ -114,6 +114,76 @@ async function uploadQuizPool(slotNo){
   return Number(data)||0;
 }
 
-function quizErrorText(msg){const m=String(msg||"");if(/quiz running/i.test(m))return"Das Quiz läuft schon – Songs kannst du erst vor dem nächsten Quiz ändern.";if(/not a room member/i.test(m))return"Du bist nicht (mehr) in diesem Quiz-Raum.";if(/too many tracks/i.test(m))return"Zu viele Songs auf einmal.";return m}
+// Quiz noch im Aufbau (bis 7.7): Auf der Startseite nur sichtbar, wenn die Seite einmal mit ?quiz=1 geöffnet wurde
+// (bleibt auf dem Gerät gespeichert, ?quiz=0 blendet wieder aus). Einladungslinks zu einem Quiz funktionieren immer.
+function quizEnabled(){
+  try{const q=new URLSearchParams(location.search).get("quiz");if(q==="1")localStorage.setItem("mb_quiz_beta","1");if(q==="0")localStorage.removeItem("mb_quiz_beta");return localStorage.getItem("mb_quiz_beta")==="1"}catch{return false}
+}
+
+async function createQuizRoom(){
+  S.error="";
+  const name=$("createName")?.value.trim()||"";
+  if(!name){S.error="Name ist erforderlich.";render();return}
+  rememberName(name);
+  const {data,error}=await sb.rpc("mb_create_quiz_room",{p_display_name:name,p_kind:"music",p_length:10});
+  if(error){S.error=quizErrorText(error.message);render();return}
+  const row=data[0];
+  saveRoom({room_id:row.room_id,code:row.room_code});
+  await loadRoom(row.room_id);subscribeRoom();render();
+  await autoQuizSpotify();
+}
+
+// Spotify im Quiz (7.5): jede Person hat auf ihrem Gerät genau eine Anmeldung → Speicherplatz 1 des Geräts.
+// Ist das Gerät schon angemeldet (gespeicherte Anmeldung 5.6), steuert es seine Songs automatisch bei.
+async function autoQuizSpotify(){
+  const m=quizMembership(),saved=savedSpotify();
+  if(!m||Number(m.quiz_track_count)>0||S.quizSyncing||!["lobby","finished"].includes(S.room?.status))return;
+  const s=S.spotify[1];
+  if(!s.refresh&&saved){s.refresh=saved.refresh;s.access="";s.expires=0;localStorage.setItem(spotifyKey(1,"refresh"),saved.refresh)}
+  if(s.refresh)await syncQuizSpotify();
+}
+// Knopf „Spotify verbinden“: mit vorhandener Anmeldung Songs (neu) laden, sonst zum Spotify-Login
+async function connectQuizSpotify(){
+  const saved=savedSpotify(),s=S.spotify[1];
+  if(!s.refresh&&saved){s.refresh=saved.refresh;s.access="";s.expires=0;localStorage.setItem(spotifyKey(1,"refresh"),saved.refresh)}
+  if(s.refresh){await syncQuizSpotify();if(S.spotify[1]?.refresh)return}
+  await connectSpotify(1);
+}
+// Songs laden und hochladen; abgelaufene Anmeldung → vergessen und neu verbinden lassen
+async function syncQuizSpotify(){
+  if(S.quizSyncing)return;
+  S.quizSyncing=true;S.error="";render();
+  try{
+    if(!(await token(1))){clearSpotifySlot(1);forgetSavedSpotify();S.notice="Die gespeicherte Spotify-Anmeldung ist abgelaufen. Bitte Spotify neu verbinden.";return}
+    const n=await uploadQuizPool(1);
+    S.notice=`${n} Songs von deinem Spotify sind im Quiz.`;
+    rememberDeviceSpotify();
+  }catch(e){S.error=e.message}
+  finally{S.quizSyncing=false;await reloadRoomNow()}
+}
+
+function setQuizLength(n){
+  if(!isHost()||![10,15,20].includes(n)||S.room?.status==="quiz")return;
+  S.room.quiz_length=n;render();
+  sb.from("mb_rooms").update({quiz_length:n,updated_at:new Date().toISOString()}).eq("id",S.room.id).then(({error})=>{if(error)S.error=quizErrorText(error.message);reloadRoomNow()});
+}
+
+// Host startet: der Server erzeugt die Fragen (mb-quiz-start), alle wechseln per Realtime in den Status „quiz“
+async function startQuiz(){
+  if(!isHost()||S.quizStarting)return;
+  S.quizStarting=true;S.error="";render();
+  try{
+    const r=await sb.functions.invoke("mb-quiz-start",{body:{room_id:S.room.id}});
+    if(r.error){let b={};try{b=await r.error.context.json()}catch{}S.error=quizStartErrorText(b,r.error.message)}
+  }finally{S.quizStarting=false;await reloadRoomNow()}
+}
+function quizStartErrorText(b,fallback){
+  if(b?.error==="pool too small")return`Zu wenig Songs: Aus ${b.songs} Songs entstehen nur ${b.questions} von ${b.needed} Fragen. Wählt weniger Fragen oder verbindet mehr Spotify-Konten.`;
+  if(b?.error==="only host")return"Nur der Host kann das Quiz starten.";
+  if(b?.error==="already started")return"";
+  return b?.error||fallback||"Das Quiz konnte nicht gestartet werden.";
+}
+
+function quizErrorText(msg){const m=String(msg||"");if(/quiz full/i.test(m))return"Das Quiz ist voll (höchstens 20 Personen).";if(/quiz running/i.test(m))return"Das Quiz läuft schon – Songs kannst du erst vor dem nächsten Quiz ändern.";if(/not a room member/i.test(m))return"Du bist nicht (mehr) in diesem Quiz-Raum.";if(/too many tracks/i.test(m))return"Zu viele Songs auf einmal.";return m}
 
 if(typeof module!=="undefined")module.exports={QUIZ_POOL_MAX,QUIZ_POOL_MIN,quizSongKey,quizCoverUrl,quizReleaseYear,buildQuizPool,quizPoolSummary,quizStandings};

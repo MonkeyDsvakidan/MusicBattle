@@ -462,3 +462,12 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .actions.rematch{justify-content:center}
 .actions.rematch .btn{min-width:min(100%,260px)}
 .finalwrap .muted.center{text-align:center}
+
+/* Quiz (7.5): Startseite und Lobby */
+.modecard.quizcard{grid-column:1/-1}
+.quizsettings{margin-top:var(--s4)}
+.quizsettings label{display:block;margin-bottom:var(--s2)}
+.lengthpick{display:flex;gap:var(--s2)}
+.lengthpick .btn{flex:1 1 0;min-height:44px;padding-inline:var(--s2)}
+.lengthpick .btn.on{border-color:var(--gold);color:var(--gold);box-shadow:none}
+.quizlobby .sectionhead h3{margin:0}

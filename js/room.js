@@ -9,17 +9,17 @@ async function ensureAnon(){const {data:{session}}=await sb.auth.getSession();if
 function readInviteFromUrl(){
   const q=new URLSearchParams(location.search),code=(q.get("join")||"").trim().toUpperCase();
   if(!/^[A-Z0-9]{4,8}$/.test(code))return;
-  S.pendingJoin={code,mode:q.get("m")==="single"?"single":"two"};
+  S.pendingJoin={code,mode:["single","quiz"].includes(q.get("m"))?q.get("m"):"two"};
   history.replaceState({},"",location.pathname);
 }
 // Meldungen von mb_join_room auf Deutsch (6.2)
-function joinErrorText(msg){const m=String(msg||"");if(/room not found/i.test(m))return"Diesen Raum gibt es nicht (mehr). Frag nach einem neuen Link oder Code.";if(/one-device/i.test(m))return"Dieses Match läuft auf einem Gerät – du kannst nur als Juror beitreten.";if(/slots full/i.test(m))return"Beide Spielerplätze sind schon besetzt. Du kannst als Juror beitreten.";if(/display name/i.test(m))return"Bitte einen Namen eingeben (höchstens 30 Zeichen).";return m}
+function joinErrorText(msg){const m=String(msg||"");if(/room not found/i.test(m))return"Diesen Raum gibt es nicht (mehr). Frag nach einem neuen Link oder Code.";if(/one-device/i.test(m))return"Dieses Match läuft auf einem Gerät – du kannst nur als Juror beitreten.";if(/slots full/i.test(m))return"Beide Spielerplätze sind schon besetzt. Du kannst als Juror beitreten.";if(/display name/i.test(m))return"Bitte einen Namen eingeben (höchstens 30 Zeichen).";if(/room is a quiz/i.test(m))return"Das ist ein Quiz-Raum – öffne den Einladungslink oder tritt über „Quiz“ bei.";if(/room is a battle/i.test(m))return"Das ist ein Battle-Raum, kein Quiz.";if(/quiz full/i.test(m))return"Das Quiz ist voll (höchstens 20 Personen).";return m}
 function rememberName(name){try{if(name)localStorage.setItem("mb_last_name",name)}catch{}}
 function lastName(){try{return localStorage.getItem("mb_last_name")||""}catch{return""}}
 
 async function init(){readInviteFromUrl();await ensureAnon();const saved=roomStorage();if(saved?.room_id){await loadRoom(saved.room_id);subscribeRoom()}await spotifyCallback();if(saved?.room_id){await loadRoom(saved.room_id);await followRematch()}if(S.pendingJoin&&S.room?.code===S.pendingJoin.code)S.pendingJoin=null;render()}
 
-async function joinRoom(joinRole){S.error="";const code=$("joinCode").value.trim().toUpperCase(),name=$("joinName").value.trim();if(!code||!name){S.error="Raumcode und Name fehlen.";render();return}const {data,error}=await sb.rpc("mb_join_room",{p_room_code:code,p_display_name:name,p_role:joinRole});if(error){S.error=joinErrorText(error.message);render();return}const row=data[0];rememberName(name);S.pendingJoin=null;saveRoom({room_id:row.room_id,code});await loadRoom(row.room_id);subscribeRoom();render();const slot=joinRole==="player"?ownedMemberships().find(m=>m.role==="player")?.player_slot:null;if(slot&&await useSavedSpotify(slot))render()}
+async function joinRoom(joinRole){S.error="";const code=$("joinCode").value.trim().toUpperCase(),name=$("joinName").value.trim();if(!code||!name){S.error="Raumcode und Name fehlen.";render();return}const {data,error}=await sb.rpc("mb_join_room",{p_room_code:code,p_display_name:name,p_role:joinRole});if(error){S.error=joinErrorText(error.message);render();return}const row=data[0];rememberName(name);S.pendingJoin=null;saveRoom({room_id:row.room_id,code});await loadRoom(row.room_id);subscribeRoom();render();if(joinRole==="quizzer"){await autoQuizSpotify();return}const slot=joinRole==="player"?ownedMemberships().find(m=>m.role==="player")?.player_slot:null;if(slot&&await useSavedSpotify(slot))render()}
 
 async function loadRoom(roomId){const [{data:room},{data:members},{data:picks},{data:rounds},{data:subs},{data:scores},votesRes]=await Promise.all([sb.from("mb_rooms").select("*").eq("id",roomId).single(),sb.from("mb_members").select("*").eq("room_id",roomId).order("joined_at"),sb.from("mb_draft_picks").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_rounds").select("*").eq("room_id",roomId).order("round_number"),sb.from("mb_submissions").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_jury_scores").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_category_votes").select("*").eq("room_id",roomId).order("created_at")]);if(!room){clearRoom();return}S.votes=votesRes?.data||[];S.room=room;S.members=members||[];S.picks=picks||[];S.rounds=rounds||[];S.subs=subs||[];S.scores=scores||[];S.membership=S.members.find(m=>m.user_id===S.user?.id)||null;restoreSpotify(1);restoreSpotify(2);restorePool(1);restorePool(2)}
 
@@ -44,7 +44,7 @@ async function addLocalPlayer2(){
 }
 
 function setDeviceModeChoice(mode){
-  if(!["single","two"].includes(mode))return;
+  if(!["single","two","quiz"].includes(mode))return;
   window.MB_DEVICE_MODE_CHOICE=mode;
   localStorage.setItem("mb_device_mode_choice",mode);
   renderLanding();

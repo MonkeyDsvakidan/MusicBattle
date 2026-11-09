@@ -14,7 +14,7 @@ function spotifyKey(slotNo,kind){return `mb_sp_${kind}_${slotNo}`}
 function poolKey(slotNo){return `mb_artist_pool_v2_${slotNo}`}
 
 async function connectSpotify(slotNo){
- if(!ownsPlayerSlot(slotNo)){
+ if(!ownsPlayerSlot(slotNo)&&!(S.room?.game==="quiz"&&slotNo===1)){
    S.error=`Spieler ${slotNo} ist in diesem Browser noch nicht angelegt.`;
    render();
    return;
@@ -33,7 +33,7 @@ async function spotifyCallback(){
  const body=new URLSearchParams({client_id:spotifyClientId(),grant_type:"authorization_code",code,redirect_uri:redirectUri(),code_verifier:v});
  const r=await fetch(SPOTIFY.token,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});
  if(!r.ok){S.error=`Spotify Token konnte nicht erstellt werden (${r.status}).`;history.replaceState({},"",location.pathname);return}
- storeSpotify(slotNo,await r.json());sessionStorage.removeItem("mb_pkce");sessionStorage.removeItem("mb_sp_state");sessionStorage.removeItem("mb_sp_slot");history.replaceState({},"",location.pathname);await hydrateSpotify(slotNo);rememberDeviceSpotify();
+ storeSpotify(slotNo,await r.json());sessionStorage.removeItem("mb_pkce");sessionStorage.removeItem("mb_sp_state");sessionStorage.removeItem("mb_sp_slot");history.replaceState({},"",location.pathname);if(S.room?.game==="quiz")await syncQuizSpotify();else await hydrateSpotify(slotNo);rememberDeviceSpotify();
 }
 
 function storeSpotify(slotNo,t){const s=S.spotify[slotNo];s.access=t.access_token;s.refresh=t.refresh_token||s.refresh;s.expires=Date.now()+((t.expires_in||3600)-60)*1000;sessionStorage.setItem(spotifyKey(slotNo,"access"),s.access);localStorage.setItem(spotifyKey(slotNo,"refresh"),s.refresh||"");localStorage.setItem(spotifyKey(slotNo,"expires"),String(s.expires))}
@@ -54,7 +54,7 @@ function clearSpotifySlot(slotNo){const s=S.spotify[slotNo];s.access="";s.refres
 const SAVED_SPOTIFY_KEY="mb_sp_saved";
 function savedSpotify(){try{const s=JSON.parse(localStorage.getItem(SAVED_SPOTIFY_KEY)||"null");return s?.refresh?s:null}catch{return null}}
 function rememberDeviceSpotify(){
-  const n=[1,2].find(k=>S.spotify[k]?.refresh&&(ownsPlayerSlot(k)||!S.room));
+  const n=[1,2].find(k=>S.spotify[k]?.refresh&&(ownsPlayerSlot(k)||!S.room||(S.room.game==="quiz"&&k===1)));
   if(!n)return;
   try{localStorage.setItem(SAVED_SPOTIFY_KEY,JSON.stringify({refresh:S.spotify[n].refresh,name:S.spotifyProfiles[n]?.display_name||savedSpotify()?.name||""}))}catch{}
 }

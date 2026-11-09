@@ -26,6 +26,7 @@ function mbConfirm(message,{title="Bist du sicher?",confirmLabel="Bestätigen",c
 async function mbConfirmLeave(){
   if(!S.room?.id||["lobby","finished","closed"].includes(S.room.status))return true;
   const code=S.room.code;
+  if(S.room.game==="quiz")return isHost()?mbConfirm("Das laufende Quiz wird für alle beendet.",{title:"Quiz verlassen?",confirmLabel:"Verlassen",cancelLabel:"Weiterspielen",danger:true}):mbConfirm(`Mit dem Raumcode ${code} kannst du wieder mitspielen.`,{title:"Quiz verlassen?",confirmLabel:"Verlassen",cancelLabel:"Weiterspielen",danger:true});
   if(isHost())return mbConfirm("Das laufende Match wird für alle beendet.",{title:"Match verlassen?",confirmLabel:"Verlassen",cancelLabel:"Weiterspielen",danger:true});
   if(role()==="juror")return mbConfirm(`Du kannst mit dem Raumcode ${code} wieder als Juror beitreten.`,{title:"Jury verlassen?",confirmLabel:"Verlassen",cancelLabel:"Bleiben",danger:true});
   return mbConfirm(`Das Match wartet auf dich. Mit dem Raumcode ${code} kommst du als Spieler 2 auf deinen Platz zurück.`,{title:"Match verlassen?",confirmLabel:"Verlassen",cancelLabel:"Weiterspielen",danger:true});
@@ -48,6 +49,7 @@ function animAttr(key,durationMs){
 
 // Fortschritt im Match (Roadmap 4.3): Lobby → Draft → Battle → Ergebnis
 function flowSteps(){
+  if(S.room?.game==="quiz"){const q=["lobby","quiz","finished"].indexOf(S.room.status);return q<0?"":`<nav class="flow" aria-label="Spielablauf"><ol>${["Lobby","Quiz","Rangliste"].map((l,n)=>`<li class="${n<q?"done":n===q?"now":""}"${n===q?' aria-current="step"':""}>${l}</li>`).join("")}</ol></nav>`}
   const st=S.room?.status,i=st==="lobby"?0:st==="draft"?1:["battle","tiebreak","sudden_draft"].includes(st)?2:st==="finished"?3:-1;
   if(i<0)return"";
   return `<nav class="flow" aria-label="Spielablauf"><ol>${["Lobby","Draft","Battle","Ergebnis"].map((l,n)=>`<li class="${n<i?"done":n===i?"now":""}"${n===i?' aria-current="step"':""}>${l}</li>`).join("")}</ol></nav>`;
@@ -87,6 +89,7 @@ function render(){
   bindBrandHome();
   if(S.user&&S.pendingJoin){renderInvite();return}
   if(!S.user||!S.room){renderLanding();return}
+  if(S.room.game==="quiz"){if(S.room.status==="closed"){renderClosed();return}$("roomBadge").innerHTML=`<span class="chip">${esc(S.room.code)} · QUIZ</span>`;renderQuiz();$("app").insertAdjacentHTML("afterbegin",flowSteps());return}
   const localSlots=ownedMemberships().filter(m=>m.role==="player").map(m=>m.player_slot).sort();
   $("roomBadge").innerHTML=`<span class="chip">${esc(S.room.code)} · ${role()==="player"?(localSlots.length===2?"SPIELER 1 + 2":`SPIELER ${localSlots[0]}`):"JURY"}</span>`;
   if(S.room.status==="lobby")renderLobby();else if(S.room.status==="draft")renderDraft();else if(S.room.status==="battle")renderBattle();else if(S.room.status==="tiebreak")renderTiebreak();else if(S.room.status==="sudden_draft")renderSuddenDraft();else if(S.room.status==="finished")renderFinished();else if(S.room.status==="closed"){renderClosed();return}else renderLobby();
