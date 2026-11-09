@@ -117,7 +117,20 @@ function mergeRankedArtist(map,a,range,rank){
   map.set(a.id,prev);
 }
 
-function looksLikeSpokenTrack(track){const hay=`${String(track?.name||"").toLowerCase()} ${String(track?.album?.name||"").toLowerCase()}`;return SPOKEN_NAME_HINTS.some(h=>hay.includes(h))}
+function looksLikeSpokenTrack(track){const hay=`${String(track?.name||"").toLowerCase()} ${String(track?.album?.name||"").toLowerCase()}`;return SPOKEN_NAME_HINTS.some(h=>hay.includes(h))||looksLikeChapterTitle(track?.name)}
+
+function savePool(slotNo){localStorage.setItem(poolKey(slotNo),JSON.stringify(S.artistPools[slotNo]||[]))}
+
+// Hörbuch-Autor? 10 Songs des Künstlers per Suche, überwiegend Kapitel-Titel → ja (6.4). Fehler = nein.
+async function isAudiobookArtist(slotNo,artist){
+  try{
+    const d=await sp(slotNo,`/search?type=track&limit=10&q=${encodeURIComponent(`artist:"${artist.name}"`)}`);
+    const own=(d.tracks?.items||[]).filter(t=>t?.artists?.some(a=>a.id===artist.id)).map(t=>({name:t.name,artists:[{id:artist.id}]}));
+    return chapterArtistIds(own).has(artist.id);
+  }catch{return false}
+}
+
+function dropFromPool(slotNo,artistId){S.artistPools[slotNo]=(S.artistPools[slotNo]||[]).filter(a=>a.id!==artistId);savePool(slotNo)}
 
 async function enrichArtist(slotNo,artist){if(!artist?.id)return artist;try{const full=await sp(slotNo,`/artists/${artist.id}`);return{id:full.id,name:full.name,image:full.images?.[1]?.url||full.images?.[0]?.url||artist.image||"",genres:full.genres||[]}}catch{return{id:artist.id,name:artist.name,image:artist.image||"",genres:artist.genres||[]}}}
 
@@ -130,6 +143,10 @@ async function hydrateSpotify(slotNo){
   const ranges=["long_term","medium_term","short_term"];
   const topSets=await Promise.all(ranges.map(range=>sp(slotNo,`/me/top/artists?limit=50&time_range=${range}`).then(d=>({range,items:d.items||[]}))));
   for(const set of topSets)set.items.forEach((a,i)=>mergeRankedArtist(map,a,set.range,i+1));
+  // Hörbuch-Autoren über Kapitel-Titel in den eigenen Top-Songs aussortieren (6.4)
+  const topTracks=(await Promise.all(ranges.map(range=>sp(slotNo,`/me/top/tracks?limit=50&time_range=${range}`).then(d=>d.items||[]).catch(()=>[])))).flat();
+  const chapterIds=chapterArtistIds(topTracks);
+  for(const id of chapterIds)map.delete(id);
   if(map.size<20){
     const fallbackCandidates=new Map();let off=0;
     while(off<500&&fallbackCandidates.size<50){
@@ -137,7 +154,7 @@ async function hydrateSpotify(slotNo){
       for(const it of d.items||[]){
         const track=it.track;if(!track||looksLikeSpokenTrack(track))continue;
         const a=track.artists?.[0];
-        if(a?.id&&!map.has(a.id)&&!fallbackCandidates.has(a.id))fallbackCandidates.set(a.id,{id:a.id,name:a.name,image:""});
+        if(a?.id&&!map.has(a.id)&&!chapterIds.has(a.id)&&!fallbackCandidates.has(a.id))fallbackCandidates.set(a.id,{id:a.id,name:a.name,image:""});
       }
       if(!d.next)break;off+=50;
     }
@@ -148,7 +165,7 @@ async function hydrateSpotify(slotNo){
       map.set(full.id,{...full,draftWeight:8,sources:["library"]});
     }
   }
-  S.artistPools[slotNo]=[...map.values()].filter(a=>!looksLikeSpokenArtist(a)).sort((a,b)=>(b.draftWeight||0)-(a.draftWeight||0));
+  S.artistPools[slotNo]=[...map.values()].filter(a=>!looksLikeSpokenArtist(a)&&!chapterIds.has(a.id)).sort((a,b)=>(b.draftWeight||0)-(a.draftWeight||0));
   localStorage.setItem(poolKey(slotNo),JSON.stringify(S.artistPools[slotNo]));
   await sb.rpc("mb_set_spotify_ready_for_slot",{p_room_id:S.room.id,p_slot:slotNo,p_ready:true,p_display_name:profile.display_name||"",p_artist_count:S.artistPools[slotNo].length});
   if(slotNo===1&&S.room?.device_mode==="single"&&ownsPlayerSlot(2)){

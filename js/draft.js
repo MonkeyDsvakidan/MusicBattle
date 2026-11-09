@@ -13,18 +13,30 @@ async function initializeRounds(){if(!isHost())return;if((S.rounds||[]).length>=
 
 function allSkippedArtistIds(){return new Set(S.members.map(m=>m.draft_skipped_artist_id).filter(Boolean))}
 
-function drawArtist(slotNo){
-  restorePool(slotNo);
-  const used=new Set(S.picks.map(p=>p.spotify_artist_id));
-  for(const id of allSkippedArtistIds())used.add(id);
-  const avail=(S.artistPools[slotNo]||[]).filter(a=>!used.has(a.id));
-  if(!avail.length){S.error=`Keine eindeutigen Künstler für Spieler ${slotNo} verfügbar.`;render();return}
-  const weights=avail.map(a=>Math.max(1,Number(a.draftWeight)||10));
-  const total=weights.reduce((a,b)=>a+b,0);
-  let roll=Math.random()*total,chosen=avail[avail.length-1];
-  for(let i=0;i<avail.length;i++){roll-=weights[i];if(roll<=0){chosen=avail[i];break}}
-  S.currentArtist=chosen;
-  S.currentArtistSlot=slotNo;render();
+// Ziehen gewichtet nach Hörverhalten und Genre (Hip-Hop bevorzugt, 6.5); Hörbuch-Autoren werden vor dem Anzeigen
+// per Suche erkannt, aus dem Pool entfernt und es wird neu gezogen (6.4). Geprüfte Künstler merkt sich der Pool.
+async function drawArtist(slotNo){
+  if(S.drawing)return;S.drawing=true;
+  try{
+    restorePool(slotNo);
+    for(let attempt=0;attempt<5;attempt++){
+      const used=new Set(S.picks.map(p=>p.spotify_artist_id));
+      for(const id of allSkippedArtistIds())used.add(id);
+      const avail=(S.artistPools[slotNo]||[]).filter(a=>!used.has(a.id));
+      if(!avail.length){S.error=`Keine eindeutigen Künstler für Spieler ${slotNo} verfügbar.`;render();return}
+      const weights=avail.map(effectiveDraftWeight);
+      const total=weights.reduce((a,b)=>a+b,0);
+      let roll=Math.random()*total,chosen=avail[avail.length-1];
+      for(let i=0;i<avail.length;i++){roll-=weights[i];if(roll<=0){chosen=avail[i];break}}
+      if(!chosen.checked){
+        if(await isAudiobookArtist(slotNo,chosen)){dropFromPool(slotNo,chosen.id);continue}
+        chosen.checked=true;savePool(slotNo);
+      }
+      S.currentArtist=chosen;
+      S.currentArtistSlot=slotNo;render();return;
+    }
+    S.error="Es wurden nur Hörbücher gezogen. Bitte nochmals ziehen.";render();
+  }finally{S.drawing=false}
 }
 
 async function useDraftSkip(slotNo){
