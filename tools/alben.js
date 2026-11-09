@@ -198,6 +198,17 @@ function albRow(r,withBox){
   return `<label class="alb-row">${box}${albCover(target?.album||t.album)}<span class="alb-txt"><span class="alb-title">${albEsc(t.name)}</span><span class="muted">${(t.artists||[]).map(a=>albEsc(a.name)).join(", ")} · Single «${albEsc(t.album?.name)}»</span>${to}<span class="alb-where">${albPlaces(r)}</span></span></label>`;
 }
 
+// Liste nach Künstler und Album sortiert, mit Künstler-Überschrift (Wunsch des Nutzers)
+function albList(rows,withBox){
+  let last=null,html="";
+  for(const r of albSortRows(rows)){
+    const artist=albArtistName(r);
+    if(artist!==last){html+=`<div class="alb-artist">${albEsc(artist||"Unbekannt")}</div>`;last=artist}
+    html+=albRow(r,withBox);
+  }
+  return `<div class="alb-list">${html}</div>`;
+}
+
 function albRender(){
   const app=document.getElementById("app");if(!app)return;
   const err=ALB.error?`<div class="notice error">${albEsc(ALB.error)}</div>`:"";
@@ -215,9 +226,9 @@ function albRender(){
     const confirm=ALB.confirm?`<div class="notice"><b>${n} Song${n===1?"":"s"} ersetzen?</b> In den Playlists geht dabei das «Hinzugefügt am»-Datum dieser Songs verloren, die Albumversionen erscheinen bei den gelikten Songs zuoberst.</div><button class="btn primary" id="albApply">Ja, ersetzen</button><button class="btn ghost" id="albCancel">Abbrechen</button>`:`<button class="btn primary" id="albAsk" ${n?"":"disabled"}>Ausgewählte ersetzen (${n})</button>`;
     app.innerHTML=`<section class="card stack">${head}<p class="muted">Testlauf fertig – noch nichts geändert${filterNote}.</p>
       <div class="alb-chips"><span class="chip ok">${sure.length} sicher</span><span class="chip">${unsure.length} unsicher</span><span class="chip">${none.length} ohne gespeichertes Album</span></div>
-      ${sure.length?`<h3>Albumversion gefunden</h3><p class="muted">Gleiche Aufnahme wie die Single.</p><div class="alb-list">${sure.map(r=>albRow(r,true)).join("")}</div>`:`<div class="notice">Keine Single gefunden, deren Aufnahme auf einem deiner gespeicherten Alben liegt.</div>`}
-      ${unsure.length?`<h3>Unsicher – bitte prüfen</h3><p class="muted">Gleicher Titel, aber eine andere Aufnahme (z. B. Radio Edit, Remix, neue Abmischung). Nur anhaken, wenn du die Albumversion willst.</p><div class="alb-list">${unsure.map(r=>albRow(r,true)).join("")}</div>`:""}
-      ${none.length?`<details><summary>Bleiben, wie sie sind (${none.length})</summary><div class="alb-list">${none.map(r=>albRow(r,false)).join("")}</div></details>`:""}
+      ${sure.length?`<h3>Albumversion gefunden</h3><p class="muted">Gleiche Aufnahme wie die Single.</p>${albList(sure,true)}`:`<div class="notice">Keine Single gefunden, deren Aufnahme auf einem deiner gespeicherten Alben liegt.</div>`}
+      ${unsure.length?`<h3>Unsicher – bitte prüfen</h3><p class="muted">Gleicher Titel, aber eine andere Aufnahme (z. B. Radio Edit, Remix, neue Abmischung). Nur anhaken, wenn du die Albumversion willst.</p>${albList(unsure,true)}`:""}
+      ${none.length?`<details><summary>Bleiben, wie sie sind (${none.length})</summary>${albList(none,false)}</details>`:""}
       ${sc.skipped.length?`<details><summary>Nicht lesbare Playlists (${sc.skipped.length})</summary><p class="muted">${sc.skipped.map(albEsc).join("<br>")}</p></details>`:""}
       ${err}${confirm}<button class="btn ghost" id="albBack">Zurück</button></section>`;
   }else if(ALB.view==="done"){
