@@ -82,3 +82,12 @@ test("Zusammenfassung für die Lobby",()=>{
   assert.deepEqual(s,{tracks:35,people:2,players:3,enough:35>=QUIZ_POOL_MIN});
   assert.equal(quizPoolSummary([]).enough,false);
 });
+
+const {quizStandings}=require("../js/quiz.js");
+test("Rangliste: Punkte summiert, gleiche Punkte = gleicher Platz",()=>{
+  const members=[{id:"a",role:"quizzer",display_name:"Mia"},{id:"b",role:"quizzer",display_name:"Lukas"},{id:"c",role:"quizzer",display_name:"Sara"},{id:"d",role:"quizzer",display_name:"Ben"},{id:"j",role:"juror",display_name:"X"}];
+  const answers=[{member_id:"a",points:1000},{member_id:"a",points:0},{member_id:"b",points:600},{member_id:"b",points:400},{member_id:"c",points:500},{member_id:"x",points:900},{member_id:"d",points:null}];
+  const r=quizStandings(members,answers);
+  assert.deepEqual(r.map(x=>`${x.place}.${x.name}:${x.points}/${x.scored}/${x.answered}`),["1.Lukas:1000/2/2","1.Mia:1000/1/2","3.Sara:500/1/1","4.Ben:0/0/1"]);
+  assert.deepEqual(quizStandings([],[]),[]);
+});

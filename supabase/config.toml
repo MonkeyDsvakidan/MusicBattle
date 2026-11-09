@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.mb-quiz-start]
 verify_jwt = true
+
+[functions.mb-quiz-reveal]
+verify_jwt = true

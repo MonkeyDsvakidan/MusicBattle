@@ -77,6 +77,17 @@ function quizPoolSummary(members){
   return {tracks,people:suppliers.length,players:quizzers.length,enough:tracks>=QUIZ_POOL_MIN};
 }
 
+// Rangliste (7.4): Punkte je Mitspieler aus den aufgedeckten Antworten; gleiche Punkte = gleicher Platz.
+// answers: Zeilen aus mb_quiz_answers (points erst nach dem Aufdecken gesetzt); nur Antworten des laufenden Quiz übergeben.
+function quizStandings(members,answers){
+  const rows=(members||[]).filter(m=>m.role==="quizzer").map(m=>({member_id:m.id,name:m.display_name,points:0,scored:0,answered:0}));
+  const by=new Map(rows.map(r=>[r.member_id,r]));
+  for(const a of answers||[]){const r=by.get(a.member_id);if(!r)continue;r.answered++;if(Number(a.points)>0){r.points+=Number(a.points);r.scored++}}
+  rows.sort((a,b)=>b.points-a.points||String(a.name).localeCompare(String(b.name),"de"));
+  rows.forEach((r,i)=>{r.place=i&&r.points===rows[i-1].points?rows[i-1].place:i+1});
+  return rows;
+}
+
 function quizMembership(){return (typeof S!=="undefined"&&S.members||[]).find(m=>m.user_id===S.user?.id&&m.role==="quizzer")||null}
 
 // Eigene Spotify-Songs laden: Top-Songs (4 Wochen, 6 Monate, 1 Jahr) und bis zu 200 gespeicherte Songs.
@@ -105,4 +116,4 @@ async function uploadQuizPool(slotNo){
 
 function quizErrorText(msg){const m=String(msg||"");if(/quiz running/i.test(m))return"Das Quiz läuft schon – Songs kannst du erst vor dem nächsten Quiz ändern.";if(/not a room member/i.test(m))return"Du bist nicht (mehr) in diesem Quiz-Raum.";if(/too many tracks/i.test(m))return"Zu viele Songs auf einmal.";return m}
 
-if(typeof module!=="undefined")module.exports={QUIZ_POOL_MAX,QUIZ_POOL_MIN,quizSongKey,quizCoverUrl,quizReleaseYear,buildQuizPool,quizPoolSummary};
+if(typeof module!=="undefined")module.exports={QUIZ_POOL_MAX,QUIZ_POOL_MIN,quizSongKey,quizCoverUrl,quizReleaseYear,buildQuizPool,quizPoolSummary,quizStandings};

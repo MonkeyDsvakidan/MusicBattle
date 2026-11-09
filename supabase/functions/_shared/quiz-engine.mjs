@@ -144,3 +144,27 @@ export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = 
   }
   return questions;
 }
+
+// Punkte (Roadmap 7.4, Entscheidung I: richtig + Tempo-Bonus, beim Jahr „je näher, desto mehr“).
+// Punkte = Treffer × (500 + 500 × Tempo), auf 10 gerundet. Tempo = 1 bei sofortiger Antwort, 0 bei Ablauf der Zeit.
+// Treffer: Auswahl-Fragen 1 (richtig) oder 0; Jahr 1 bei exakt, −0,1 pro Jahr daneben, ab 10 Jahren 0.
+// → richtig und sofort 1000, richtig in letzter Sekunde 500, Jahr 3 daneben nach halber Zeit 530.
+export const QUIZ_SCORING = { base: 500, speedBonus: 500, yearStep: 0.1, limitMs: 20000 };
+
+export function answerAccuracy(kind, answer, solution) {
+  if (!answer || !solution) return 0;
+  if (kind === "year") {
+    const diff = Math.abs(Number(answer.year) - Number(solution.year));
+    return Number.isFinite(diff) ? Math.max(0, 1 - diff * QUIZ_SCORING.yearStep) : 0;
+  }
+  if (kind === "whose") return (solution.member_ids || []).includes(answer.member_id) ? 1 : 0;
+  return Number(answer.choice) === Number(solution.choice) ? 1 : 0;
+}
+
+export function scoreAnswer(kind, answer, solution, answerMs, limitMs = QUIZ_SCORING.limitMs) {
+  const accuracy = answerAccuracy(kind, answer, solution);
+  if (accuracy <= 0) return 0;
+  const ms = Math.max(0, Number(answerMs) || 0), limit = Math.max(1, Number(limitMs) || QUIZ_SCORING.limitMs);
+  const speed = Math.min(1, Math.max(0, 1 - ms / limit));
+  return Math.round((accuracy * (QUIZ_SCORING.base + QUIZ_SCORING.speedBonus * speed)) / 10) * 10;
+}

@@ -119,3 +119,32 @@ test("Startpunkt", () => {
   assert.equal(startMs({ duration_ms: 45000 }), 0);
   assert.equal(startMs({}), 0);
 });
+
+import { scoreAnswer, answerAccuracy, QUIZ_SCORING } from "../supabase/functions/_shared/quiz-engine.mjs";
+
+test("Punkte: richtig + Tempo-Bonus", () => {
+  assert.equal(scoreAnswer("older", { choice: 2 }, { choice: 2 }, 0), 1000);
+  assert.equal(scoreAnswer("older", { choice: 2 }, { choice: 2 }, 10000), 750);
+  assert.equal(scoreAnswer("cover", { choice: 3 }, { choice: 3 }, 20000), 500);
+  assert.equal(scoreAnswer("cover", { choice: 3 }, { choice: 3 }, 20900), 500, "Toleranz nach Ablauf: nur Grundpunkte");
+  assert.equal(scoreAnswer("cover", { choice: 1 }, { choice: 3 }, 0), 0);
+  assert.equal(scoreAnswer("older", null, { choice: 1 }, 0), 0);
+});
+
+test("Punkte: Jahr je näher, desto mehr", () => {
+  const s = (y, ms = 0) => scoreAnswer("year", { year: y }, { year: 2004 }, ms);
+  assert.equal(s(2004), 1000);
+  assert.equal(s(2001), 700);
+  assert.equal(s(2007, 10000), 530);
+  assert.equal(s(1994), 0, "10 Jahre daneben");
+  assert.equal(s(2030), 0);
+  assert.ok(s(2005) > s(2006) && s(2006) > s(2010));
+  assert.equal(answerAccuracy("year", { year: "x" }, { year: 2004 }), 0);
+});
+
+test("Punkte: wessen Song (Quiz-Art A) und eigenes Zeitlimit", () => {
+  assert.equal(scoreAnswer("whose", { member_id: "m2" }, { member_ids: ["m1", "m2"] }, 0), 1000);
+  assert.equal(scoreAnswer("whose", { member_id: "m3" }, { member_ids: ["m1"] }, 0), 0);
+  assert.equal(scoreAnswer("older", { choice: 1 }, { choice: 1 }, 15000, 30000), 750);
+  assert.equal(QUIZ_SCORING.limitMs, 20000);
+});
