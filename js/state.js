@@ -1,7 +1,7 @@
 /* state.js – Zustand (S), DOM-Helfer und Abfragen auf Raum/Mitglieder/Runden
    Konsolidiert aus app-1 … app-6d (Roadmap 2.2). Klassisches Skript, globale Namen. */
 
-const S={user:null,room:null,members:[],picks:[],rounds:[],subs:[],scores:[],membership:null,currentArtist:null,currentArtistSlot:null,artistPools:{1:[],2:[]},spotifyProfiles:{1:null,2:null},spotify:{1:{access:"",refresh:"",expires:0,player:null,deviceId:""},2:{access:"",refresh:"",expires:0,player:null,deviceId:""}},searchResults:{1:[],2:[]},searchQuery:{1:"",2:""},notice:"",error:"",aiReveal:0,votes:[],ballot:{},voteHandover:"",voteEditing:""};
+const S={user:null,room:null,members:[],picks:[],rounds:[],subs:[],scores:[],membership:null,currentArtist:null,currentArtistSlot:null,artistPools:{1:[],2:[]},spotifyProfiles:{1:null,2:null},spotify:{1:{access:"",refresh:"",expires:0,player:null,deviceId:""},2:{access:"",refresh:"",expires:0,player:null,deviceId:""}},searchResults:{1:[],2:[]},searchQuery:{1:"",2:""},notice:"",error:"",aiReveal:0,votes:[],ballot:{},voteHandover:"",voteEditing:"",quizQuestions:[],quizAnswers:[],quizSolutions:[]};
 
 const $=id=>document.getElementById(id);
 

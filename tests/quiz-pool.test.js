@@ -91,3 +91,34 @@ test("Rangliste: Punkte summiert, gleiche Punkte = gleicher Platz",()=>{
   assert.deepEqual(r.map(x=>`${x.place}.${x.name}:${x.points}/${x.scored}/${x.answered}`),["1.Lukas:1000/2/2","1.Mia:1000/1/2","3.Sara:500/1/1","4.Ben:0/0/1"]);
   assert.deepEqual(quizStandings([],[]),[]);
 });
+
+const {quizRemainingMs,coverPixelSize,quizAnswerText,quizSolutionText,quizRevealPlay}=require("../js/quiz.js");
+test("Restzeit: Serverzeit, eigene Uhr falsch → ab dem ersten Sehen",()=>{
+  const start=Date.parse("2026-11-10T12:00:00Z"),q={started_at:new Date(start).toISOString(),deadline_at:new Date(start+20000).toISOString()};
+  assert.equal(quizRemainingMs(q,start+5000,start+5000),15000);
+  assert.equal(quizRemainingMs(q,start+25000,start),0);
+  assert.equal(quizRemainingMs(q,start-500,start-500),20000,"kleine Abweichung: noch volle Zeit");
+  assert.equal(quizRemainingMs(q,start+3600000+2000,start+3600000),18000,"Uhr eine Stunde vor: ab Sehen");
+  assert.equal(quizRemainingMs(q,start-90000+1000,start-90000),19000,"Uhr 90 s nach: ab Sehen");
+  assert.equal(quizRemainingMs({},start),0);
+});
+test("Cover wird über die Zeit schärfer",()=>{
+  assert.equal(coverPixelSize(20000),6);
+  assert.equal(coverPixelSize(0),64);
+  const sizes=[20000,15000,10000,5000,1000].map(r=>coverPixelSize(r));
+  assert.deepEqual([...sizes].sort((a,b)=>a-b),sizes,"wächst monoton");
+});
+test("Antwort- und Lösungstexte",()=>{
+  const older={kind:"older",prompt:{options:[{title:"Alt",track_id:"t1"},{title:"Neu",track_id:"t2"}]}};
+  const cover={kind:"cover",prompt:{options:[{album:"A"},{album:"B"},{album:"C"},{album:"D"}]}};
+  assert.equal(quizAnswerText({kind:"year"},{year:1999}),"1999");
+  assert.equal(quizAnswerText(older,{choice:2}),"Neu");
+  assert.equal(quizAnswerText(cover,{choice:3}),"C");
+  assert.equal(quizAnswerText(cover,null),"keine Antwort");
+  assert.equal(quizSolutionText(older,{choice:1,years:[1994,2010]}),"Alt (1994) ist älter als Neu (2010)");
+  assert.equal(quizSolutionText({kind:"cover"},{album:"DAMN.",artist:"Kendrick Lamar"}),"DAMN. – Kendrick Lamar");
+  assert.equal(quizSolutionText({kind:"year"},{year:2004}),"2004");
+  assert.deepEqual(quizRevealPlay(older,{choice:1}),{track_id:"t1",start_ms:30000});
+  assert.deepEqual(quizRevealPlay({kind:"cover"},{play:{track_id:"x",start_ms:0}}),{track_id:"x",start_ms:0});
+  assert.equal(quizRevealPlay({kind:"year"},{year:1}),null);
+});

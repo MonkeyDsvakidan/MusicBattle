@@ -1,4 +1,4 @@
-/* ui-quiz.js – Bildschirme des Spotify-Quiz (Roadmap Phase 7): Start, Einladung, Lobby (7.5); Frage (7.6) und Rangliste (7.7) folgen.
+/* ui-quiz.js – Bildschirme des Spotify-Quiz (Roadmap Phase 7): Start, Einladung, Lobby (7.5), Fragen (7.6); Rangliste folgt (7.7).
    Klassisches Skript, globale Namen. */
 
 // Startseite → „Quiz“: Quiz erstellen oder mit Code mitspielen
@@ -51,11 +51,69 @@ function renderQuizLobby(){
   if($("startQuizBtn"))$("startQuizBtn").onclick=startQuiz;
 }
 
-// Platzhalter bis 7.6/7.7 (Quiz ist bis dahin nur mit ?quiz=1 erreichbar)
+// Fragen-Bildschirm (7.6): bereit → Frage (20 s, antippen) → aufdecken (Lösung, Punkte, Zwischenstand) → nächste
 function renderQuizRunning(){
-  $("app").innerHTML=`<section class="card"><div class="eyebrow">QUIZ LÄUFT</div><h2>${Number(S.room.quiz_length)||10} Fragen sind bereit</h2><p class="muted">Der Fragen-Bildschirm folgt im nächsten Schritt (Roadmap 7.6).</p>${roomExitControls()}</section>`;
+  const q=quizCurrentQuestion(),total=Number(S.room.quiz_length)||S.quizQuestions.length||10,no=Number(S.room.quiz_question_no)||0;
+  const head=`<div class="quizhead"><span class="chip">Frage ${Math.max(no,1)} / ${total}</span>${q?`<span class="eyebrow">${esc(QUIZ_KIND_LABEL[q.kind]||"")}</span>`:""}</div>`;
+  const msg=`${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}`;
+  const body=!q?quizReadyView():q.status==="open"?quizQuestionView(q):quizRevealView(q,no>=total);
+  $("app").innerHTML=`<section class="card quizplay">${head}${msg}${body}${roomExitControls()}</section>`;
   bindRoomExitControls();
+  if($("quizNext"))$("quizNext").onclick=openNextQuestion;
+  document.querySelectorAll("[data-quiz-choice]").forEach(b=>b.onclick=()=>answerQuiz({choice:Number(b.dataset.quizChoice)}));
+  bindQuizYear(q);
+  quizTick();
 }
+
+function quizMusicHint(){
+  if(!isHost())return"";
+  return hostPlaysMusic()?"":`<p class="muted">Auf diesem Gerät ist Spotify nicht verbunden – die Musik bleibt stumm. Die Fragen funktionieren trotzdem.</p>`;
+}
+
+function quizReadyView(){
+  return`<h2>Bereit?</h2><p class="muted">${S.members.filter(m=>m.role==="quizzer").length} Personen spielen mit. Pro Frage habt ihr 20 Sekunden – wer schneller richtig liegt, bekommt mehr Punkte.</p>${quizMusicHint()}${isHost()?`<div class="mainaction"><button class="btn primary" id="quizNext"${S.quizBusy?" disabled":""}>Erste Frage</button></div>`:`<p class="muted">Gleich geht's los – der Host startet die erste Frage.</p>`}`;
+}
+
+function quizTimer(){return`<div class="quiztimer" role="timer"><div class="quizbar"><span id="quizBar"></span></div><b id="quizTime"></b></div>`}
+function quizSongLine(o){return`<div class="quizsong">${o?.cover_url?`<img src="${esc(o.cover_url)}" alt="" loading="lazy">`:""}<div><strong>${esc(o?.title||"")}</strong><small>${esc(o?.artist||"")}</small></div></div>`}
+
+function quizQuestionView(q){
+  const mine=quizMyAnswer(q),players=S.members.filter(m=>m.role==="quizzer").length,p=q.prompt||{};
+  const waiting=`<div class="notice quizwait" role="status">Deine Antwort: <strong>${esc(quizAnswerText(q,mine?.answer))}</strong><br><small>${Number(q.answer_count)||0} von ${players} haben geantwortet</small></div>`;
+  let ask="";
+  if(q.kind==="year"){
+    const y=S.quizYear?.[q.id]??2000,max=new Date().getFullYear();
+    ask=`${quizSongLine(p)}<p class="quizask">Aus welchem Jahr ist dieser Song?</p>${mine?waiting:`<div class="yearpick"><button class="btn" data-year-step="-1" aria-label="Ein Jahr früher">−</button><output id="quizYearOut" class="yearout">${y}</output><button class="btn" data-year-step="1" aria-label="Ein Jahr später">+</button></div><input type="range" id="quizYear" min="1950" max="${max}" value="${y}" aria-label="Erscheinungsjahr"><div class="mainaction"><button class="btn primary" id="quizSendYear"${S.quizAnswering?" disabled":""}>Antwort senden</button></div>`}`;
+  }else if(q.kind==="older"){
+    ask=`<p class="quizask">Welcher Song ist älter?</p>${mine?waiting:`<div class="quizoptions two">${(p.options||[]).map((o,i)=>`<button class="quizoption" data-quiz-choice="${i+1}"${S.quizAnswering?" disabled":""}>${quizSongLine(o)}</button>`).join("")}</div>`}`;
+  }else if(q.kind==="cover"){
+    ask=`<div class="quizcoverwrap"><canvas id="quizCover" class="quizcover" width="256" height="256" role="img" aria-label="Verpixeltes Album-Cover"></canvas></div><p class="quizask">Zu welchem Album gehört das Cover?</p>${mine?waiting:`<div class="quizoptions">${(p.options||[]).map((o,i)=>`<button class="quizoption" data-quiz-choice="${i+1}"${S.quizAnswering?" disabled":""}><strong>${esc(o.album)}</strong><small>${esc(o.artist)}</small></button>`).join("")}</div>`}`;
+  }
+  return`${quizTimer()}${ask}${quizMusicHint()}`;
+}
+
+function bindQuizYear(q){
+  const r=$("quizYear"),out=$("quizYearOut");if(!r||!q)return;
+  const set=v=>{const y=Math.max(Number(r.min),Math.min(Number(r.max),v));r.value=y;out.textContent=y;S.quizYear={...(S.quizYear||{}),[q.id]:y}};
+  r.oninput=()=>set(Number(r.value));
+  document.querySelectorAll("[data-year-step]").forEach(b=>b.onclick=()=>set(Number(r.value)+Number(b.dataset.yearStep)));
+  $("quizSendYear").onclick=()=>answerQuiz({year:Number(r.value)});
+}
+
+function quizRevealView(q,last){
+  const sol=quizSolution(q),mine=quizMyAnswer(q),quizzers=S.members.filter(m=>m.role==="quizzer");
+  const pts=n=>Number(n||0).toLocaleString("de-CH");
+  const answers=quizzers.map(m=>{const a=S.quizAnswers.find(x=>x.question_id===q.id&&x.member_id===m.id);return{m,a}}).sort((x,y)=>(Number(y.a?.points)||0)-(Number(x.a?.points)||0));
+  const scored=S.quizAnswers.filter(a=>a.points!==null&&a.points!==undefined);
+  const table=quizStandings(S.members,scored).slice(0,5);
+  const cover=q.kind==="cover"&&q.prompt?.cover_url?`<img class="quizcover" src="${esc(q.prompt.cover_url)}" alt="">`:"";
+  const myLine=!mine?`<span class="chip">keine Antwort</span>`:Number(mine.points)>0?`<span class="chip gold">+${pts(mine.points)} Punkte</span>`:`<span class="chip">0 Punkte</span>`;
+  return`<div class="quizsolution"${animAttr(`quizreveal:${q.id}`,900)}>${cover}<small>LÖSUNG</small><strong${q.kind==="year"?' class="num"':""}>${esc(quizSolutionText(q,sol)||"…")}</strong>${quizMyAnswer(q)||quizMembership()?myLine:""}</div>
+    <div class="stack quizanswers">${answers.map(({m,a})=>`<div class="member"><div><strong>${esc(m.display_name)}</strong><small>${esc(quizAnswerText(q,a?.answer))}</small></div><span class="chip${Number(a?.points)>0?" ok":""}">${a?pts(a.points):"–"}</span></div>`).join("")}</div>
+    <div class="quizstand"><div class="eyebrow">ZWISCHENSTAND</div><ol>${table.map(r=>`<li><span>${r.place}. ${esc(r.name)}</span><b>${pts(r.points)}</b></li>`).join("")}</ol></div>
+    ${isHost()?`<div class="mainaction"><button class="btn primary" id="quizNext"${S.quizBusy?" disabled":""}>${last?"Zur Rangliste":"Nächste Frage"}</button></div>`:`<p class="muted">${last?"Gleich kommt die Rangliste.":"Der Host startet gleich die nächste Frage."}</p>`}`;
+}
+
 function renderQuizFinished(){
   $("app").innerHTML=`<section class="card"><div class="eyebrow">QUIZ BEENDET</div><h2>Rangliste</h2><p class="muted">Die Rangliste folgt in Roadmap 7.7.</p>${roomExitControls()}</section>`;
   bindRoomExitControls();
