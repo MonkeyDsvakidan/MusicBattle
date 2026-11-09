@@ -22,6 +22,8 @@ Browser-Spiel für zwei Spieler: Künstler aus dem eigenen Spotify draften, pro 
    - Option für den Host (ohne Juroren, solange noch niemand abgestimmt hat): **„Stattdessen Die Jury urteilen lassen“** – fünf automatische Juroren bewerten die Songs anhand gesammelter Songdaten (siehe unten); ihr Urteil kann der Host überstimmen.
 6. **Match** – Fünf Runden, Runde 5 zählt doppelt. Steht es danach unentschieden, folgt **Sudden Death** mit neuen Künstlern. Am Ende zeigt der Endstand Sieger, Statistiken, die Bilanz je Kategorie und – falls benutzt – die Bilanz der Jury. Mit **Rematch** startet der Host direkt ein neues Match mit denselben Leuten (alle wechseln automatisch, Spotify bleibt verbunden, es geht gleich mit dem Draft los).
 
+**Musik-Quiz (Beta, im Aufbau):** Auf der Startseite erscheint „Quiz“, wenn die Seite einmal mit `?quiz=1` geöffnet wurde. Der Host erstellt ein Quiz und lädt per QR-Code ein; jede Person spielt auf dem eigenen Handy. Wer Spotify verbindet, steuert seine Songs bei (mindestens 30 Songs nötig). Der Host wählt 10, 15 oder 20 Fragen und startet. Fragen-Bildschirm und Rangliste folgen.
+
 ### Die Jury (Option)
 
 | Juror | Figur | Achtet auf |

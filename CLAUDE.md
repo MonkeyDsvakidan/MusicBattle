@@ -51,7 +51,8 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `js/room.js` | Anmeldung, Raum laden/beitreten/erstellen/verlassen, Sync (Realtime + Poll mit Fingerabdruck), `init`, Einladungslink `?join=CODE&m=…` (`readInviteFromUrl`, `joinErrorText`, letzter Name), Rematch (`startRematch`, `followRematch`: alle Geräte folgen `mb_rooms.rematch_room_id`) |
 | `js/draft.js` | Draft (Ziehen gewichtet nach Hörverhalten + Genre, Hörbuch-Prüfung per Suche), Skip, Sudden-Death-Draft |
 | `js/battle.js` | Songsuche, Einreichen (stösst danach `mb-track-profile` im Hintergrund an), Startpunkt |
-| `js/quiz.js` | Spotify-Quiz (Phase 7): Song-Pool bauen (`buildQuizPool`, reine Funktion), laden/hochladen (`fetchQuizTracks`, `uploadQuizPool` → RPC `mb_quiz_set_pool`), Lobby-Zusammenfassung `quizPoolSummary`, Rangliste `quizStandings`; auch für `node --test` exportiert |
+| `js/quiz.js` | Spotify-Quiz (Phase 7): Song-Pool bauen (`buildQuizPool`, reine Funktion), laden/hochladen (`fetchQuizTracks`, `uploadQuizPool` → RPC `mb_quiz_set_pool`), Lobby-Zusammenfassung `quizPoolSummary`, Rangliste `quizStandings`, Aktionen (`createQuizRoom`, Spotify im Quiz über Speicherplatz 1 `connectQuizSpotify`/`autoQuizSpotify`, `setQuizLength`, `startQuiz`), Beta-Schalter `quizEnabled` (`?quiz=1`); auch für `node --test` exportiert |
+| `js/ui-quiz.js` | Quiz-Bildschirme (7.5): Quiz-Startseite, Einladung, Lobby (`renderQuizLobby`), Verteiler `renderQuiz`; Frage/Rangliste folgen in 7.6/7.7 |
 | `js/votes.js` | Kategorie-Abstimmung (6.3): `VOTE_CATEGORIES` (Schlüssel, Name, Frage), reine Auswertung `categoryResult`, `voteProgress`, `eligibleVoters`; auch für `node --test` exportiert |
 | `js/jury.js` | Scorecards, eigener Entscheid, „Die Jury“ (`runAIJury` ruft `mb-jury` auf), `roundDecision`, `finalizeRound` |
 | `js/ui-screens.js` | Bildschirme: Start, Lobby, Draft, Battle, Jury (Punktezettel `scorecardTable`, Gürtel `beltBanner`), Tiebreak, Endstand |
