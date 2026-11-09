@@ -101,7 +101,14 @@ function coverQuestion(t, all, rng) {
 // count Fragen aus dem Pool. Fragetypen wechseln sich ab (gemischte Reihenfolge), jeder Song kommt höchstens
 // einmal als Lösung vor, Personen mit vielen Songs dominieren nicht (abwechselnd aus den Songs jeder Person),
 // derselbe Künstler nicht zweimal hintereinander. Fehlen Daten für einen Typ, springt ein anderer ein.
-export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = QUIZ_KINDS } = {}) {
+// avoid (7.7, „Nochmal“): Song-IDs aus früheren Quiz desselben Raums. Sie werden gemieden, solange daraus genug
+// Fragen entstehen; sonst wird der ganze Pool verwendet.
+export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = QUIZ_KINDS, avoid = [] } = {}) {
+  const skip = new Set(avoid || []);
+  if (skip.size) {
+    const fresh = generateQuiz((pool || []).filter((t) => !skip.has(t?.spotify_track_id)), { count, seed, years, kinds });
+    if (fresh.length >= count) return fresh;
+  }
   const rng = createRng(seed);
   const all = preparePool(pool, years);
   const used = new Set();
@@ -143,6 +150,12 @@ export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = 
     questions.push({ question_no: questions.length + 1, ...q });
   }
   return questions;
+}
+
+// Alle Song-IDs einer gespeicherten Frage (Prompt + Lösung), z. B. um sie beim nächsten Quiz zu meiden
+export function questionTrackIds(prompt, solution) {
+  const ids = [prompt?.track_id, prompt?.play?.track_id, solution?.track_id, solution?.play?.track_id, ...(prompt?.options || []).map((o) => o?.track_id)];
+  return [...new Set(ids.filter(Boolean))];
 }
 
 // Punkte (Roadmap 7.4, Entscheidung I: richtig + Tempo-Bonus, beim Jahr „je näher, desto mehr“).

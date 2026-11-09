@@ -89,6 +89,9 @@ test("Rangliste: Punkte summiert, gleiche Punkte = gleicher Platz",()=>{
   const answers=[{member_id:"a",points:1000},{member_id:"a",points:0},{member_id:"b",points:600},{member_id:"b",points:400},{member_id:"c",points:500},{member_id:"x",points:900},{member_id:"d",points:null}];
   const r=quizStandings(members,answers);
   assert.deepEqual(r.map(x=>`${x.place}.${x.name}:${x.points}/${x.scored}/${x.answered}`),["1.Lukas:1000/2/2","1.Mia:1000/1/2","3.Sara:500/1/1","4.Ben:0/0/1"]);
+  const f=quizStandings(members,[{member_id:"a",points:900,answer_ms:4200},{member_id:"a",points:600,answer_ms:2100},{member_id:"a",points:0,answer_ms:500},{member_id:"b",points:0,answer_ms:300}]);
+  assert.equal(f.find(x=>x.member_id==="a").fastestMs,2100,"schnellste Antwort mit Punkten");
+  assert.equal(f.find(x=>x.member_id==="b").fastestMs,null,"falsche Antworten zählen nicht");
   assert.deepEqual(quizStandings([],[]),[]);
 });
 

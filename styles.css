@@ -512,3 +512,22 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
   .quizsolution[data-anim]{animation:quizpop .9s ease-out both;animation-delay:var(--elapsed,0ms)}
   @keyframes quizpop{0%{transform:scale(.92);opacity:0}60%{transform:scale(1.03);opacity:1}100%{transform:scale(1)}}
 }
+
+/* Quiz (7.7): Endstand mit Podest */
+.quizfinal{overflow-x:clip;overflow-clip-margin:20px}   /* Zahl-Animation im Kopf ragt sonst kurz hinaus (wie 6.3.4) */
+.podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:var(--s2);margin-top:var(--s4)}
+.podium .step{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s1);justify-items:center;align-content:end;padding:var(--s3) var(--s2);border:1px solid var(--line-strong);border-radius:var(--r-m) var(--r-m) 0 0;background:var(--surface-2);text-align:center;min-width:0}
+.podium .step strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.podium .step span,.podium .step .pl{font:400 15px var(--f-num)}
+.podium .place1{min-height:130px;border-color:var(--gold);box-shadow:0 0 18px rgba(255,209,102,.25)}
+.podium .place1 .pl,.podium .place1 span{color:var(--gold)}
+.podium .place2{min-height:100px}
+.podium .place3{min-height:80px}
+.quizfinal .statcard small{display:block;color:var(--muted);margin-top:var(--s1);overflow-wrap:anywhere}
+.quizstand li small{display:block;color:var(--muted);font-size:12px}
+@media (prefers-reduced-motion:no-preference){
+  .quizfinal[data-anim] .podium .step{animation:quizpop .7s ease-out both}
+  .quizfinal[data-anim] .podium .place3{animation-delay:calc(var(--elapsed,0ms) + .2s)}
+  .quizfinal[data-anim] .podium .place2{animation-delay:calc(var(--elapsed,0ms) + .6s)}
+  .quizfinal[data-anim] .podium .place1{animation-delay:calc(var(--elapsed,0ms) + 1.1s)}
+}

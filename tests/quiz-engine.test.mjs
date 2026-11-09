@@ -148,3 +148,26 @@ test("Punkte: wessen Song (Quiz-Art A) und eigenes Zeitlimit", () => {
   assert.equal(scoreAnswer("older", { choice: 1 }, { choice: 1 }, 15000, 30000), 750);
   assert.equal(QUIZ_SCORING.limitMs, 20000);
 });
+
+import { questionTrackIds } from "../supabase/functions/_shared/quiz-engine.mjs";
+
+test("Nochmal: gespielte Songs meiden, solange der Pool reicht", () => {
+  const pool = bigPool(80);
+  const first = generateQuiz(pool, { count: 10, seed: "r:1" });
+  const played = first.flatMap((q) => questionTrackIds(q.prompt, q.solution));
+  assert.ok(played.length >= 10);
+  const second = generateQuiz(pool, { count: 10, seed: "r:2", avoid: played });
+  assert.equal(second.length, 10);
+  assert.ok(!second.some((q) => q.track_ids.some((id) => played.includes(id))), "keine Wiederholung");
+  const small = bigPool(16);
+  const all = small.map((t) => t.spotify_track_id);
+  assert.equal(generateQuiz(small, { count: 10, seed: "r:3", avoid: all }).length, 10, "Pool zu klein → ganzer Pool");
+});
+
+test("Song-IDs einer Frage", () => {
+  const [q] = generateQuiz(bigPool(40), { count: 1, seed: "ids", kinds: ["cover"] });
+  assert.deepEqual(questionTrackIds(q.prompt, q.solution), [q.track_ids[0]]);
+  const [o] = generateQuiz(bigPool(40), { count: 1, seed: "ids", kinds: ["older"] });
+  assert.deepEqual(questionTrackIds(o.prompt, o.solution).sort(), [...o.track_ids].sort());
+  assert.deepEqual(questionTrackIds(null, null), []);
+});

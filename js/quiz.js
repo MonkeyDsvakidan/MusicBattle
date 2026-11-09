@@ -78,11 +78,12 @@ function quizPoolSummary(members){
 }
 
 // Rangliste (7.4): Punkte je Mitspieler aus den aufgedeckten Antworten; gleiche Punkte = gleicher Platz.
+// fastestMs (7.7): schnellste Antwort, die Punkte gebracht hat (null, wenn keine).
 // answers: Zeilen aus mb_quiz_answers (points erst nach dem Aufdecken gesetzt); nur Antworten des laufenden Quiz übergeben.
 function quizStandings(members,answers){
-  const rows=(members||[]).filter(m=>m.role==="quizzer").map(m=>({member_id:m.id,name:m.display_name,points:0,scored:0,answered:0}));
+  const rows=(members||[]).filter(m=>m.role==="quizzer").map(m=>({member_id:m.id,name:m.display_name,points:0,scored:0,answered:0,fastestMs:null}));
   const by=new Map(rows.map(r=>[r.member_id,r]));
-  for(const a of answers||[]){const r=by.get(a.member_id);if(!r)continue;r.answered++;if(Number(a.points)>0){r.points+=Number(a.points);r.scored++}}
+  for(const a of answers||[]){const r=by.get(a.member_id);if(!r)continue;r.answered++;if(Number(a.points)>0){r.points+=Number(a.points);r.scored++;const ms=Number(a.answer_ms);if(Number.isFinite(ms)&&(r.fastestMs===null||ms<r.fastestMs))r.fastestMs=ms}}
   rows.sort((a,b)=>b.points-a.points||String(a.name).localeCompare(String(b.name),"de"));
   rows.forEach((r,i)=>{r.place=i&&r.points===rows[i-1].points?rows[i-1].place:i+1});
   return rows;

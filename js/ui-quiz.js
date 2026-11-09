@@ -1,4 +1,4 @@
-/* ui-quiz.js – Bildschirme des Spotify-Quiz (Roadmap Phase 7): Start, Einladung, Lobby (7.5), Fragen (7.6); Rangliste folgt (7.7).
+/* ui-quiz.js – Bildschirme des Spotify-Quiz (Roadmap Phase 7): Start, Einladung, Lobby (7.5), Fragen (7.6), Endstand (7.7).
    Klassisches Skript, globale Namen. */
 
 // Startseite → „Quiz“: Quiz erstellen oder mit Code mitspielen
@@ -114,7 +114,26 @@ function quizRevealView(q,last){
     ${isHost()?`<div class="mainaction"><button class="btn primary" id="quizNext"${S.quizBusy?" disabled":""}>${last?"Zur Rangliste":"Nächste Frage"}</button></div>`:`<p class="muted">${last?"Gleich kommt die Rangliste.":"Der Host startet gleich die nächste Frage."}</p>`}`;
 }
 
+// Endstand (7.7): Sieger, Podest (Platz 1 in Gold), eigene Zahlen, ganze Rangliste, Host: „Nochmal“ mit neuen Fragen
+function quizSeconds(ms){return`${(Number(ms)/1000).toFixed(1).replace(".",",")} s`}
 function renderQuizFinished(){
-  $("app").innerHTML=`<section class="card"><div class="eyebrow">QUIZ BEENDET</div><h2>Rangliste</h2><p class="muted">Die Rangliste folgt in Roadmap 7.7.</p>${roomExitControls()}</section>`;
+  const scored=S.quizAnswers.filter(a=>a.points!==null&&a.points!==undefined);
+  const table=quizStandings(S.members,scored),total=S.quizQuestions.length||Number(S.room.quiz_length)||10;
+  const pts=n=>Number(n||0).toLocaleString("de-CH");
+  const top=table.filter(r=>r.place===1),single=top.length===1;
+  const title=!table.length?"Quiz beendet":single?`${esc(top[0].name)} gewinnt`:"Gleichstand an der Spitze";
+  const fastest=table.filter(r=>r.fastestMs!==null).sort((x,y)=>x.fastestMs-y.fastestMs)[0];
+  const me=table.find(r=>r.member_id===quizMembership()?.id);
+  const podium=table.slice(0,3),order=podium.length===3?[podium[1],podium[0],podium[2]]:podium.length===2?[podium[1],podium[0]]:podium;
+  const step=r=>`<div class="step place${Math.min(r.place,3)}"><b class="pl">${r.place}.</b><strong>${esc(r.name)}</strong><span>${pts(r.points)}</span></div>`;
+  $("app").innerHTML=`<section class="card finalwrap quizfinal"${animAttr(`quizfinal:${S.room.id}:${S.room.quiz_game_no}`,2500)}>
+    <div class="finalscore"><div class="eyebrow">QUIZ BEENDET · ${total} FRAGEN</div><h2>${title}</h2>${table.length?`<div class="big">${pts(top[0].points)}</div>`:""}${single&&table.length>1?`<div class="belt" role="status">★ Quiz-Champion</div>`:""}</div>
+    ${table.length>1?`<div class="podium">${order.map(step).join("")}</div>`:""}
+    <div class="statsgrid">${me?`<div class="statcard"><span>Dein Platz</span><b>${me.place} von ${table.length}</b></div><div class="statcard"><span>Deine Treffer</span><b>${me.scored} / ${total}</b></div>`:""}<div class="statcard"><span>Schnellste Antwort</span><b>${fastest?`${quizSeconds(fastest.fastestMs)}`:"–"}</b>${fastest?`<small>${esc(fastest.name)}</small>`:""}</div></div>
+    <div class="quizstand"><div class="eyebrow">RANGLISTE</div><ol>${table.map(r=>`<li><span>${r.place}. ${esc(r.name)}<small>${r.scored} / ${total} Treffer${r.fastestMs!==null?` · schnellste ${quizSeconds(r.fastestMs)}`:""}</small></span><b>${pts(r.points)}</b></li>`).join("")}</ol></div>
+    ${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}
+    ${isHost()?`<div class="actions rematch"><button class="btn primary" id="quizAgain"${S.quizStarting?" disabled":""}>${S.quizStarting?"Neue Fragen werden erstellt …":"Nochmal"}</button></div><p class="muted center">Gleiche Runde, neue Fragen – schon gespielte Songs kommen möglichst nicht nochmals.</p>`:`<p class="muted center">Der Host kann nochmal starten – mit neuen Fragen.</p>`}
+    ${roomExitControls()}</section>`;
   bindRoomExitControls();
+  if($("quizAgain"))$("quizAgain").onclick=startQuiz;
 }

@@ -2,7 +2,7 @@
 // erzeugt die Fragen mit der Quiz-Engine und speichert Fragen + Lösungen über mb_quiz_store_game in einem Schritt.
 // Die Fragen sind danach noch „pending“ (unsichtbar); geöffnet werden sie einzeln (7.6).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateQuiz, QUIZ_ENGINE_VERSION } from "../_shared/quiz-engine.mjs";
+import { generateQuiz, questionTrackIds, QUIZ_ENGINE_VERSION } from "../_shared/quiz-engine.mjs";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -47,8 +47,17 @@ Deno.serve(async (req) => {
       for (const p of prof ?? []) years[p.spotify_track_id] = p.release_year;
     }
 
+    // „Nochmal“ (7.7): Songs aus früheren Quiz dieses Raums meiden, solange der Pool reicht
+    const avoid: string[] = [];
+    if (Number(room.quiz_game_no) > 0) {
+      const { data: prev } = await admin.from("mb_quiz_questions").select("id,prompt").eq("room_id", roomId).limit(2000);
+      const { data: prevSol } = await admin.from("mb_quiz_solutions").select("question_id,solution").eq("room_id", roomId).limit(2000);
+      const solById = new Map((prevSol ?? []).map((s: any) => [s.question_id, s.solution]));
+      for (const q of prev ?? []) avoid.push(...questionTrackIds(q.prompt, solById.get(q.id)));
+    }
+
     const gameNo = Number(room.quiz_game_no) + 1;
-    const questions = generateQuiz(pool ?? [], { count: room.quiz_length, seed: `${roomId}:${gameNo}`, years });
+    const questions = generateQuiz(pool ?? [], { count: room.quiz_length, seed: `${roomId}:${gameNo}`, years, avoid });
     if (questions.length < room.quiz_length) {
       return out({ error: "pool too small", songs: ids.length, questions: questions.length, needed: room.quiz_length }, 409);
     }
@@ -59,7 +68,7 @@ Deno.serve(async (req) => {
       if (/already started/i.test(error.message)) return out({ ok: true, duplicate: true, game_no: gameNo });
       return out({ error: "failed to store quiz", detail: error.message }, 500);
     }
-    console.log("quiz:start", roomId, "game", gameNo, "questions", stored, "songs", ids.length, "ms", Date.now() - started);
+    console.log("quiz:start", roomId, "game", gameNo, "questions", stored, "songs", ids.length, "avoided", avoid.length, "ms", Date.now() - started);
     return out({ ok: true, game_no: gameNo, questions: stored, kinds: questions.map((q: any) => q.kind), ms: Date.now() - started });
   } catch (e) {
     return out({ error: "quiz start exception", detail: e instanceof Error ? e.message : String(e) }, 500);
