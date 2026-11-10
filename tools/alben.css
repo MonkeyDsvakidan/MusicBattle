@@ -13,6 +13,10 @@
 .alb-progress{font:700 16px var(--f-text)}
 .alb-sum{margin:0;padding-left:20px;line-height:1.7}
 details summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--muted);font-weight:700}
+/* display:flex nimmt Safari/Chrome den Aufklapp-Pfeil – darum eigener Pfeil, damit man sieht, dass man tippen kann */
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸";display:inline-block;width:1.2em;transition:transform .15s}
+details[open] summary::before{transform:rotate(90deg)}
 details[open] summary{margin-bottom:var(--s2)}
 .alb-mode{padding-top:var(--s4);border-top:1px solid var(--line)}
 /* Doppelte (W.2) */

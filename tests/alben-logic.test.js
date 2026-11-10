@@ -185,3 +185,11 @@ test("Plan nachgespielt wie Spotify: Ergebnis-Reihenfolge stimmt",()=>{
     assert.deepEqual(run(pl.items,op),expected.map(t=>t?.uri||null));
   }
 });
+
+test("Wartezeit bei Spotify 429: verdoppeln, Retry-After beachten, irgendwann aufgeben",()=>{
+  assert.deepEqual([0,1,2,3,4,5,6,7].map(a=>L.albBackoffSeconds(a,null)),[2,4,8,16,32,64,120,120]);
+  assert.equal(L.albBackoffSeconds(0,"30"),30);
+  assert.equal(L.albBackoffSeconds(5,"3"),64);
+  assert.equal(L.albBackoffSeconds(8,null),null);
+  assert.equal(L.albBackoffSeconds(0,"3600"),null,"Spotify verlangt über 2 Min. → aufgeben");
+});
