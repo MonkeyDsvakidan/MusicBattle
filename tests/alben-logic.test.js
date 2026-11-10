@@ -216,3 +216,17 @@ test("Runden: höchstens max URIs pro Entfernen, jede Gruppe ganz",()=>{
   assert.equal(sub.size%2,0,"Gruppen nie halb");
   assert.ok(sub.size>0);
 });
+
+test("Runden: eine einzelne Gruppe mit mehr als max URIs bleibt ganz – Entfernen wird in Blöcke geteilt",()=>{
+  // 150 Versionen desselben Songs in einer Playlist, eine bleibt → 149 zu entfernende URIs in einer Gruppe
+  const versions=[...Array(150)].map((_,i)=>tk("v"+i,"Song",rollerSingle,"I"+i));
+  const pl={id:"p",name:"P",items:versions.map((track,position)=>({position,track}))};
+  const map=L.albDupMapping([{kind:"unsure",versions:versions.map(t=>({track:t})),keep:versions[0].uri}]);
+  const sub=L.albDupLimit(pl,map,100);
+  const op=L.albDupPlan([pl],[],sub).playlistOps[0];
+  assert.equal(sub.size,150,"Gruppe wird nicht geteilt");
+  assert.ok(op.removes.length>100,"diese Runde allein hätte zu viele URIs");
+  const parts=L.albChunks(op.removes,100);
+  assert.deepEqual(parts.map(p=>p.length),[100,op.removes.length-100]);
+  assert.deepEqual(parts.flat(),op.removes,"nichts geht verloren");
+});

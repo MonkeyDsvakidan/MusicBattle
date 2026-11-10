@@ -266,34 +266,45 @@ async function albApply(){
 }
 
 // ---------- Ausführen Doppelte (W.2) ----------
+const ALB_DUP_MAX_ROUNDS=30;
 // Eine Playlist in Runden bereinigen: jeweils frisch laden, neu planen (höchstens 100 URIs zu entfernen = eine
 // Anfrage), entfernen, dann die bleibenden Versionen einfügen. So verliert ein Fehler mitten drin nie Songs,
 // und veraltete Testlauf-Daten können nichts Falsches löschen. Ende, wenn nichts mehr zu tun ist.
 async function albDupOnePlaylist(pl,mapping,names){
-  let removed=0,changed=false,lastSig="";
+  let removed=0,changed=false,lastSig="",done=false;
   const missing=[];
-  for(let round=0;round<30;round++){
+  for(let round=0;round<ALB_DUP_MAX_ROUNDS;round++){
     const fresh=await albFetchPlaylist(pl);
     const sig=fresh.items.map(it=>it.track?.uri||"-").join();
     if(round>0&&sig===lastSig)throw Object.assign(Error("Spotify hat die Änderung nicht übernommen"),{partial:changed});
     lastSig=sig;
     const full=albDupPlan([fresh],[],mapping).playlistOps[0];
-    if(!full)break;
+    if(!full){done=true;break}
     // Meist passt alles in eine Runde; nur grosse Playlists brauchen mehrere (dann kurz warten, bis Spotify neu liefert)
     const partial=full.removes.length>100;
     const op=partial?albDupPlan([fresh],[],albDupLimit(fresh,mapping,100)).playlistOps[0]:full;
-    try{await albWrite("DELETE",`/playlists/${pl.id}/items`,{body:{items:op.removes.map(uri=>({uri}))}})}
-    catch(e){e.partial=changed;throw e}
-    changed=true;
+    // Spotify nimmt höchstens 100 URIs pro DELETE. albDupLimit hält eine Runde meist darunter, eine einzelne
+    // grosse Gruppe kann aber mehr haben → immer in Blöcken senden. Scheitert ein späterer Block, trotzdem die
+    // bleibenden Versionen einfügen (sonst wären sie weg) und danach als „teilweise“ melden.
+    let deleteError=null,roundDeleted=false;
+    for(const part of albChunks(op.removes,100)){
+      try{await albWrite("DELETE",`/playlists/${pl.id}/items`,{body:{items:part.map(uri=>({uri}))}});roundDeleted=changed=true}
+      catch(e){deleteError=e;break}
+    }
+    // In dieser Runde gar nichts entfernt → auch nichts einfügen (sonst entstünden neue Doppelte)
+    if(deleteError&&!roundDeleted){deleteError.partial=changed;throw deleteError}
     for(const ins of op.inserts){
       try{await albWritePersistent("POST",`/playlists/${pl.id}/items`,{body:{uris:[ins.uri],position:ins.position}})}
       catch{missing.push(`«${names.get(ins.uri)||ins.uri}»`)}
     }
+    if(deleteError){deleteError.partial=true;deleteError.missing=missing;throw deleteError}
     if(missing.length)break;
     removed+=op.removedCount;
-    if(!partial)break;
+    if(!partial){done=true;break}
     await albSleep(1500);
   }
+  // Rundenlimit erreicht, obwohl noch Doppelte da sind → nicht als erledigt melden
+  if(!done&&!missing.length)throw Object.assign(Error(`nach ${ALB_DUP_MAX_ROUNDS} Runden noch nicht fertig – bitte „Doppelte entfernen“ nochmals ausführen`),{partial:changed});
   return {removed,changed,missing};
 }
 
@@ -313,7 +324,7 @@ async function albApplyDup(){
       const pl={id:plan.playlistOps[i].playlistId,name:plan.playlistOps[i].name};
       step(`Playlists bereinigen… ${i+1}/${plan.playlistOps.length}`);
       try{const r=await albDupOnePlaylist(pl,mapping,names);res.removed+=r.removed;if(r.missing.length)res.errors.push(`${pl.name}: fehlt jetzt, bitte in Spotify wieder hinzufügen: ${r.missing.join(", ")}`);else if(r.changed)res.playlistsDone++}
-      catch(e){res.errors.push(`${pl.name}: ${e.partial?"nur teilweise bereinigt":"nicht geändert"} (${e.message}).`);if(e.rateLimited){res.aborted=true;break}}
+      catch(e){res.errors.push(`${pl.name}: ${e.partial?"nur teilweise bereinigt":"nicht geändert"} (${e.message}).${e.missing?.length?` Fehlt jetzt, bitte in Spotify wieder hinzufügen: ${e.missing.join(", ")}`:""}`);if(e.rateLimited){res.aborted=true;break}}
     }
     if(res.aborted)throw Error(ABORT_TEXT);
     step("Gelikte Songs anpassen…");
