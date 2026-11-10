@@ -89,7 +89,7 @@ function albCollectSingles(playlists,liked){
 // Änderungen planen. chosen: Map Single-URI → Album-URI (nur angehakte Songs).
 // Je Playlist: Albumversion an der Stelle der Single einfügen (absteigend, damit frühere Positionen stimmen),
 // danach die Singles entfernen. Steht die Albumversion schon in der Playlist, wird nur die Single entfernt.
-// Gelikt: alle Albumversionen liken (ausser schon gelikt), gelikte Singles entliken.
+// Gelikt: alle Albumversionen liken, gelikte Singles entliken.
 function albPlan(playlists,liked,chosen){
   const playlistOps=[];
   for(const pl of playlists||[]){
@@ -106,18 +106,19 @@ function albPlan(playlists,liked,chosen){
     if(removes.size)playlistOps.push({playlistId:pl.id,name:pl.name,inserts:inserts.sort((a,b)=>b.position-a.position),removes:[...removes]});
   }
   const likedUris=new Set((liked||[]).map(t=>t?.uri).filter(Boolean));
-  const likeUris=[...new Set(chosen.values())].filter(u=>!likedUris.has(u));
+  // Albumversionen immer liken (PUT ist idempotent): stimmt auch, wenn sich die Likes seit dem Testlauf geändert haben
+  const likeUris=[...new Set(chosen.values())];
   const unlikeUris=[...chosen.keys()].filter(u=>likedUris.has(u));
   return {playlistOps,likeUris,unlikeUris};
 }
 
-// Anzeige-Reihenfolge (Wunsch des Nutzers): nach Künstler, dann Album, dann Position im Album.
+// Anzeige-Reihenfolge (Wunsch des Nutzers): nach Künstler, dann Album, dann CD und Position im Album.
 // Album = Ziel-Album, wenn es eins gibt, sonst die Single. Künstler = erster Künstler des Songs.
 function albArtistName(row){return row?.track?.artists?.[0]?.name||""}
 function albSortRows(rows){
   const coll=new Intl.Collator("de",{sensitivity:"base",numeric:true});
   const album=r=>r.decision?.target?.album?.name||r.track?.album?.name||"";
-  const pos=r=>r.decision?.target?.track?.track_number??r.track?.track_number??0;
+  const pos=r=>{const t=r.decision?.target?.track||r.track||{};return (Number(t.disc_number)||1)*10000+(Number(t.track_number)||0)};
   return [...rows].sort((x,y)=>coll.compare(albArtistName(x),albArtistName(y))||coll.compare(album(x),album(y))||pos(x)-pos(y)||coll.compare(x.track?.name||"",y.track?.name||""));
 }
 
@@ -181,10 +182,12 @@ function albDupGroups(versionMap,{savedAlbumIds=new Set(),filter=""}={}){
   const dupInPlaylist=vs=>{const seen=new Set();for(const v of vs)for(const p of v.places){if(seen.has(p.playlistId))return true;seen.add(p.playlistId)}return false};
   const groups=[];
   for(const vs of clusters.values()){
-    if(filter&&!vs.some(v=>albMatchesFilter(v.track.album,filter)||(v.track.artists||[]).some(a=>albMatchesFilter({name:a.name},filter))))continue;
+    const hit=v=>albMatchesFilter(v.track.album,filter)||(v.track.artists||[]).some(a=>albMatchesFilter({name:a.name},filter));
+    if(filter&&!vs.some(hit))continue;
     const comps=new Map();
     for(const v of vs){const k=isrcKey(v)||v.track.uri;if(!comps.has(k))comps.set(k,[]);comps.get(k).push(v)}
-    for(const [k,cv] of comps)if(cv.length>1||dupInPlaylist(cv))
+    // Mit Filter nur Aufnahmen, von denen eine Version zum Filter passt (sonst würden fremde Alben mitbereinigt)
+    for(const [k,cv] of comps)if((cv.length>1||dupInPlaylist(cv))&&(!filter||cv.some(hit)))
       groups.push({id:`s:${k}`,kind:"sure",versions:cv,keep:albDefaultKeep(cv,savedAlbumIds)});
     if(comps.size>1)groups.push({id:`u:${vs.map(v=>v.track.uri).sort()[0]}`,kind:"unsure",versions:vs,keep:albDefaultKeep(vs,savedAlbumIds)});
   }
@@ -231,8 +234,25 @@ function albDupPlan(playlists,liked,mapping){
   }
   const likedUris=new Set((liked||[]).map(t=>t?.uri).filter(Boolean));
   const unlikeUris=[...likedUris].filter(u=>mapping.has(u)&&mapping.get(u)!==u);
-  const likeUris=[...new Set(unlikeUris.map(u=>mapping.get(u)))].filter(u=>!likedUris.has(u));
+  // Bleibende Version immer liken, bevor andere entlikt werden (idempotent, auch bei veralteten Daten nie ganz weg)
+  const likeUris=[...new Set(unlikeUris.map(u=>mapping.get(u)))];
   return {playlistOps,likeUris,unlikeUris};
 }
 
-if(typeof module!=="undefined")module.exports={albBaseTitle,albIsTrack,albIsSingle,albYear,albMatchesFilter,albBuildIndex,albCandidates,albRank,albClassify,albCollectSingles,albPlan,albArtistName,albSortRows,albChunks,ALB_UNSURE_MS,albBackoffSeconds,ALB_429_TRIES,ALB_429_MAX_S,albLooseTitle,albCollectVersions,albVersionRank,albDefaultKeep,albDupGroups,albDupMapping,albDupPlan};
+// Spotify entfernt höchstens 100 URIs pro Anfrage. Damit ein Fehler mitten drin nie Songs verliert, wird eine
+// Playlist in Runden bereinigt: pro Runde nur so viele Gruppen, dass das Entfernen in eine Anfrage passt.
+function albDupLimit(playlist,mapping,max=100){
+  const targets=[];
+  for(const it of playlist.items||[]){const t=it.track?.uri&&mapping.get(it.track.uri);if(t&&!targets.includes(t))targets.push(t)}
+  let sub=new Map();
+  for(const t of targets){
+    const next=new Map(sub);
+    for(const [u,k] of mapping)if(k===t)next.set(u,k);
+    const op=albDupPlan([playlist],[],next).playlistOps[0];
+    if(op&&op.removes.length>max&&sub.size)break;
+    sub=next;
+  }
+  return sub;
+}
+
+if(typeof module!=="undefined")module.exports={albBaseTitle,albIsTrack,albIsSingle,albYear,albMatchesFilter,albBuildIndex,albCandidates,albRank,albClassify,albCollectSingles,albPlan,albArtistName,albSortRows,albChunks,ALB_UNSURE_MS,albBackoffSeconds,ALB_429_TRIES,ALB_429_MAX_S,albLooseTitle,albCollectVersions,albVersionRank,albDefaultKeep,albDupGroups,albDupMapping,albDupPlan,albDupLimit};
