@@ -64,18 +64,48 @@ function albLogout(){for(const k of [ALB_KEYS.access,ALB_KEYS.expires])albDel(se
 // ---------- Spotify-Aufrufe ----------
 const albSleep=ms=>new Promise(r=>setTimeout(r,ms));
 
-async function albApi(method,path,{body,tries=4}={}){
+// Spotify-Aufruf. 429 (zu viele Anfragen): warten und nochmals, mit sichtbarem Countdown (albBackoffSeconds);
+// gibt Spotify nach 8 Versuchen nicht nach, Fehler mit e.rateLimited = true → Ausführen bricht dann ganz ab.
+async function albApi(method,path,{body,attempt=0,tries5xx=3}={}){
   const t=await albToken();
   if(!t)throw Error("Nicht bei Spotify angemeldet.");
   const url=path.startsWith("http")?path:ALB_API+path;
   const r=await fetch(url,{method,headers:{Authorization:`Bearer ${t}`,...(body?{"Content-Type":"application/json"}:{})},body:body?JSON.stringify(body):undefined});
-  if(r.status===429&&tries>0){await albSleep((Number(r.headers.get("Retry-After"))||2)*1000+250);return albApi(method,path,{body,tries:tries-1})}
-  if(r.status>=500&&tries>0){await albSleep(1500);return albApi(method,path,{body,tries:tries-1})}
+  if(r.status===429){
+    const wait=albBackoffSeconds(attempt,r.headers.get("Retry-After"));
+    if(wait!==null){await albWaitNotice(wait);return albApi(method,path,{body,attempt:attempt+1,tries5xx})}
+    const e=Error("Spotify 429: zu viele Anfragen – Spotify-Limit erreicht");e.status=429;e.rateLimited=true;throw e;
+  }
+  if(r.status>=500&&tries5xx>0){await albSleep(1500);return albApi(method,path,{body,attempt,tries5xx:tries5xx-1})}
   if(!r.ok){let detail="";try{const b=await r.json();detail=b?.error?.message||""}catch{}const e=Error(`Spotify ${r.status}${detail?`: ${detail}`:""}`);e.status=r.status;throw e}
   if(r.status===204)return null;
   const text=await r.text();
   return text?JSON.parse(text):null;
 }
+
+// Countdown im Fortschritt anzeigen, während Spotify bremst
+async function albWaitNotice(seconds){
+  const base=ALB.progress.replace(/ – Spotify bremst.*$/,"");
+  for(let s=seconds;s>0;s--){
+    if(ALB.view==="scan"||ALB.view==="apply"){ALB.progress=`${base} – Spotify bremst, nächster Versuch in ${s} s`;albRender()}
+    await albSleep(1000);
+  }
+  if(ALB.view==="scan"||ALB.view==="apply"){ALB.progress=base;albRender()}
+}
+
+// Kleine Pause zwischen Änderungen, damit Spotify gar nicht erst bremst
+const ALB_WRITE_PAUSE_MS=300;
+async function albWrite(method,path,opts){const r=await albApi(method,path,opts);await albSleep(ALB_WRITE_PAUSE_MS);return r}
+
+// Für Schritte, die nach einem Entfernen klappen müssen: bei Spotify-Limit bis zu drei Runden (je 2 Min. Pause dazwischen)
+async function albWritePersistent(method,path,opts){
+  for(let round=0;;round++){
+    try{return await albWrite(method,path,opts)}
+    catch(e){if(!e.rateLimited||round>=2)throw e;await albWaitNotice(ALB_429_MAX_S)}
+  }
+}
+
+const ABORT_TEXT=`Abgebrochen: Spotify lässt gerade keine weiteren Änderungen zu (zu viele Anfragen). Bitte später nochmals einen Testlauf machen – er zeigt dann nur noch den Rest.`;
 
 async function albPaged(path,onPage){
   const all=[];let next=path;
@@ -193,25 +223,26 @@ async function albApply(){
       const op=plan.playlistOps[i];step(`Playlists ändern… ${i+1}/${plan.playlistOps.length}`);
       let failed=false;
       for(const ins of op.inserts){
-        try{await albApi("POST",`/playlists/${op.playlistId}/items`,{body:{uris:[ins.uri],position:ins.position}})}
-        catch(e){failed=true;res.errors.push(`${op.name}: Einfügen fehlgeschlagen (${e.message})`);break}
+        try{await albWrite("POST",`/playlists/${op.playlistId}/items`,{body:{uris:[ins.uri],position:ins.position}})}
+        catch(e){failed=e;res.errors.push(`${op.name}: Einfügen fehlgeschlagen (${e.message})`);break}
       }
-      if(failed){res.errors.push(`${op.name}: Singles nicht entfernt, damit nichts verloren geht.`);continue}
+      if(failed){res.errors.push(`${op.name}: Singles nicht entfernt, damit nichts verloren geht.`);if(failed.rateLimited){res.aborted=true;break}continue}
       try{
-        for(const part of albChunks(op.removes,100))await albApi("DELETE",`/playlists/${op.playlistId}/items`,{body:{items:part.map(uri=>({uri}))}});
+        for(const part of albChunks(op.removes,100))await albWrite("DELETE",`/playlists/${op.playlistId}/items`,{body:{items:part.map(uri=>({uri}))}});
         res.playlistsDone++;res.replaced+=op.removes.length;
-      }catch(e){res.errors.push(`${op.name}: Single entfernen fehlgeschlagen (${e.message}) – Albumversion ist schon drin.`)}
+      }catch(e){res.errors.push(`${op.name}: Single entfernen fehlgeschlagen (${e.message}) – Albumversion ist schon drin.`);if(e.rateLimited){res.aborted=true;break}}
     }
+    if(res.aborted)throw Error(ABORT_TEXT);
     step("Albumversionen liken…");
     let likeOk=true;
     for(const part of albChunks(plan.likeUris,40)){
-      try{await albApi("PUT",`/me/library?uris=${encodeURIComponent(part.join(","))}`);res.liked+=part.length}
+      try{await albWrite("PUT",`/me/library?uris=${encodeURIComponent(part.join(","))}`);res.liked+=part.length}
       catch(e){likeOk=false;res.errors.push(`Liken fehlgeschlagen (${e.message})`);break}
     }
     if(likeOk){
       step("Singles entliken…");
       for(const part of albChunks(plan.unlikeUris,40)){
-        try{await albApi("DELETE",`/me/library?uris=${encodeURIComponent(part.join(","))}`);res.unliked+=part.length}
+        try{await albWrite("DELETE",`/me/library?uris=${encodeURIComponent(part.join(","))}`);res.unliked+=part.length}
         catch(e){res.errors.push(`Entliken fehlgeschlagen (${e.message})`);break}
       }
     }else if(plan.unlikeUris.length)res.errors.push("Singles bleiben gelikt, weil das Liken der Albumversionen nicht geklappt hat.");
@@ -235,25 +266,27 @@ async function albApplyDup(){
   try{
     for(let i=0;i<plan.playlistOps.length;i++){
       const op=plan.playlistOps[i];step(`Playlists bereinigen… ${i+1}/${plan.playlistOps.length}`);
-      try{for(const part of albChunks(op.removes,100))await albApi("DELETE",`/playlists/${op.playlistId}/items`,{body:{items:part.map(uri=>({uri}))}})}
-      catch(e){res.errors.push(`${op.name}: Entfernen fehlgeschlagen (${e.message}) – Playlist bitte prüfen.`);continue}
+      try{for(const part of albChunks(op.removes,100))await albWrite("DELETE",`/playlists/${op.playlistId}/items`,{body:{items:part.map(uri=>({uri}))}})}
+      catch(e){res.errors.push(`${op.name}: nicht geändert (${e.message}).`);if(e.rateLimited){res.aborted=true;break}continue}
+      // Nach dem Entfernen muss das Einfügen klappen – darum hier hartnäckiger (albWritePersistent)
       const missing=[];
       for(const ins of op.inserts){
-        try{await albApi("POST",`/playlists/${op.playlistId}/items`,{body:{uris:[ins.uri],position:ins.position}})}
+        try{await albWritePersistent("POST",`/playlists/${op.playlistId}/items`,{body:{uris:[ins.uri],position:ins.position}})}
         catch{missing.push(`«${names.get(ins.uri)||ins.uri}»`)}
       }
       if(missing.length)res.errors.push(`${op.name}: fehlt jetzt, bitte in Spotify wieder hinzufügen: ${missing.join(", ")}`);
       else{res.playlistsDone++;res.removed+=op.removedCount}
     }
+    if(res.aborted)throw Error(ABORT_TEXT);
     step("Gelikte Songs anpassen…");
     let likeOk=true;
     for(const part of albChunks(plan.likeUris,40)){
-      try{await albApi("PUT",`/me/library?uris=${encodeURIComponent(part.join(","))}`);res.liked+=part.length}
+      try{await albWrite("PUT",`/me/library?uris=${encodeURIComponent(part.join(","))}`);res.liked+=part.length}
       catch(e){likeOk=false;res.errors.push(`Liken fehlgeschlagen (${e.message})`);break}
     }
     if(likeOk){
       for(const part of albChunks(plan.unlikeUris,40)){
-        try{await albApi("DELETE",`/me/library?uris=${encodeURIComponent(part.join(","))}`);res.unliked+=part.length}
+        try{await albWrite("DELETE",`/me/library?uris=${encodeURIComponent(part.join(","))}`);res.unliked+=part.length}
         catch(e){res.errors.push(`Entliken fehlgeschlagen (${e.message})`);break}
       }
     }else if(plan.unlikeUris.length)res.errors.push("Andere Versionen bleiben gelikt, weil das Liken der bleibenden Version nicht geklappt hat.");

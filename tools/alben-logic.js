@@ -121,6 +121,16 @@ function albSortRows(rows){
   return [...rows].sort((x,y)=>coll.compare(albArtistName(x),albArtistName(y))||coll.compare(album(x),album(y))||pos(x)-pos(y)||coll.compare(x.track?.name||"",y.track?.name||""));
 }
 
+// Wartezeit bei Spotify 429 (zu viele Anfragen): Retry-After, falls der Browser ihn lesen darf, sonst
+// verdoppeln ab 2 s (2, 4, 8 … höchstens 120 s). null = aufgeben (nach 8 Versuchen oder wenn Spotify > 2 Min. verlangt).
+const ALB_429_TRIES=8,ALB_429_MAX_S=120;
+function albBackoffSeconds(attempt,retryAfter){
+  if(attempt>=ALB_429_TRIES)return null;
+  const ra=Number(retryAfter)||0;
+  if(ra>ALB_429_MAX_S)return null;
+  return Math.min(ALB_429_MAX_S,Math.max(ra,2**(attempt+1)));
+}
+
 function albChunks(list,size){const out=[];for(let i=0;i<list.length;i+=size)out.push(list.slice(i,i+size));return out}
 
 // ---------- Doppelte entfernen (Roadmap W.2) ----------
@@ -225,4 +235,4 @@ function albDupPlan(playlists,liked,mapping){
   return {playlistOps,likeUris,unlikeUris};
 }
 
-if(typeof module!=="undefined")module.exports={albBaseTitle,albIsTrack,albIsSingle,albYear,albMatchesFilter,albBuildIndex,albCandidates,albRank,albClassify,albCollectSingles,albPlan,albArtistName,albSortRows,albChunks,ALB_UNSURE_MS,albLooseTitle,albCollectVersions,albVersionRank,albDefaultKeep,albDupGroups,albDupMapping,albDupPlan};
+if(typeof module!=="undefined")module.exports={albBaseTitle,albIsTrack,albIsSingle,albYear,albMatchesFilter,albBuildIndex,albCandidates,albRank,albClassify,albCollectSingles,albPlan,albArtistName,albSortRows,albChunks,ALB_UNSURE_MS,albBackoffSeconds,ALB_429_TRIES,ALB_429_MAX_S,albLooseTitle,albCollectVersions,albVersionRank,albDefaultKeep,albDupGroups,albDupMapping,albDupPlan};
