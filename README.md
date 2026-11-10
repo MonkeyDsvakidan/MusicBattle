@@ -38,7 +38,7 @@ Jeder Juror vergibt 10–9 oder 10–8. Fehlen die nötigen Daten oder liegen be
 
 ## Werkzeug: Alben-Fix (kein Teil des Spiels)
 
-Unter `…/MusicBattle/?tool=alben` ersetzt der Alben-Fix Singles in den eigenen Spotify-Playlists und gelikten Songs durch die Version aus einem gespeicherten Album (Albumversion liken, Single entliken). Zuerst läuft ein Testlauf, geändert wird erst nach Bestätigung; optional nur für ein Album. Nutzt die Spotify-App des Spiels mit eigener Anmeldung, Code in `tools/`.
+Unter `…/MusicBattle/?tool=alben` ersetzt der Alben-Fix Singles in den eigenen Spotify-Playlists und gelikten Songs durch die Version aus einem gespeicherten Album (Albumversion liken, Single entliken). Zuerst läuft ein Testlauf, geändert wird erst nach Bestätigung; optional nur für ein Album. Zweiter Knopf **Doppelte entfernen**: findet Songs, die mehrfach in einer Playlist oder in verschiedenen Versionen (Single/Album/Deluxe) über Playlists und Likes verteilt sind; pro Song wählt man, welche Version bleibt. Nutzt die Spotify-App des Spiels mit eigener Anmeldung, Code in `tools/`.
 
 ## Technik
 
