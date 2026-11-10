@@ -9,7 +9,7 @@ const ALB_AUTH="https://accounts.spotify.com/authorize",ALB_TOKEN="https://accou
 const ALB_SCOPES="user-library-read user-library-modify playlist-read-private playlist-read-collaborative playlist-modify-private playlist-modify-public";
 const ALB_KEYS={state:"mb_alben_state",verifier:"mb_alben_pkce",access:"mb_alben_access",expires:"mb_alben_expires",refresh:"mb_alben_refresh"};
 
-const ALB={mode:"fix",dupSel:new Set(),dupKeep:new Map(),view:"start",me:null,error:"",progress:"",filter:"",scan:null,selected:new Set(),result:null,confirm:false};
+const ALB={mode:"fix",dupSel:new Set(),dupKeep:new Map(),view:"init",me:null,error:"",progress:"",filter:"",scan:null,selected:new Set(),result:null,confirm:false};
 
 function albEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function albGet(store,k){try{return store.getItem(k)}catch{return null}}
@@ -72,9 +72,10 @@ async function albApi(method,path,{body,attempt=0,tries5xx=3}={}){
   const url=path.startsWith("http")?path:ALB_API+path;
   const r=await fetch(url,{method,headers:{Authorization:`Bearer ${t}`,...(body?{"Content-Type":"application/json"}:{})},body:body?JSON.stringify(body):undefined});
   if(r.status===429){
+    let reason="";try{reason=(await r.clone().json())?.error?.reason||""}catch{}
     const wait=albBackoffSeconds(attempt,r.headers.get("Retry-After"));
-    if(wait!==null){await albWaitNotice(wait);return albApi(method,path,{body,attempt:attempt+1,tries5xx})}
-    const e=Error("Spotify 429: zu viele Anfragen – Spotify-Limit erreicht");e.status=429;e.rateLimited=true;throw e;
+    if(wait!==null){await albWaitNotice(wait,reason);return albApi(method,path,{body,attempt:attempt+1,tries5xx})}
+    const e=Error(`Spotify 429: zu viele Anfragen – Spotify-Limit erreicht${reason==="QUOTA_EXCEEDED"?" (Kontingent der App aufgebraucht)":""}`);e.status=429;e.rateLimited=true;throw e;
   }
   // POST (Einfügen) nie automatisch wiederholen: bei 5xx kann Spotify es trotzdem ausgeführt haben → sonst doppelt
   if(r.status>=500&&tries5xx>0&&method!=="POST"){await albSleep(1500);return albApi(method,path,{body,attempt,tries5xx:tries5xx-1})}
@@ -85,13 +86,15 @@ async function albApi(method,path,{body,attempt=0,tries5xx=3}={}){
 }
 
 // Countdown im Fortschritt anzeigen, während Spotify bremst
-async function albWaitNotice(seconds){
+// Zustände, in denen die Seite „arbeitet“ und einen Fortschritt/Countdown zeigt (init = Start, /me wird geladen)
+function albBusy(){return ALB.view==="scan"||ALB.view==="apply"||ALB.view==="init"}
+async function albWaitNotice(seconds,reason=""){
   const base=ALB.progress.replace(/ – Spotify bremst.*$/,"");
   for(let s=seconds;s>0;s--){
-    if(ALB.view==="scan"||ALB.view==="apply"){ALB.progress=`${base} – Spotify bremst, nächster Versuch in ${s} s`;albRender()}
+    if(albBusy()){ALB.progress=`${base} – Spotify bremst${reason==="QUOTA_EXCEEDED"?" (Kontingent der App aufgebraucht)":""}, nächster Versuch in ${s} s`;albRender()}
     await albSleep(1000);
   }
-  if(ALB.view==="scan"||ALB.view==="apply"){ALB.progress=base;albRender()}
+  if(albBusy()){ALB.progress=base;albRender()}
 }
 
 // Kleine Pause zwischen Änderungen, damit Spotify gar nicht erst bremst
@@ -435,7 +438,7 @@ function albRender(){
       <div class="alb-mode stack"><h3>Albumversion statt Single</h3><p class="muted">Singles werden durch die Version aus deinem gespeicherten Album ersetzt, die Albumversion gelikt.</p><button class="btn primary" id="albScan">Testlauf Alben-Fix</button></div>
       <div class="alb-mode stack"><h3>Doppelte entfernen</h3><p class="muted">Gleicher Song mehrfach in einer Playlist oder in verschiedenen Versionen über Playlists und Likes verteilt. Du wählst pro Song, welche Version bleibt.</p><button class="btn primary" id="albScanDup">Testlauf Doppelte</button></div>
       <button class="btn ghost" id="albLogout">Abmelden</button></section>`;
-  }else if(ALB.view==="scan"||ALB.view==="apply"){
+  }else if(albBusy()){
     app.innerHTML=`<section class="card stack">${head}<p class="alb-progress">${albEsc(ALB.progress)}</p><p class="muted">Seite bitte offen lassen.</p></section>`;
   }else if(ALB.view==="review"&&ALB.mode==="dup"){
     app.innerHTML=albRenderDupReview(head,err);
@@ -489,11 +492,13 @@ function albBind(){
 async function albInit(){
   document.title="Alben-Fix · Music Battle";
   const home=document.getElementById("brandHome");if(home)home.onclick=()=>{location.href=location.pathname};
+  ALB.progress="Verbinde mit Spotify…";albRender();
   await albCallback();
   if(await albToken()){
     try{ALB.me=await albApi("GET","/me")}
     catch(e){ALB.error=`Spotify-Profil konnte nicht geladen werden (${e.message}).`}
   }
+  ALB.view="start";
   albRender();
 }
 
