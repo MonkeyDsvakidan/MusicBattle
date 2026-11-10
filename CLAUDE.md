@@ -57,7 +57,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `js/jury.js` | Scorecards, eigener Entscheid, „Die Jury“ (`runAIJury` ruft `mb-jury` auf), `roundDecision`, `finalizeRound` |
 | `js/ui-screens.js` | Bildschirme: Start, Lobby, Draft, Battle, Jury (Punktezettel `scorecardTable`, Gürtel `beltBanner`), Tiebreak, Endstand |
 | `js/main.js` | Start: genau ein `init()` + `render()`, nachdem alles geladen ist |
-| `tools/` | Werkzeuge ausserhalb des Spiels (Roadmap „Werkzeuge“): `alben-logic.js` (reine Funktionen, `node --test`), `alben.js`, `alben.css` = Alben-Fix unter `?tool=alben`. `app.js` lädt sie statt der Spiel-Skripte; sie nutzen nur die Spotify-App (eigene Anmeldung `mb_alben_*`), keine Supabase und keine Funktionen aus `js/` |
+| `tools/` | Werkzeuge ausserhalb des Spiels (Roadmap „Werkzeuge“): `alben-logic.js` (reine Funktionen, `node --test`), `alben.js`, `alben.css` = Alben-Fix (W.1) und Doppelte entfernen (W.2) unter `?tool=alben`. `app.js` lädt sie statt der Spiel-Skripte; sie nutzen nur die Spotify-App (eigene Anmeldung `mb_alben_*`), keine Supabase und keine Funktionen aus `js/` |
 
 Gemeinsame Daten: `supabase/functions/_shared/themes.json` enthält alle Themen mit Profil (Schlüsselwörter DE/EN, Tags, Energie, Ära); `jurors.json` die fünf Juror-Profile (Gewichte, Mindestdaten, Text-Bausteine, schwache Gewichte für allgemeine Wörter, Energie-Tags). Das Frontend lädt sie über `app.js` (GitHub Pages liefert das ganze Repo aus), die Jury-Edge-Function importiert sie ab Roadmap 3.8. Themen und Juroren nur dort ändern.
 

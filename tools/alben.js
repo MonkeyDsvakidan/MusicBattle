@@ -9,7 +9,7 @@ const ALB_AUTH="https://accounts.spotify.com/authorize",ALB_TOKEN="https://accou
 const ALB_SCOPES="user-library-read user-library-modify playlist-read-private playlist-read-collaborative playlist-modify-private playlist-modify-public";
 const ALB_KEYS={state:"mb_alben_state",verifier:"mb_alben_pkce",access:"mb_alben_access",expires:"mb_alben_expires",refresh:"mb_alben_refresh"};
 
-const ALB={view:"start",me:null,error:"",progress:"",filter:"",scan:null,selected:new Set(),result:null,confirm:false};
+const ALB={mode:"fix",dupSel:new Set(),dupKeep:new Map(),view:"start",me:null,error:"",progress:"",filter:"",scan:null,selected:new Set(),result:null,confirm:false};
 
 function albEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function albGet(store,k){try{return store.getItem(k)}catch{return null}}
@@ -83,39 +83,58 @@ async function albPaged(path,onPage){
   return all;
 }
 
-// ---------- Testlauf: Bibliothek lesen und Vorschläge bilden ----------
-async function albScan(){
-  Object.assign(ALB,{view:"scan",error:"",result:null,confirm:false});
+// ---------- Bibliothek lesen (für beide Werkzeuge) ----------
+// Gespeicherte Alben; Album-Songs nur, wenn withTracks (Alben-Fix) und das Album zum Filter passt
+async function albLoadSaved(step,withTracks){
+  const raw=await albPaged("/me/albums?limit=50",n=>step(`Gespeicherte Alben laden… ${n}`));
+  const saved=[];
+  for(const it of raw){
+    const album=it.album;if(!album)continue;
+    if(!withTracks||!albMatchesFilter(album,ALB.filter)||album.album_type==="single"){saved.push({album,tracks:[]});continue}
+    let tracks=album.tracks?.items||[];
+    if(!album.tracks)tracks=await albPaged(`/albums/${album.id}/tracks?limit=50`);
+    else if(album.tracks.next)tracks=tracks.concat(await albPaged(album.tracks.next));
+    saved.push({album,tracks:tracks.map(t=>({...t,album}))});
+  }
+  return saved;
+}
+
+// Eigene und gemeinsame Playlists mit Inhalt (Position zählt jeden Eintrag, auch Podcasts/lokale Dateien)
+async function albLoadPlaylists(step){
+  const lists=await albPaged("/me/playlists?limit=50");
+  const own=lists.filter(p=>p&&(p.owner?.id===ALB.me.id||p.collaborative));
+  const playlists=[],skipped=[];
+  for(let i=0;i<own.length;i++){
+    const p=own[i];step(`Playlists lesen… ${i+1}/${own.length}`);
+    try{
+      const items=await albPaged(`/playlists/${p.id}/items?limit=50`);
+      playlists.push({id:p.id,name:p.name,items:items.map((it,pos)=>({position:pos,track:it?.item??it?.track??null}))});
+    }catch(e){skipped.push(`${p.name} (${e.message})`)}
+  }
+  return {playlists,skipped};
+}
+
+async function albLoadLiked(step){
+  return (await albPaged("/me/tracks?limit=50",n=>step(`Gelikte Songs laden… ${n}`))).map(it=>it.track).filter(Boolean);
+}
+
+function albStartScan(mode){
+  Object.assign(ALB,{mode,view:"scan",error:"",result:null,confirm:false});
   ALB.filter=(document.getElementById("albFilter")?.value||"").trim();
-  const step=txt=>{ALB.progress=txt;albRender()};
+  return txt=>{ALB.progress=txt;albRender()};
+}
+
+// ---------- Testlauf Alben-Fix ----------
+async function albScan(){
+  const step=albStartScan("fix");
   try{
     step("Gespeicherte Alben laden…");
-    const rawAlbums=await albPaged("/me/albums?limit=50",n=>step(`Gespeicherte Alben laden… ${n}`));
-    const saved=[];
-    for(const it of rawAlbums){
-      const album=it.album;if(!album)continue;
-      if(!albMatchesFilter(album,ALB.filter)||album.album_type==="single"){saved.push({album,tracks:[]});continue}
-      let tracks=album.tracks?.items||[];
-      if(!album.tracks)tracks=await albPaged(`/albums/${album.id}/tracks?limit=50`);
-      else if(album.tracks.next)tracks=tracks.concat(await albPaged(album.tracks.next));
-      saved.push({album,tracks:tracks.map(t=>({...t,album}))});
-    }
+    const saved=await albLoadSaved(step,true);
     const index=albBuildIndex(saved,ALB.filter);
-
     step("Playlists laden…");
-    const lists=await albPaged("/me/playlists?limit=50");
-    const own=lists.filter(p=>p&&(p.owner?.id===ALB.me.id||p.collaborative));
-    const playlists=[],skipped=[];
-    for(let i=0;i<own.length;i++){
-      const p=own[i];step(`Playlists lesen… ${i+1}/${own.length}`);
-      try{
-        const items=await albPaged(`/playlists/${p.id}/items?limit=50`);
-        playlists.push({id:p.id,name:p.name,items:items.map((it,pos)=>({position:pos,track:it?.item??it?.track??null}))});
-      }catch(e){skipped.push(`${p.name} (${e.message})`)}
-    }
-
+    const {playlists,skipped}=await albLoadPlaylists(step);
     step("Gelikte Songs laden…");
-    const liked=(await albPaged("/me/tracks?limit=50",n=>step(`Gelikte Songs laden… ${n}`))).map(it=>it.track).filter(Boolean);
+    const liked=await albLoadLiked(step);
 
     const singles=albCollectSingles(playlists,liked);
     const isrcCache=new Map();
@@ -134,6 +153,28 @@ async function albScan(){
     }
     ALB.scan={playlists,liked,rows,skipped,albumCount:saved.filter(x=>x.album.album_type!=="single"&&albMatchesFilter(x.album,ALB.filter)).length};
     ALB.selected=new Set(rows.filter(r=>r.decision.status==="sure").map(r=>r.track.uri));
+    ALB.view="review";
+  }catch(e){ALB.error=`Testlauf abgebrochen: ${e.message}`;ALB.view="start"}
+  albRender();
+}
+
+// ---------- Testlauf Doppelte (Roadmap W.2) ----------
+async function albScanDup(){
+  const step=albStartScan("dup");
+  try{
+    step("Gespeicherte Alben laden…");
+    const saved=await albLoadSaved(step,false);
+    const savedAlbumIds=new Set(saved.map(x=>x.album.id));
+    step("Playlists laden…");
+    const {playlists,skipped}=await albLoadPlaylists(step);
+    step("Gelikte Songs laden…");
+    const liked=await albLoadLiked(step);
+    step("Doppelte suchen…");
+    const versions=albCollectVersions(playlists,liked);
+    const groups=albDupGroups(versions,{savedAlbumIds,filter:ALB.filter});
+    ALB.scan={playlists,liked,groups,skipped,savedAlbumIds};
+    ALB.dupSel=new Set(groups.filter(g=>g.kind==="sure").map(g=>g.id));
+    ALB.dupKeep=new Map(groups.map(g=>[g.id,g.keep]));
     ALB.view="review";
   }catch(e){ALB.error=`Testlauf abgebrochen: ${e.message}`;ALB.view="start"}
   albRender();
@@ -180,6 +221,48 @@ async function albApply(){
   albRender();
 }
 
+// ---------- Ausführen Doppelte (W.2) ----------
+// Je Playlist: betroffene Versionen entfernen, dann die bleibende Version an der ersten Stelle einfügen.
+// Fehlt danach etwas (Einfügen fehlgeschlagen), steht der Song namentlich im Bericht.
+async function albApplyDup(){
+  const selected=ALB.scan.groups.filter(g=>ALB.dupSel.has(g.id)).map(g=>({...g,keep:ALB.dupKeep.get(g.id)||g.keep}));
+  const plan=albDupPlan(ALB.scan.playlists,ALB.scan.liked,albDupMapping(selected));
+  const names=new Map();
+  for(const g of ALB.scan.groups)for(const v of g.versions)names.set(v.track.uri,v.track.name);
+  const res={playlistsDone:0,removed:0,liked:0,unliked:0,errors:[]};
+  Object.assign(ALB,{view:"apply",confirm:false});
+  const step=txt=>{ALB.progress=txt;albRender()};
+  try{
+    for(let i=0;i<plan.playlistOps.length;i++){
+      const op=plan.playlistOps[i];step(`Playlists bereinigen… ${i+1}/${plan.playlistOps.length}`);
+      try{for(const part of albChunks(op.removes,100))await albApi("DELETE",`/playlists/${op.playlistId}/items`,{body:{items:part.map(uri=>({uri}))}})}
+      catch(e){res.errors.push(`${op.name}: Entfernen fehlgeschlagen (${e.message}) – Playlist bitte prüfen.`);continue}
+      const missing=[];
+      for(const ins of op.inserts){
+        try{await albApi("POST",`/playlists/${op.playlistId}/items`,{body:{uris:[ins.uri],position:ins.position}})}
+        catch{missing.push(`«${names.get(ins.uri)||ins.uri}»`)}
+      }
+      if(missing.length)res.errors.push(`${op.name}: fehlt jetzt, bitte in Spotify wieder hinzufügen: ${missing.join(", ")}`);
+      else{res.playlistsDone++;res.removed+=op.removedCount}
+    }
+    step("Gelikte Songs anpassen…");
+    let likeOk=true;
+    for(const part of albChunks(plan.likeUris,40)){
+      try{await albApi("PUT",`/me/library?uris=${encodeURIComponent(part.join(","))}`);res.liked+=part.length}
+      catch(e){likeOk=false;res.errors.push(`Liken fehlgeschlagen (${e.message})`);break}
+    }
+    if(likeOk){
+      for(const part of albChunks(plan.unlikeUris,40)){
+        try{await albApi("DELETE",`/me/library?uris=${encodeURIComponent(part.join(","))}`);res.unliked+=part.length}
+        catch(e){res.errors.push(`Entliken fehlgeschlagen (${e.message})`);break}
+      }
+    }else if(plan.unlikeUris.length)res.errors.push("Andere Versionen bleiben gelikt, weil das Liken der bleibenden Version nicht geklappt hat.");
+  }catch(e){res.errors.push(e.message)}
+  ALB.result={...res,plan};
+  ALB.view="done";
+  albRender();
+}
+
 // ---------- Oberfläche ----------
 function albCover(album){const img=(album?.images||[]).slice(-1)[0]?.url;return img?`<img class="alb-cover" src="${albEsc(img)}" alt="" loading="lazy">`:`<span class="alb-cover"></span>`}
 
@@ -209,16 +292,77 @@ function albList(rows,withBox){
   return `<div class="alb-list">${html}</div>`;
 }
 
+// ---------- Oberfläche Doppelte (W.2) ----------
+function albVersionLabel(t){
+  const a=t.album||{},type=a.album_type==="single"?"Single":a.album_type==="compilation"?"Compilation":"Album";
+  return `${type} <b>${albEsc(a.name)}</b>${albYear(a)?` (${albEsc(albYear(a))})`:""}`;
+}
+
+function albVersionPlaces(v){
+  const count=new Map();
+  for(const p of v.places)count.set(p.playlistName,(count.get(p.playlistName)||0)+1);
+  const parts=[...count].map(([n,c])=>`${albEsc(n)}${c>1?` (${c}×)`:""}`);
+  if(v.liked)parts.push("gelikt");
+  return parts.join(" · ");
+}
+
+function albGroupCard(g,idx){
+  const keep=ALB.dupKeep.get(g.id)||g.keep,saved=ALB.scan.savedAlbumIds;
+  const kt=(g.versions.find(v=>v.track.uri===keep)||g.versions[0]).track;
+  const versions=[...g.versions].sort((x,y)=>albVersionRank(x,saved)-albVersionRank(y,saved));
+  const multi=g.versions.length>1;
+  const rows=versions.map(v=>{
+    const t=v.track,isSaved=t.album?.album_type!=="single"&&saved.has(t.album?.id);
+    return `<label class="alb-ver${t.uri===keep?" keep":""}"><input type="radio" class="alb-keep" name="albKeep${idx}" data-g="${albEsc(g.id)}" value="${albEsc(t.uri)}" ${t.uri===keep?"checked":""}>${albCover(t.album)}<span class="alb-txt"><span>${albVersionLabel(t)}${isSaved?` <span class="chip ok">gespeichert</span>`:""}</span>${t.name!==kt.name?`<span class="muted">«${albEsc(t.name)}»</span>`:""}<span class="alb-where">${albVersionPlaces(v)}</span></span></label>`;
+  }).join("");
+  return `<div class="alb-group"><label class="alb-ghead"><input type="checkbox" class="alb-gcheck" data-g="${albEsc(g.id)}" ${ALB.dupSel.has(g.id)?"checked":""} aria-label="${albEsc(kt.name)} bereinigen"><span class="alb-txt"><span class="alb-title">${albEsc(kt.name)}</span><span class="muted">${(kt.artists||[]).map(a=>albEsc(a.name)).join(", ")} · ${multi?`${g.versions.length} Versionen`:"mehrfach in einer Playlist"}</span></span></label><div class="alb-vers">${rows}</div></div>`;
+}
+
+// Gruppen nach Künstler und Album der bleibenden Version sortiert, mit Künstler-Überschrift
+function albGroupList(groups){
+  const rows=groups.map(g=>({group:g,track:(g.versions.find(v=>v.track.uri===(ALB.dupKeep.get(g.id)||g.keep))||g.versions[0]).track}));
+  let last=null,html="";
+  for(const r of albSortRows(rows)){
+    const artist=albArtistName(r);
+    if(artist!==last){html+=`<div class="alb-artist">${albEsc(artist||"Unbekannt")}</div>`;last=artist}
+    html+=albGroupCard(r.group,ALB.scan.groups.indexOf(r.group));
+  }
+  return `<div class="alb-list">${html}</div>`;
+}
+
+function albRenderDupReview(head,err){
+  const sc=ALB.scan,sure=sc.groups.filter(g=>g.kind==="sure"),unsure=sc.groups.filter(g=>g.kind==="unsure");
+  const n=ALB.dupSel.size;
+  const confirm=ALB.confirm?`<div class="notice"><b>${n} Song${n===1?"":"s"} bereinigen?</b> Danach steht pro Song nur noch die gewählte Version in deinen Playlists, an der Stelle des ersten Vorkommens. Verschobene oder ersetzte Songs verlieren ihr «Hinzugefügt am»; neu gelikte Versionen erscheinen bei den gelikten Songs zuoberst.</div><button class="btn primary" id="albApplyDup">Ja, bereinigen</button><button class="btn ghost" id="albCancel">Abbrechen</button>`:`<button class="btn primary" id="albAsk" ${n?"":"disabled"}>Ausgewählte bereinigen (${n})</button>`;
+  return `<section class="card stack">${head}<p class="muted">Testlauf fertig – noch nichts geändert${ALB.filter?` · nur «${albEsc(ALB.filter)}»`:""}. Pro Song wählst du die Version, die bleibt.</p>
+    <div class="alb-chips"><span class="chip ok">${sure.length} sicher</span><span class="chip">${unsure.length} unsicher</span></div>
+    ${sure.length?`<h3>Gleiche Aufnahme</h3><p class="muted">Derselbe Song mehrfach in einer Playlist oder als Single, Album- und Deluxe-Version verteilt.</p>${albGroupList(sure)}`:`<div class="notice">Keine doppelten Aufnahmen gefunden.</div>`}
+    ${unsure.length?`<h3>Unsicher – andere Versionen</h3><p class="muted">Gleicher Titel und Künstler, aber andere Aufnahmen (Live, Remaster, Radio Edit, Remix). Nur anhaken, wenn du wirklich nur eine Version willst – dann ersetzt sie alle anderen.</p>${albGroupList(unsure)}`:""}
+    ${sc.skipped.length?`<details><summary>Nicht lesbare Playlists (${sc.skipped.length})</summary><p class="muted">${sc.skipped.map(albEsc).join("<br>")}</p></details>`:""}
+    ${err}${confirm}<button class="btn ghost" id="albBack">Zurück</button></section>`;
+}
+
 function albRender(){
   const app=document.getElementById("app");if(!app)return;
   const err=ALB.error?`<div class="notice error">${albEsc(ALB.error)}</div>`:"";
-  const head=`<div class="eyebrow">WERKZEUG · KEIN TEIL DES SPIELS</div><h2>Alben-Fix</h2>`;
+  const head=`<div class="eyebrow">WERKZEUG · KEIN TEIL DES SPIELS</div><h2>${ALB.mode==="dup"&&ALB.view!=="start"?"Doppelte entfernen":"Alben-Fix"}</h2>`;
   if(ALB.view==="start"&&!ALB.me){
-    app.innerHTML=`<section class="card stack">${head}<p class="muted">Ersetzt Singles in deinen Playlists und gelikten Songs durch die Version aus einem Album, das du gespeichert hast. Die Albumversion wird gelikt, die Single entlikt. Zuerst kommt ein Testlauf, geändert wird erst nach deiner Bestätigung.</p>${err}<button class="btn primary" id="albLogin">Mit Spotify anmelden</button></section>`;
+    app.innerHTML=`<section class="card stack">${head}<p class="muted">Räumt deine Spotify-Bibliothek auf: Singles durch die Version aus deinem gespeicherten Album ersetzen und doppelte Songs entfernen. Zuerst kommt immer ein Testlauf, geändert wird erst nach deiner Bestätigung.</p>${err}<button class="btn primary" id="albLogin">Mit Spotify anmelden</button></section>`;
   }else if(ALB.view==="start"){
-    app.innerHTML=`<section class="card stack">${head}<p class="muted">Angemeldet als <b>${albEsc(ALB.me.display_name||ALB.me.id)}</b>.</p>${err}<div><label for="albFilter">Nur ein Album prüfen (optional)</label><input id="albFilter" value="${albEsc(ALB.filter)}" placeholder="z. B. D-TEC – leer = alle gespeicherten Alben" autocomplete="off"></div><button class="btn primary" id="albScan">Testlauf starten</button><button class="btn ghost" id="albLogout">Abmelden</button></section>`;
+    app.innerHTML=`<section class="card stack">${head}<p class="muted">Angemeldet als <b>${albEsc(ALB.me.display_name||ALB.me.id)}</b>.</p>${err}<div><label for="albFilter">Nur bestimmtes Album oder Künstler (optional)</label><input id="albFilter" value="${albEsc(ALB.filter)}" placeholder="z. B. D-TEC – leer = alles" autocomplete="off"></div>
+      <div class="alb-mode stack"><h3>Albumversion statt Single</h3><p class="muted">Singles werden durch die Version aus deinem gespeicherten Album ersetzt, die Albumversion gelikt.</p><button class="btn primary" id="albScan">Testlauf Alben-Fix</button></div>
+      <div class="alb-mode stack"><h3>Doppelte entfernen</h3><p class="muted">Gleicher Song mehrfach in einer Playlist oder in verschiedenen Versionen über Playlists und Likes verteilt. Du wählst pro Song, welche Version bleibt.</p><button class="btn primary" id="albScanDup">Testlauf Doppelte</button></div>
+      <button class="btn ghost" id="albLogout">Abmelden</button></section>`;
   }else if(ALB.view==="scan"||ALB.view==="apply"){
     app.innerHTML=`<section class="card stack">${head}<p class="alb-progress">${albEsc(ALB.progress)}</p><p class="muted">Seite bitte offen lassen.</p></section>`;
+  }else if(ALB.view==="review"&&ALB.mode==="dup"){
+    app.innerHTML=albRenderDupReview(head,err);
+  }else if(ALB.view==="done"&&ALB.mode==="dup"){
+    const r=ALB.result,ok=!r.errors.length;
+    app.innerHTML=`<section class="card stack">${head}<div class="notice ${ok?"success":"error"}">${ok?"Fertig.":"Fertig, aber nicht alles hat geklappt."}</div>
+      <ul class="alb-sum"><li>${r.playlistsDone} Playlist${r.playlistsDone===1?"":"s"} bereinigt</li><li>${r.removed} doppelte Einträge entfernt</li><li>${r.liked} Version${r.liked===1?"":"en"} gelikt, ${r.unliked} entlikt</li></ul>
+      ${r.errors.length?`<div class="notice error">${r.errors.map(albEsc).join("<br>")}</div>${r.errors.some(e=>/403/.test(e))?`<p class="muted">403 heisst: Spotify erlaubt dieser App das Ändern gerade nicht (Einschränkung im Entwicklungsmodus).</p>`:""}`:""}
+      <button class="btn primary" id="albAgain">Nochmals prüfen</button><button class="btn ghost" id="albLogout">Abmelden</button></section>`;
   }else if(ALB.view==="review"){
     const sc=ALB.scan,sure=sc.rows.filter(r=>r.decision.status==="sure"),unsure=sc.rows.filter(r=>r.decision.status==="unsure"),none=sc.rows.filter(r=>r.decision.status==="none");
     const n=ALB.selected.size;
@@ -246,6 +390,8 @@ function albBind(){
   on("albLogin",albLogin);
   on("albLogout",albLogout);
   on("albScan",albScan);
+  on("albScanDup",albScanDup);
+  on("albApplyDup",albApplyDup);
   on("albAsk",()=>{ALB.confirm=true;albRender()});
   on("albCancel",()=>{ALB.confirm=false;albRender()});
   on("albApply",albApply);
@@ -253,6 +399,8 @@ function albBind(){
   on("albAgain",()=>{Object.assign(ALB,{view:"start",result:null});albRender()});
   const filter=document.getElementById("albFilter");
   if(filter){filter.oninput=()=>{ALB.filter=filter.value};filter.onkeydown=e=>{if(e.key==="Enter")albScan()}}
+  for(const box of document.querySelectorAll(".alb-gcheck"))box.onchange=()=>{if(box.checked)ALB.dupSel.add(box.dataset.g);else ALB.dupSel.delete(box.dataset.g);ALB.confirm=false;albRender()};
+  for(const r of document.querySelectorAll(".alb-keep"))r.onchange=()=>{ALB.dupKeep.set(r.dataset.g,r.value);ALB.dupSel.add(r.dataset.g);ALB.confirm=false;albRender()};
   for(const box of document.querySelectorAll(".alb-check"))box.onchange=()=>{if(box.checked)ALB.selected.add(box.dataset.uri);else ALB.selected.delete(box.dataset.uri);ALB.confirm=false;albRender()};
 }
 

@@ -123,4 +123,106 @@ function albSortRows(rows){
 
 function albChunks(list,size){const out=[];for(let i=0;i<list.length;i+=size)out.push(list.slice(i,i+size));return out}
 
-if(typeof module!=="undefined")module.exports={albBaseTitle,albIsTrack,albIsSingle,albYear,albMatchesFilter,albBuildIndex,albCandidates,albRank,albClassify,albCollectSingles,albPlan,albArtistName,albSortRows,albChunks,ALB_UNSURE_MS};
+// ---------- Doppelte entfernen (Roadmap W.2) ----------
+// Gleicher Song in mehreren Versionen (Single/Album/Deluxe/Compilation) oder mehrfach in einer Playlist.
+// Pro Gruppe bleibt eine Version: sie ersetzt überall (eigene Playlists + gelikte Songs) die anderen Versionen.
+
+// Lockerer Titel: zusätzlich Versionshinweise in Klammern weg („(Live)“, „(2011 Remaster)“, „(Radio Edit)“)
+function albLooseTitle(name){
+  return albBaseTitle(String(name||"").replace(/[([][^)\]]*\b(live|remaster(ed)?|radio|edit|version|mix|remix|mono|stereo|acoustic|akustik|demo|explicit|clean|bonus|deluxe|sped up|slowed)\b[^)\]]*[)\]]/gi," "));
+}
+
+// Alle Song-Versionen aus eigenen Playlists und gelikten Songs: URI → {track, places, liked}
+function albCollectVersions(playlists,liked){
+  const map=new Map();
+  const entry=t=>{if(!map.has(t.uri))map.set(t.uri,{track:t,places:[],liked:false});return map.get(t.uri)};
+  for(const pl of playlists||[])for(const it of pl.items||[])
+    if(albIsTrack(it.track))entry(it.track).places.push({playlistId:pl.id,playlistName:pl.name,position:it.position});
+  for(const t of liked||[])if(albIsTrack(t))entry(t).liked=true;
+  return map;
+}
+
+// Rang der Version, die standardmässig bleibt: gespeichertes Album > Album > Compilation > Single,
+// dann die häufiger verwendete, dann die ältere Veröffentlichung
+function albVersionRank(v,savedAlbumIds){
+  const a=v.track.album||{};
+  return a.album_type!=="single"&&savedAlbumIds.has(a.id)?0:a.album_type==="album"?1:a.album_type==="compilation"?2:3;
+}
+function albDefaultKeep(versions,savedAlbumIds){
+  return [...versions].sort((x,y)=>albVersionRank(x,savedAlbumIds)-albVersionRank(y,savedAlbumIds)
+    ||(y.places.length+(y.liked?1:0))-(x.places.length+(x.liked?1:0))
+    ||String(x.track.album?.release_date||"").localeCompare(String(y.track.album?.release_date||""))
+    ||x.track.uri.localeCompare(y.track.uri))[0].track.uri;
+}
+
+// Gruppen bilden. sure = gleiche Aufnahme (gleiche ISRC bzw. gleicher Song), mit mehreren Versionen oder
+// mehrfach in einer Playlist; unsure = gleicher Titel (locker) und Hauptkünstler, aber verschiedene Aufnahmen.
+function albDupGroups(versionMap,{savedAlbumIds=new Set(),filter=""}={}){
+  const versions=[...versionMap.values()];
+  const parent=new Map(versions.map(v=>[v.track.uri,v.track.uri]));
+  const find=u=>{while(parent.get(u)!==u){parent.set(u,parent.get(parent.get(u)));u=parent.get(u)}return u};
+  const union=(a,b)=>{a=find(a);b=find(b);if(a!==b)parent.set(b,a)};
+  const byKey=(keyOf)=>{const first=new Map();for(const v of versions){const k=keyOf(v);if(!k)continue;if(first.has(k))union(first.get(k),v.track.uri);else first.set(k,v.track.uri)}};
+  const isrcKey=v=>v.track.external_ids?.isrc||"";
+  byKey(isrcKey);
+  byKey(v=>{const t=albLooseTitle(v.track.name),a=v.track.artists?.[0]?.id;return t&&a?`${t}|${a}`:""});
+  const clusters=new Map();
+  for(const v of versions){const r=find(v.track.uri);if(!clusters.has(r))clusters.set(r,[]);clusters.get(r).push(v)}
+  const dupInPlaylist=vs=>{const seen=new Set();for(const v of vs)for(const p of v.places){if(seen.has(p.playlistId))return true;seen.add(p.playlistId)}return false};
+  const groups=[];
+  for(const vs of clusters.values()){
+    if(filter&&!vs.some(v=>albMatchesFilter(v.track.album,filter)||(v.track.artists||[]).some(a=>albMatchesFilter({name:a.name},filter))))continue;
+    const comps=new Map();
+    for(const v of vs){const k=isrcKey(v)||v.track.uri;if(!comps.has(k))comps.set(k,[]);comps.get(k).push(v)}
+    for(const [k,cv] of comps)if(cv.length>1||dupInPlaylist(cv))
+      groups.push({id:`s:${k}`,kind:"sure",versions:cv,keep:albDefaultKeep(cv,savedAlbumIds)});
+    if(comps.size>1)groups.push({id:`u:${vs.map(v=>v.track.uri).sort()[0]}`,kind:"unsure",versions:vs,keep:albDefaultKeep(vs,savedAlbumIds)});
+  }
+  return groups;
+}
+
+// Gewählte Gruppen → Zuordnung Version → bleibende Version. Unsichere Gruppen überstimmen die sicheren darin.
+// selected: [{versions, keep, kind}]
+function albDupMapping(selected){
+  const map=new Map();
+  for(const g of selected.filter(g=>g.kind==="unsure"))for(const v of g.versions)map.set(v.track.uri,g.keep);
+  for(const g of selected.filter(g=>g.kind!=="unsure"))for(const v of g.versions)if(!map.has(v.track.uri))map.set(v.track.uri,g.keep);
+  for(const t of new Set(map.values()))map.set(t,map.get(t)||t);
+  return map;
+}
+
+// Änderungen planen: In jeder Playlist steht pro Gruppe danach genau einmal die bleibende Version, an der Stelle des
+// ersten Vorkommens. Vorgehen je Playlist: betroffene URIs entfernen (Spotify entfernt alle Vorkommen), dann die
+// bleibenden Versionen aufsteigend an ihrer Endposition einfügen. Steht die bleibende Version schon einmal an erster
+// Stelle, wird sie nicht angefasst. Gelikt: andere Versionen entliken, bleibende liken (falls eine Version gelikt war).
+function albDupPlan(playlists,liked,mapping){
+  const playlistOps=[];
+  for(const pl of playlists||[]){
+    const items=pl.items||[];
+    const occ=new Map();
+    items.forEach((it,i)=>{const u=it.track?.uri,t=u&&mapping.get(u);if(!t)return;if(!occ.has(t))occ.set(t,[]);occ.get(t).push({i,u})});
+    const changed=new Set(),moveKeep=new Set(),removes=new Set();
+    for(const [t,os] of occ){
+      if(os.length<2&&os[0].u===t)continue;
+      changed.add(t);
+      for(const o of os)if(o.u!==t)removes.add(o.u);
+      if(os[0].u!==t||os.filter(o=>o.u===t).length>1){moveKeep.add(t);if(os.some(o=>o.u===t))removes.add(t)}
+    }
+    if(!changed.size)continue;
+    const final=[];
+    items.forEach((it,i)=>{
+      const u=it.track?.uri,t=u&&mapping.get(u);
+      if(t&&changed.has(t)){if(occ.get(t)[0].i===i)final.push({uri:t,insert:moveKeep.has(t)});return}
+      final.push({uri:u||null,insert:false});
+    });
+    const inserts=final.map((e,position)=>e.insert?{uri:e.uri,position}:null).filter(Boolean);
+    const removedCount=items.length-final.length;
+    playlistOps.push({playlistId:pl.id,name:pl.name,removes:[...removes],inserts,removedCount});
+  }
+  const likedUris=new Set((liked||[]).map(t=>t?.uri).filter(Boolean));
+  const unlikeUris=[...likedUris].filter(u=>mapping.has(u)&&mapping.get(u)!==u);
+  const likeUris=[...new Set(unlikeUris.map(u=>mapping.get(u)))].filter(u=>!likedUris.has(u));
+  return {playlistOps,likeUris,unlikeUris};
+}
+
+if(typeof module!=="undefined")module.exports={albBaseTitle,albIsTrack,albIsSingle,albYear,albMatchesFilter,albBuildIndex,albCandidates,albRank,albClassify,albCollectSingles,albPlan,albArtistName,albSortRows,albChunks,ALB_UNSURE_MS,albLooseTitle,albCollectVersions,albVersionRank,albDefaultKeep,albDupGroups,albDupMapping,albDupPlan};

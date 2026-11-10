@@ -101,3 +101,87 @@ test("Liste nach Künstler, dann Album, dann Position im Album sortiert",()=>{
   const rows=[row("Eno","Ferrari","D-TEC",5),row("apache 207","Roller","Platte",2),row("Eno","Lila","Sehr gut",1),row("Eno","Intro","D-TEC",1),row("Ufo361","Ohne",null),row("Eno","Ohne Album",null)];
   assert.deepEqual(albSortRows(rows).map(r=>r.track.name),["Roller","Intro","Ferrari","Lila","Ohne Album","Ohne"]);
 });
+
+// ---------- Doppelte (W.2) ----------
+const L=require("../tools/alben-logic.js");
+const ape={id:"ape",name:"Apache 207"};
+const platte={id:"pl",name:"Platte",album_type:"album",release_date:"2019-11-01",artists:[ape]};
+const deluxe={id:"dx",name:"Platte (Deluxe)",album_type:"album",release_date:"2020-03-01",artists:[ape]};
+const rollerSingle={id:"rs",name:"Roller",album_type:"single",release_date:"2019-08-01",artists:[ape]};
+const tk=(id,name,album,isrc)=>({id,uri:"spotify:track:"+id,type:"track",name,artists:[ape],album,duration_ms:180000,external_ids:isrc?{isrc}:{}});
+const rS=tk("r1","Roller",rollerSingle,"DE1"),rA=tk("r2","Roller",platte,"DE1"),rD=tk("r3","Roller",deluxe,"DE1"),rLive=tk("r4","Roller (Live)",platte,"DE9"),z=tk("z1","Anderer",platte,"DE5"),y=tk("y1","Noch einer",platte,"DE6");
+
+test("lockerer Titel entfernt Versionshinweise",()=>{
+  assert.equal(L.albLooseTitle("Roller (Live)"),"roller");
+  assert.equal(L.albLooseTitle("Roller (2011 Remaster)"),"roller");
+  assert.equal(L.albLooseTitle("Roller - Radio Edit"),"roller");
+  assert.equal(L.albLooseTitle("Live Forever"),"live forever");
+});
+
+test("Gruppen: gleiche Aufnahme über Playlists hinweg = sicher, andere Aufnahme = unsicher, Einzelstücke fehlen",()=>{
+  const pls=[{id:"p1",name:"A",items:[{position:0,track:rS},{position:1,track:z}]},{id:"p2",name:"B",items:[{position:0,track:rA},{position:1,track:rLive}]}];
+  const groups=L.albDupGroups(L.albCollectVersions(pls,[rD]),{savedAlbumIds:new Set(["pl"])});
+  const sure=groups.filter(g=>g.kind==="sure"),unsure=groups.filter(g=>g.kind==="unsure");
+  assert.equal(sure.length,1);
+  assert.deepEqual(sure[0].versions.map(v=>v.track.id).sort(),["r1","r2","r3"]);
+  assert.equal(sure[0].keep,rA.uri,"gespeichertes Album bleibt");
+  assert.equal(unsure.length,1);
+  assert.deepEqual(unsure[0].versions.map(v=>v.track.id).sort(),["r1","r2","r3","r4"]);
+});
+
+test("gleicher Song zweimal in einer Playlist ist ein Doppel, in zwei Playlists nicht",()=>{
+  let g=L.albDupGroups(L.albCollectVersions([{id:"p1",name:"A",items:[{position:0,track:z},{position:1,track:z}]}],[]));
+  assert.equal(g.length,1);assert.equal(g[0].kind,"sure");
+  g=L.albDupGroups(L.albCollectVersions([{id:"p1",name:"A",items:[{position:0,track:z}]},{id:"p2",name:"B",items:[{position:0,track:z}]}],[z]));
+  assert.equal(g.length,0);
+});
+
+test("ohne gespeichertes Album: Album vor Single, Filter nach Künstler/Album",()=>{
+  const vm=L.albCollectVersions([{id:"p1",name:"A",items:[{position:0,track:rS},{position:1,track:rD}]}],[]);
+  assert.equal(L.albDupGroups(vm)[0].keep,rD.uri);
+  assert.equal(L.albDupGroups(vm,{filter:"apache"}).length,1);
+  assert.equal(L.albDupGroups(vm,{filter:"Eno"}).length,0);
+});
+
+test("Plan: andere Version ersetzt, bleibende rückt an erste Stelle, Doppel weg, Likes umgestellt",()=>{
+  const map=L.albDupMapping([{kind:"sure",versions:[{track:rS},{track:rA},{track:rD}],keep:rA.uri},{kind:"sure",versions:[{track:z}],keep:z.uri}]);
+  const pls=[
+    {id:"p1",name:"Nur Single",items:[{position:0,track:y},{position:1,track:rS},{position:2,track:z}]},
+    {id:"p2",name:"Single vor Album",items:[{position:0,track:rS},{position:1,track:y},{position:2,track:rA}]},
+    {id:"p3",name:"Schon gut",items:[{position:0,track:rA},{position:1,track:y}]},
+    {id:"p4",name:"Album zuerst + Deluxe",items:[{position:0,track:rA},{position:1,track:null},{position:2,track:rD}]},
+    {id:"p5",name:"z doppelt",items:[{position:0,track:z},{position:1,track:y},{position:2,track:z}]}
+  ];
+  const plan=L.albDupPlan(pls,[rS,rD,y],map);
+  const op=id=>plan.playlistOps.find(o=>o.playlistId===id);
+  assert.deepEqual(op("p1"),{playlistId:"p1",name:"Nur Single",removes:[rS.uri],inserts:[{uri:rA.uri,position:1}],removedCount:0});
+  assert.deepEqual(op("p2").removes.sort(),[rS.uri,rA.uri].sort());
+  assert.deepEqual(op("p2").inserts,[{uri:rA.uri,position:0}]);
+  assert.equal(op("p2").removedCount,1);
+  assert.equal(op("p3"),undefined);
+  assert.deepEqual(op("p4").removes,[rD.uri]);assert.deepEqual(op("p4").inserts,[]);
+  assert.deepEqual(op("p5").removes,[z.uri]);assert.deepEqual(op("p5").inserts,[{uri:z.uri,position:0}]);assert.equal(op("p5").removedCount,1);
+  assert.deepEqual(plan.unlikeUris.sort(),[rS.uri,rD.uri].sort());
+  assert.deepEqual(plan.likeUris,[rA.uri]);
+});
+
+test("unsichere Gruppe überstimmt die sichere darin",()=>{
+  const map=L.albDupMapping([{kind:"sure",versions:[{track:rS},{track:rA}],keep:rA.uri},{kind:"unsure",versions:[{track:rS},{track:rA},{track:rLive}],keep:rLive.uri}]);
+  assert.equal(map.get(rS.uri),rLive.uri);assert.equal(map.get(rA.uri),rLive.uri);assert.equal(map.get(rLive.uri),rLive.uri);
+});
+
+test("Plan nachgespielt wie Spotify: Ergebnis-Reihenfolge stimmt",()=>{
+  const run=(items,op)=>{let l=items.map(it=>it.track?.uri||null);l=l.filter(u=>!op.removes.includes(u));for(const ins of op.inserts)l.splice(ins.position,0,ins.uri);return l};
+  const map=L.albDupMapping([{kind:"sure",versions:[{track:rS},{track:rA},{track:rD}],keep:rA.uri},{kind:"sure",versions:[{track:z}],keep:z.uri}]);
+  const cases=[
+    [[y,rS,z],[y,rA,z]],
+    [[rS,y,rA],[rA,y]],
+    [[rD,z,rS,y,z,rA,null],[rA,z,y,null]],
+    [[z,rA,z,rA,rS],[z,rA]]
+  ];
+  for(const [input,expected] of cases){
+    const pl={id:"p",name:"P",items:input.map((track,position)=>({position,track}))};
+    const op=L.albDupPlan([pl],[],map).playlistOps[0];
+    assert.deepEqual(run(pl.items,op),expected.map(t=>t?.uri||null));
+  }
+});
