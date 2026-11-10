@@ -76,7 +76,8 @@ async function albApi(method,path,{body,attempt=0,tries5xx=3}={}){
     if(wait!==null){await albWaitNotice(wait);return albApi(method,path,{body,attempt:attempt+1,tries5xx})}
     const e=Error("Spotify 429: zu viele Anfragen – Spotify-Limit erreicht");e.status=429;e.rateLimited=true;throw e;
   }
-  if(r.status>=500&&tries5xx>0){await albSleep(1500);return albApi(method,path,{body,attempt,tries5xx:tries5xx-1})}
+  // POST (Einfügen) nie automatisch wiederholen: bei 5xx kann Spotify es trotzdem ausgeführt haben → sonst doppelt
+  if(r.status>=500&&tries5xx>0&&method!=="POST"){await albSleep(1500);return albApi(method,path,{body,attempt,tries5xx:tries5xx-1})}
   if(!r.ok){let detail="";try{const b=await r.json();detail=b?.error?.message||""}catch{}const e=Error(`Spotify ${r.status}${detail?`: ${detail}`:""}`);e.status=r.status;throw e}
   if(r.status===204)return null;
   const text=await r.text();
@@ -130,16 +131,23 @@ async function albLoadSaved(step,withTracks){
 }
 
 // Eigene und gemeinsame Playlists mit Inhalt (Position zählt jeden Eintrag, auch Podcasts/lokale Dateien)
+// Inhalt einer Playlist. Liefert Spotify weniger Einträge als angegeben, stimmen die Positionen nicht –
+// dann wird die Playlist nicht angefasst.
+async function albFetchPlaylist(p){
+  let total=null;
+  const items=await albPaged(`/playlists/${p.id}/items?limit=50`,(n,t)=>{if(t!=null)total=t});
+  if(total!=null&&items.length!==total)throw Error(`Spotify liefert nur ${items.length} von ${total} Einträgen`);
+  return {id:p.id,name:p.name,items:items.map((it,pos)=>({position:pos,track:it?.item??it?.track??null}))};
+}
+
 async function albLoadPlaylists(step){
   const lists=await albPaged("/me/playlists?limit=50");
   const own=lists.filter(p=>p&&(p.owner?.id===ALB.me.id||p.collaborative));
   const playlists=[],skipped=[];
   for(let i=0;i<own.length;i++){
     const p=own[i];step(`Playlists lesen… ${i+1}/${own.length}`);
-    try{
-      const items=await albPaged(`/playlists/${p.id}/items?limit=50`);
-      playlists.push({id:p.id,name:p.name,items:items.map((it,pos)=>({position:pos,track:it?.item??it?.track??null}))});
-    }catch(e){skipped.push(`${p.name} (${e.message})`)}
+    try{playlists.push(await albFetchPlaylist(p))}
+    catch(e){skipped.push(`${p.name} (${e.message})`)}
   }
   return {playlists,skipped};
 }
@@ -220,7 +228,12 @@ async function albApply(){
   const step=txt=>{ALB.progress=txt;albRender()};
   try{
     for(let i=0;i<plan.playlistOps.length;i++){
-      const op=plan.playlistOps[i];step(`Playlists ändern… ${i+1}/${plan.playlistOps.length}`);
+      step(`Playlists ändern… ${i+1}/${plan.playlistOps.length}`);
+      // Frisch laden und neu planen: Positionen stimmen auch, wenn die Playlist seit dem Testlauf geändert wurde
+      let op;
+      try{op=albPlan([await albFetchPlaylist({id:plan.playlistOps[i].playlistId,name:plan.playlistOps[i].name})],[],chosen).playlistOps[0]}
+      catch(e){res.errors.push(`${plan.playlistOps[i].name}: nicht geändert (${e.message}).`);if(e.rateLimited){res.aborted=true;break}continue}
+      if(!op)continue;
       let failed=false;
       for(const ins of op.inserts){
         try{await albWrite("POST",`/playlists/${op.playlistId}/items`,{body:{uris:[ins.uri],position:ins.position}})}
@@ -253,11 +266,43 @@ async function albApply(){
 }
 
 // ---------- Ausführen Doppelte (W.2) ----------
+// Eine Playlist in Runden bereinigen: jeweils frisch laden, neu planen (höchstens 100 URIs zu entfernen = eine
+// Anfrage), entfernen, dann die bleibenden Versionen einfügen. So verliert ein Fehler mitten drin nie Songs,
+// und veraltete Testlauf-Daten können nichts Falsches löschen. Ende, wenn nichts mehr zu tun ist.
+async function albDupOnePlaylist(pl,mapping,names){
+  let removed=0,changed=false,lastSig="";
+  const missing=[];
+  for(let round=0;round<30;round++){
+    const fresh=await albFetchPlaylist(pl);
+    const sig=fresh.items.map(it=>it.track?.uri||"-").join();
+    if(round>0&&sig===lastSig)throw Object.assign(Error("Spotify hat die Änderung nicht übernommen"),{partial:changed});
+    lastSig=sig;
+    const full=albDupPlan([fresh],[],mapping).playlistOps[0];
+    if(!full)break;
+    // Meist passt alles in eine Runde; nur grosse Playlists brauchen mehrere (dann kurz warten, bis Spotify neu liefert)
+    const partial=full.removes.length>100;
+    const op=partial?albDupPlan([fresh],[],albDupLimit(fresh,mapping,100)).playlistOps[0]:full;
+    try{await albWrite("DELETE",`/playlists/${pl.id}/items`,{body:{items:op.removes.map(uri=>({uri}))}})}
+    catch(e){e.partial=changed;throw e}
+    changed=true;
+    for(const ins of op.inserts){
+      try{await albWritePersistent("POST",`/playlists/${pl.id}/items`,{body:{uris:[ins.uri],position:ins.position}})}
+      catch{missing.push(`«${names.get(ins.uri)||ins.uri}»`)}
+    }
+    if(missing.length)break;
+    removed+=op.removedCount;
+    if(!partial)break;
+    await albSleep(1500);
+  }
+  return {removed,changed,missing};
+}
+
 // Je Playlist: betroffene Versionen entfernen, dann die bleibende Version an der ersten Stelle einfügen.
 // Fehlt danach etwas (Einfügen fehlgeschlagen), steht der Song namentlich im Bericht.
 async function albApplyDup(){
   const selected=ALB.scan.groups.filter(g=>ALB.dupSel.has(g.id)).map(g=>({...g,keep:ALB.dupKeep.get(g.id)||g.keep}));
-  const plan=albDupPlan(ALB.scan.playlists,ALB.scan.liked,albDupMapping(selected));
+  const mapping=albDupMapping(selected);
+  const plan=albDupPlan(ALB.scan.playlists,ALB.scan.liked,mapping);
   const names=new Map();
   for(const g of ALB.scan.groups)for(const v of g.versions)names.set(v.track.uri,v.track.name);
   const res={playlistsDone:0,removed:0,liked:0,unliked:0,errors:[]};
@@ -265,17 +310,10 @@ async function albApplyDup(){
   const step=txt=>{ALB.progress=txt;albRender()};
   try{
     for(let i=0;i<plan.playlistOps.length;i++){
-      const op=plan.playlistOps[i];step(`Playlists bereinigen… ${i+1}/${plan.playlistOps.length}`);
-      try{for(const part of albChunks(op.removes,100))await albWrite("DELETE",`/playlists/${op.playlistId}/items`,{body:{items:part.map(uri=>({uri}))}})}
-      catch(e){res.errors.push(`${op.name}: nicht geändert (${e.message}).`);if(e.rateLimited){res.aborted=true;break}continue}
-      // Nach dem Entfernen muss das Einfügen klappen – darum hier hartnäckiger (albWritePersistent)
-      const missing=[];
-      for(const ins of op.inserts){
-        try{await albWritePersistent("POST",`/playlists/${op.playlistId}/items`,{body:{uris:[ins.uri],position:ins.position}})}
-        catch{missing.push(`«${names.get(ins.uri)||ins.uri}»`)}
-      }
-      if(missing.length)res.errors.push(`${op.name}: fehlt jetzt, bitte in Spotify wieder hinzufügen: ${missing.join(", ")}`);
-      else{res.playlistsDone++;res.removed+=op.removedCount}
+      const pl={id:plan.playlistOps[i].playlistId,name:plan.playlistOps[i].name};
+      step(`Playlists bereinigen… ${i+1}/${plan.playlistOps.length}`);
+      try{const r=await albDupOnePlaylist(pl,mapping,names);res.removed+=r.removed;if(r.missing.length)res.errors.push(`${pl.name}: fehlt jetzt, bitte in Spotify wieder hinzufügen: ${r.missing.join(", ")}`);else if(r.changed)res.playlistsDone++}
+      catch(e){res.errors.push(`${pl.name}: ${e.partial?"nur teilweise bereinigt":"nicht geändert"} (${e.message}).`);if(e.rateLimited){res.aborted=true;break}}
     }
     if(res.aborted)throw Error(ABORT_TEXT);
     step("Gelikte Songs anpassen…");

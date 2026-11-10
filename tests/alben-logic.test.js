@@ -80,7 +80,7 @@ test("Plan: einfügen absteigend an der Stelle der Single, Single entfernen, lik
   assert.deepEqual(plan.playlistOps[0].removes,[s.uri,s2.uri]);
   assert.deepEqual(plan.playlistOps[1].inserts,[]);
   assert.deepEqual(plan.playlistOps[1].removes,[s.uri]);
-  assert.deepEqual(plan.likeUris,[a]);
+  assert.deepEqual(plan.likeUris,[a,a2],"immer liken (idempotent)");
   assert.deepEqual(plan.unlikeUris,[s.uri]);
 });
 
@@ -192,4 +192,27 @@ test("Wartezeit bei Spotify 429: verdoppeln, Retry-After beachten, irgendwann au
   assert.equal(L.albBackoffSeconds(5,"3"),64);
   assert.equal(L.albBackoffSeconds(8,null),null);
   assert.equal(L.albBackoffSeconds(0,"3600"),null,"Spotify verlangt über 2 Min. → aufgeben");
+});
+
+test("Sortierung beachtet CD-Nummer",()=>{
+  const row=(title,disc,no)=>({track:{name:title,artists:[{name:"Eno"}],album:{name:"D-TEC"},disc_number:disc,track_number:no},decision:{target:null}});
+  assert.deepEqual(L.albSortRows([row("CD2-1",2,1),row("CD1-9",1,9),row("CD1-1",1,1)]).map(r=>r.track.name),["CD1-1","CD1-9","CD2-1"]);
+});
+
+test("Filter: nur Aufnahmen, die zum Filter passen, werden als sicher vorgeschlagen",()=>{
+  const live=tk("l1","Roller (Live)",{id:"lv",name:"Live in Wien",album_type:"album",artists:[ape]},"DE9");
+  const pls=[{id:"p1",name:"A",items:[{position:0,track:rS},{position:1,track:rA},{position:2,track:live},{position:3,track:live}]}];
+  const g=L.albDupGroups(L.albCollectVersions(pls,[]),{filter:"Platte"});
+  assert.deepEqual(g.filter(x=>x.kind==="sure").map(x=>x.versions.map(v=>v.track.id).sort().join()),["r1,r2"]);
+});
+
+test("Runden: höchstens max URIs pro Entfernen, jede Gruppe ganz",()=>{
+  const ts=[...Array(5)].map((_,i)=>[tk("s"+i,"Song"+i,rollerSingle,"S"+i),tk("a"+i,"Song"+i,platte,"S"+i)]);
+  const pl={id:"p",name:"P",items:ts.flat().map((track,position)=>({position,track}))};
+  const map=L.albDupMapping(ts.map(([sv,av])=>({kind:"sure",versions:[{track:sv},{track:av}],keep:av.uri})));
+  const sub=L.albDupLimit(pl,map,4);
+  const op=L.albDupPlan([pl],[],sub).playlistOps[0];
+  assert.ok(op.removes.length<=4);
+  assert.equal(sub.size%2,0,"Gruppen nie halb");
+  assert.ok(sub.size>0);
 });
