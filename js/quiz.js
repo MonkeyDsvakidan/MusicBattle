@@ -289,8 +289,12 @@ function quizRemaining(q){return quizRemainingMs(q,Date.now(),quizSeenAt(q))}
 function hostPlaysMusic(){return isHost()&&Boolean(S.spotify[1]?.refresh)}
 async function playQuizTrack(play){
   if(!play?.track_id||!hostPlaysMusic())return;
+  S.quizPlaying=true;
   await playSubmission({player_slot:1,spotify_uri:`spotify:track:${play.track_id}`,start_ms:play.start_ms||0});
 }
+// Nur pausieren, wenn das Quiz schon etwas abgespielt hat – ein leerer Web-Player meldet sonst
+// „Cannot perform operation; no list was loaded“ (im Live-Test 10.11.2026 gefunden)
+function stopQuizTrack(){if(!S.quizPlaying)return;S.quizPlaying=false;pause(1)}
 
 // Host: nächste Frage öffnen (20 s ab Serveruhr); nach der letzten Frage → Rangliste (Status finished)
 async function openNextQuestion(){
@@ -303,7 +307,7 @@ async function openNextQuestion(){
     if(error){S.error=quizErrorText(error.message);return}
     await reloadRoomNow();
     const q=no>0?quizCurrentQuestion():null;
-    if(q?.prompt?.play)playQuizTrack(q.prompt.play);else pause(1);
+    if(q?.prompt?.play)playQuizTrack(q.prompt.play);else stopQuizTrack();
   }finally{S.quizBusy=false;render()}
 }
 
