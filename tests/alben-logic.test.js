@@ -230,3 +230,50 @@ test("Runden: eine einzelne Gruppe mit mehr als max URIs bleibt ganz – Entfern
   assert.deepEqual(parts.map(p=>p.length),[100,op.removes.length-100]);
   assert.deepEqual(parts.flat(),op.removes,"nichts geht verloren");
 });
+
+// Gespeicherte EPs (Wunsch des Nutzers 11.11.2026): EP = album_type "single" mit 4+ Songs
+const epAlbum={id:"ep1",name:"Nachtschicht EP",album_type:"single",total_tracks:5,release_date:"2020-02-01",artists:[eno]};
+const ep2Album={id:"ep2",name:"Andere EP",album_type:"single",total_tracks:4,release_date:"2021-02-01",artists:[eno]};
+const single3={...singleAlbum,total_tracks:3};
+
+test("EP erkennen: Typ single mit mindestens 4 Songs",()=>{
+  assert.equal(L.albIsEp(epAlbum),true);
+  assert.equal(L.albIsEp(single3),false);
+  assert.equal(L.albIsEp(singleAlbum),false,"ohne Anzahl Songs → Single");
+  assert.equal(L.albIsEp(albumDtec),false);
+  assert.equal(L.albIsTarget(epAlbum),true);
+  assert.equal(L.albIsTarget(single3),false);
+  assert.ok(L.albTargetRank(albumDtec)<L.albTargetRank(epAlbum)&&L.albTargetRank(epAlbum)<L.albTargetRank(albumBest));
+});
+
+test("Single in Playlist, Version auf gespeicherter EP → EP ist Ziel; gespeicherte Single nicht",()=>{
+  const index=L.albBuildIndex([{album:epAlbum,tracks:[tr("e1","Ferrari",epAlbum)]},{album:single3,tracks:[tr("s9","Ferrari",single3)]}]);
+  const c=albCandidates(index,tr("t1","Ferrari",singleAlbum));
+  assert.deepEqual(c.map(x=>x.track.id),["e1"]);
+  assert.equal(albClassify(tr("t1","Ferrari",singleAlbum,{external_ids:{isrc:"X"}}),c,()=>"X").target.album.id,"ep1");
+});
+
+test("Album hat Vorrang vor EP, EP vor Compilation",()=>{
+  const index=L.albBuildIndex([{album:albumBest,tracks:[tr("b1","Ferrari",albumBest)]},{album:epAlbum,tracks:[tr("e1","Ferrari",epAlbum)]},{album:albumDtec,tracks:[tr("d1","Ferrari",albumDtec)]}]);
+  const s=tr("t1","Ferrari",singleAlbum,{external_ids:{isrc:"X"}});
+  assert.equal(albClassify(s,albCandidates(index,s),()=>"X").target.track.id,"d1");
+  const noAlbum=L.albBuildIndex([{album:albumBest,tracks:[tr("b1","Ferrari",albumBest)]},{album:epAlbum,tracks:[tr("e1","Ferrari",epAlbum)]}]);
+  assert.equal(albClassify(s,albCandidates(noAlbum,s),()=>"X").target.track.id,"e1");
+});
+
+test("Song aus gespeicherter EP: nur durch ein Album ersetzen, nie EP gegen EP",()=>{
+  const fromEp=tr("e1","Ferrari",epAlbum);
+  const twoEps=L.albBuildIndex([{album:epAlbum,tracks:[fromEp]},{album:ep2Album,tracks:[tr("e2","Ferrari",ep2Album)]}]);
+  assert.deepEqual(albCandidates(twoEps,fromEp),[],"bleibt auf der eigenen EP");
+  const withAlbum=L.albBuildIndex([{album:epAlbum,tracks:[fromEp]},{album:albumDtec,tracks:[tr("d1","Ferrari",albumDtec)]}]);
+  assert.deepEqual(albCandidates(withAlbum,fromEp).map(c=>c.track.id),["d1"]);
+});
+
+test("Doppelte: gespeicherte EP wird nach gespeichertem Album bevorzugt",()=>{
+  const v=(t,places=1)=>({track:t,places:[...Array(places)].map(()=>({playlistName:"P"})),liked:false});
+  const saved=new Set(["ep1","a1"]);
+  const sgl=v(tr("t1","Ferrari",singleAlbum),3),ep=v(tr("e1","Ferrari",epAlbum)),alb=v(tr("d1","Ferrari",albumDtec));
+  assert.equal(L.albDefaultKeep([sgl,ep],saved),ep.track.uri,"gespeicherte EP schlägt häufiger verwendete Single");
+  assert.equal(L.albDefaultKeep([sgl,ep,alb],saved),alb.track.uri,"gespeichertes Album vor EP");
+  assert.equal(L.albDefaultKeep([sgl,ep],new Set()),sgl.track.uri,"nicht gespeicherte EP zählt wie eine Single");
+});

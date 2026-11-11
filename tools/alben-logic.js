@@ -19,6 +19,15 @@ function albIsSingle(t){return albIsTrack(t)&&t.album?.album_type==="single"}
 
 function albYear(album){return String(album?.release_date||"").slice(0,4)}
 
+// EPs führt Spotify wie Singles als album_type "single"; erkennbar an der Anzahl Songs
+// (Spotify: Single 1–3 Songs, EP 4–6). Eine gespeicherte EP gilt als Ziel wie ein Album (Wunsch des Nutzers, 11.11.2026).
+const ALB_EP_MIN_TRACKS=4;
+function albIsEp(album){return album?.album_type==="single"&&Number(album?.total_tracks)>=ALB_EP_MIN_TRACKS}
+// Taugt eine gespeicherte Veröffentlichung als Ziel? Album, Compilation oder EP – keine Single
+function albIsTarget(album){return !!album&&(album.album_type!=="single"||albIsEp(album))}
+// Rang als Ziel: Album vor EP vor Compilation (ein gespeichertes Album hat Vorrang vor der EP)
+function albTargetRank(album){return album?.album_type==="album"?0:albIsEp(album)?1:album?.album_type==="compilation"?2:3}
+
 // Passt ein Album zum optionalen Filter („nur ein Album prüfen“)? Vergleicht Album- und Künstlername.
 function albMatchesFilter(album,filter){
   const f=albBaseTitle(filter);
@@ -27,12 +36,12 @@ function albMatchesFilter(album,filter){
   return hay.includes(f);
 }
 
-// Gespeicherte Alben → Index Titel → Album-Songs. Gespeicherte Singles zählen nicht als Album.
+// Gespeicherte Alben (und EPs) → Index Titel → Album-Songs. Gespeicherte Singles zählen nicht als Ziel.
 // savedAlbums: [{album, tracks:[vereinfachte Songs]}]
 function albBuildIndex(savedAlbums,filter=""){
   const index=new Map();
   for(const {album,tracks} of savedAlbums||[]){
-    if(!album||album.album_type==="single"||!albMatchesFilter(album,filter))continue;
+    if(!album||!albIsTarget(album)||!albMatchesFilter(album,filter))continue;
     for(const t of tracks||[]){
       if(!t?.id||!t.uri)continue;
       const key=albBaseTitle(t.name);
@@ -44,17 +53,19 @@ function albBuildIndex(savedAlbums,filter=""){
   return index;
 }
 
-// Album-Songs mit gleichem Titel und mindestens einem gemeinsamen Künstler
+// Album-Songs mit gleichem Titel und mindestens einem gemeinsamen Künstler. Stammt der Song selbst schon aus
+// einer gespeicherten EP, kommt nur ein besseres Ziel (Album) in Frage – nie EP gegen EP oder Compilation.
 function albCandidates(index,single){
   const artists=new Set((single?.artists||[]).map(a=>a.id).filter(Boolean));
-  return (index.get(albBaseTitle(single?.name))||[])
-    .filter(c=>c.track.id!==single.id&&(c.track.artists||[]).some(a=>artists.has(a.id)));
+  const all=index.get(albBaseTitle(single?.name))||[];
+  const own=all.find(c=>c.track.id===single?.id);
+  const limit=own?albTargetRank(own.album):Infinity;
+  return all.filter(c=>c.track.id!==single.id&&albTargetRank(c.album)<limit&&(c.track.artists||[]).some(a=>artists.has(a.id)));
 }
 
-// Reihenfolge, falls ein Song auf mehreren gespeicherten Alben liegt: Album vor Compilation, dann das ältere
+// Reihenfolge, falls ein Song auf mehreren gespeicherten Alben liegt: Album vor EP vor Compilation, dann das ältere
 function albRank(cands){
-  const typeRank=t=>t==="album"?0:1;
-  return [...cands].sort((x,y)=>typeRank(x.album.album_type)-typeRank(y.album.album_type)
+  return [...cands].sort((x,y)=>albTargetRank(x.album)-albTargetRank(y.album)
     ||String(x.album.release_date||"").localeCompare(String(y.album.release_date||""))
     ||String(x.album.name||"").localeCompare(String(y.album.name||"")));
 }
@@ -153,11 +164,13 @@ function albCollectVersions(playlists,liked){
   return map;
 }
 
-// Rang der Version, die standardmässig bleibt: gespeichertes Album > Album > Compilation > Single,
+// Rang der Version, die standardmässig bleibt: gespeichertes Album > gespeicherte EP > Album > Compilation > Single/EP,
 // dann die häufiger verwendete, dann die ältere Veröffentlichung
 function albVersionRank(v,savedAlbumIds){
-  const a=v.track.album||{};
-  return a.album_type!=="single"&&savedAlbumIds.has(a.id)?0:a.album_type==="album"?1:a.album_type==="compilation"?2:3;
+  const a=v.track.album||{},saved=savedAlbumIds.has(a.id);
+  if(saved&&a.album_type!=="single")return 0;
+  if(saved&&albIsEp(a))return 1;
+  return a.album_type==="album"?2:a.album_type==="compilation"?3:4;
 }
 function albDefaultKeep(versions,savedAlbumIds){
   return [...versions].sort((x,y)=>albVersionRank(x,savedAlbumIds)-albVersionRank(y,savedAlbumIds)
@@ -255,4 +268,4 @@ function albDupLimit(playlist,mapping,max=100){
   return sub;
 }
 
-if(typeof module!=="undefined")module.exports={albBaseTitle,albIsTrack,albIsSingle,albYear,albMatchesFilter,albBuildIndex,albCandidates,albRank,albClassify,albCollectSingles,albPlan,albArtistName,albSortRows,albChunks,ALB_UNSURE_MS,albBackoffSeconds,ALB_429_TRIES,ALB_429_MAX_S,albLooseTitle,albCollectVersions,albVersionRank,albDefaultKeep,albDupGroups,albDupMapping,albDupPlan,albDupLimit};
+if(typeof module!=="undefined")module.exports={albBaseTitle,albIsTrack,albIsSingle,albYear,albIsEp,albIsTarget,albTargetRank,ALB_EP_MIN_TRACKS,albMatchesFilter,albBuildIndex,albCandidates,albRank,albClassify,albCollectSingles,albPlan,albArtistName,albSortRows,albChunks,ALB_UNSURE_MS,albBackoffSeconds,ALB_429_TRIES,ALB_429_MAX_S,albLooseTitle,albCollectVersions,albVersionRank,albDefaultKeep,albDupGroups,albDupMapping,albDupPlan,albDupLimit};

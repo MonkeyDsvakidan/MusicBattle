@@ -2,7 +2,7 @@
 // Nach JS/CSS-Änderungen BUILD hier und die ?v=-Parameter in index.html erhöhen.
 // main.js startet die App (genau ein init()), wenn alles geladen ist.
 (async()=>{
-  const BUILD="20261110-9";
+  const BUILD="20261111-1";
   // Alben-Tool (Roadmap W.1): eigene Seite ?tool=alben, kein Teil des Spiels – lädt nur tools/, keine Spiel-Skripte.
   // Die Rückkehr vom Spotify-Login (gleiche Redirect-URI wie das Spiel) gehört dem Tool, wenn der state von ihm stammt.
   const q=new URLSearchParams(location.search);

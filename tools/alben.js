@@ -124,7 +124,7 @@ async function albLoadSaved(step,withTracks){
   const saved=[];
   for(const it of raw){
     const album=it.album;if(!album)continue;
-    if(!withTracks||!albMatchesFilter(album,ALB.filter)||album.album_type==="single"){saved.push({album,tracks:[]});continue}
+    if(!withTracks||!albMatchesFilter(album,ALB.filter)||!albIsTarget(album)){saved.push({album,tracks:[]});continue}
     let tracks=album.tracks?.items||[];
     if(!album.tracks)tracks=await albPaged(`/albums/${album.id}/tracks?limit=50`);
     else if(album.tracks.next)tracks=tracks.concat(await albPaged(album.tracks.next));
@@ -192,7 +192,7 @@ async function albScan(){
       }
       rows.push({...s,decision:albClassify(s.track,cands,isrcOf)});
     }
-    ALB.scan={playlists,liked,rows,skipped,albumCount:saved.filter(x=>x.album.album_type!=="single"&&albMatchesFilter(x.album,ALB.filter)).length};
+    ALB.scan={playlists,liked,rows,skipped,albumCount:saved.filter(x=>albIsTarget(x.album)&&albMatchesFilter(x.album,ALB.filter)).length};
     ALB.selected=new Set(rows.filter(r=>r.decision.status==="sure").map(r=>r.track.uri));
     ALB.view="review";
   }catch(e){ALB.error=`Testlauf abgebrochen: ${e.message}`;ALB.view="start"}
@@ -362,7 +362,7 @@ function albPlaces(r){
 function albRow(r,withBox){
   const t=r.track,d=r.decision,target=d.target;
   const box=withBox?`<input type="checkbox" class="alb-check" data-uri="${albEsc(t.uri)}" ${ALB.selected.has(t.uri)?"checked":""} aria-label="${albEsc(t.name)} ersetzen">`:"";
-  const to=target?`<div class="alb-to">→ Album <b>${albEsc(target.album.name)}</b>${albYear(target.album)?` (${albEsc(albYear(target.album))})`:""}${target.track.name!==t.name?` · «${albEsc(target.track.name)}»`:""}${d.others.length?` <span class="muted">· auch auf ${d.others.map(o=>albEsc(o.album.name)).join(", ")}</span>`:""}</div>`:"";
+  const to=target?`<div class="alb-to">→ ${albIsEp(target.album)?"EP":"Album"} <b>${albEsc(target.album.name)}</b>${albYear(target.album)?` (${albEsc(albYear(target.album))})`:""}${target.track.name!==t.name?` · «${albEsc(target.track.name)}»`:""}${d.others.length?` <span class="muted">· auch auf ${d.others.map(o=>albEsc(o.album.name)).join(", ")}</span>`:""}</div>`:"";
   return `<label class="alb-row">${box}${albCover(target?.album||t.album)}<span class="alb-txt"><span class="alb-title">${albEsc(t.name)}</span><span class="muted">${(t.artists||[]).map(a=>albEsc(a.name)).join(", ")} · Single «${albEsc(t.album?.name)}»</span>${to}<span class="alb-where">${albPlaces(r)}</span></span></label>`;
 }
 
@@ -379,7 +379,7 @@ function albList(rows,withBox){
 
 // ---------- Oberfläche Doppelte (W.2) ----------
 function albVersionLabel(t){
-  const a=t.album||{},type=a.album_type==="single"?"Single":a.album_type==="compilation"?"Compilation":"Album";
+  const a=t.album||{},type=albIsEp(a)?"EP":a.album_type==="single"?"Single":a.album_type==="compilation"?"Compilation":"Album";
   return `${type} <b>${albEsc(a.name)}</b>${albYear(a)?` (${albEsc(albYear(a))})`:""}`;
 }
 
@@ -397,7 +397,7 @@ function albGroupCard(g,idx){
   const versions=[...g.versions].sort((x,y)=>albVersionRank(x,saved)-albVersionRank(y,saved));
   const multi=g.versions.length>1;
   const rows=versions.map(v=>{
-    const t=v.track,isSaved=t.album?.album_type!=="single"&&saved.has(t.album?.id);
+    const t=v.track,isSaved=albIsTarget(t.album)&&saved.has(t.album?.id);
     return `<label class="alb-ver${t.uri===keep?" keep":""}"><input type="radio" class="alb-keep" name="albKeep${idx}" data-g="${albEsc(g.id)}" value="${albEsc(t.uri)}" ${t.uri===keep?"checked":""}>${albCover(t.album)}<span class="alb-txt"><span>${albVersionLabel(t)}${isSaved?` <span class="chip ok">gespeichert</span>`:""}</span>${t.name!==kt.name?`<span class="muted">«${albEsc(t.name)}»</span>`:""}<span class="alb-where">${albVersionPlaces(v)}</span></span></label>`;
   }).join("");
   return `<div class="alb-group"><label class="alb-ghead"><input type="checkbox" class="alb-gcheck" data-g="${albEsc(g.id)}" ${ALB.dupSel.has(g.id)?"checked":""} aria-label="${albEsc(kt.name)} bereinigen"><span class="alb-txt"><span class="alb-title">${albEsc(kt.name)}</span><span class="muted">${(kt.artists||[]).map(a=>albEsc(a.name)).join(", ")} · ${multi?`${g.versions.length} Versionen`:"mehrfach in einer Playlist"}</span></span></label><div class="alb-vers">${rows}</div></div>`;
@@ -435,7 +435,7 @@ function albRender(){
     app.innerHTML=`<section class="card stack">${head}<p class="muted">Räumt deine Spotify-Bibliothek auf: Singles durch die Version aus deinem gespeicherten Album ersetzen und doppelte Songs entfernen. Zuerst kommt immer ein Testlauf, geändert wird erst nach deiner Bestätigung.</p>${err}<button class="btn primary" id="albLogin">Mit Spotify anmelden</button></section>`;
   }else if(ALB.view==="start"){
     app.innerHTML=`<section class="card stack">${head}<p class="muted">Angemeldet als <b>${albEsc(ALB.me.display_name||ALB.me.id)}</b>.</p>${err}<div><label for="albFilter">Nur bestimmtes Album oder Künstler (optional)</label><input id="albFilter" value="${albEsc(ALB.filter)}" placeholder="z. B. D-TEC – leer = alles" autocomplete="off"></div>
-      <div class="alb-mode stack"><h3>Albumversion statt Single</h3><p class="muted">Singles werden durch die Version aus deinem gespeicherten Album ersetzt, die Albumversion gelikt.</p><button class="btn primary" id="albScan">Testlauf Alben-Fix</button></div>
+      <div class="alb-mode stack"><h3>Albumversion statt Single</h3><p class="muted">Singles werden durch die Version aus deinem gespeicherten Album ersetzt (oder aus einer gespeicherten EP, wenn kein Album den Song hat), die Albumversion gelikt.</p><button class="btn primary" id="albScan">Testlauf Alben-Fix</button></div>
       <div class="alb-mode stack"><h3>Doppelte entfernen</h3><p class="muted">Gleicher Song mehrfach in einer Playlist oder in verschiedenen Versionen über Playlists und Likes verteilt. Du wählst pro Song, welche Version bleibt.</p><button class="btn primary" id="albScanDup">Testlauf Doppelte</button></div>
       <button class="btn ghost" id="albLogout">Abmelden</button></section>`;
   }else if(albBusy()){
