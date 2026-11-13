@@ -348,6 +348,14 @@ Eigene Hilfsseiten, die nur die Spotify-App von Music Battle mitbenutzen (gleich
   - *Erledigt 11.11.2026 (BUILD `20261111-1`):* EP = Typ „single“ mit mindestens 4 Songs (`albIsEp`, `ALB_EP_MIN_TRACKS`; Spotify: Single 1–3, EP 4–6). Gespeicherte EPs sind Ziele (`albIsTarget`, Songs werden dafür geladen); Rangfolge der Ziele **Album vor EP vor Compilation** (`albTargetRank`, auch in `albRank`). Stammt ein Song selbst schon von einer gespeicherten EP, wird er nur durch ein Album ersetzt – nie EP gegen EP oder Compilation (`albCandidates`). Doppelte: Vorschlag gespeichertes Album > gespeicherte EP > Album > Compilation > Single/EP (`albVersionRank`). Anzeige „EP“ statt „Single“ bei Versionen und „→ EP …“ beim Ziel, Startseiten-Text ergänzt.
   - Geprüft: 5 neue Tests (gesamt 110 grün): EP-Erkennung, Single → gespeicherte EP, gespeicherte Single kein Ziel, Album vor EP vor Compilation, kein Tausch EP gegen EP, Doppelte-Vorschlag. Nicht gegen echtes Spotify geprüft.
 
+## Qualitäts-Check (Wunsch des Nutzers, 13.11.2026)
+
+Prüfung nach einer Design-Checkliste (u. a. keine Emojis als Icons, Tab-Titel + Favicon, eine Akzentfarbe, Abstände/Radien über Tokens, Lade- und Leerzustände, eigene 404-Seite, verständliche Fehlermeldungen). Befund: Tokens, Favicon, Schriften und Ladezustände passen bereits; offen waren nur die Punkte unten.
+
+- [x] **Q.1 Fehlermeldungen, Play-Symbol, 404-Seite**
+  - *Erledigt 13.11.2026 (BUILD `20261113-1`, Branch `qualitaet-reel-check`):* `errorText()` und `errorNotice()` in `js/ui-common.js`: englische Technik-Meldungen (Netz, abgelaufene Anmeldung, 429, RLS) werden zu deutschen Sätzen, unbekannte englische Meldungen zu „Etwas ist schiefgelaufen …“ mit Details; deutsche Meldungen bleiben. Alle 14 Fehlerboxen in `ui-screens.js`/`ui-quiz.js` nutzen `errorNotice()`. Ladefehler im Loader (`app.js`) mit verständlichem Text und Knopf „Neu laden“. „▶ Abspielen“ mit Textdarstellung (`U+FE0E`), damit iOS kein farbiges Emoji zeigt. Neue `404.html` im App-Stil (absolute Pfade `/MusicBattle/…`).
+  - Geprüft: `node --test` grün; Startseite lokal bei 375 px mit Fehler „Failed to fetch“ → deutsche Meldung; 404-Seite bei 375 px, kein seitliches Scrollen. Spielablauf nicht betroffen (nur Anzeige der Fehlertexte).
+
 ---
 
 ## Gefundene Bugs
@@ -413,6 +421,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 ## Entscheidungslog
 *(Datum · Entscheidung · Begründung)*
 
+- 13.11.2026 · Fehlermeldungen werden auf Deutsch angezeigt; englische Technik-Meldungen nur noch klein als „Details“ (Q.1) · Wunsch des Nutzers: Seiten nach der Reel-Checkliste prüfen („Real error messages“)
 - 11.11.2026 · Alben-Tool (W.3): gespeicherte EPs (Typ „single“ mit 4+ Songs) zählen als Ziel wie Alben; Album hat Vorrang vor EP, EP vor Compilation; ein Song von einer gespeicherten EP wird nur durch ein Album ersetzt · Wunsch des Nutzers: Singles mit Version auf einer gespeicherten EP blieben bisher stehen
 - 10.11.2026 · Entscheidung L: Quiz-Fragen schwieriger – knappere Vergleiche (ältere Songs nur mit nahen Daten, Ablenker aus derselben Zeit), Jahr strenger, neue Fragetypen „Intro erraten“ und „Welches Album?“; immer schwer, keine wählbare Stufe · Rückmeldung des Nutzers nach dem ersten echten Test: „sehr einfache Fragen“, ein Album von diesem Jahr gegen ein 10 Jahre altes ergebe keinen Sinn
 - 10.11.2026 · Doppelte entfernen (W.2) als eigener Knopf im Alben-Tool: sucht in Playlists und Likes, auch verschiedene Versionen über Playlists hinweg; pro Song bleibt eine wählbare Version (Standard: gespeichertes Album) an der Stelle des ersten Vorkommens; andere Aufnahmen nur als „unsicher“ · Entscheide des Nutzers

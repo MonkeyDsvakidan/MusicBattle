@@ -110,3 +110,12 @@ function renderMissingPlayerNotice(){
   if(S.members.some(m=>m.role==="player"&&m.player_slot===2))return;
   $("app").insertAdjacentHTML("afterbegin",`<div class="notice" role="status" style="margin-bottom:14px"><strong>Spieler 2 hat das Match verlassen.</strong> Das Match wartet: Mit dem Raumcode <strong>${esc(S.room.code)}</strong> kann Spieler 2 über „Als Spieler 2 beitreten“ auf seinen Platz zurück.</div>`);
 }
+// Q.1: Fehlermeldungen verständlich. Englische Technik-Meldungen (Netz, Supabase, Anmeldung) → deutscher Satz; eigene deutsche Meldungen bleiben.
+function errorText(msg){const raw=String(msg||"").trim(),m=raw.toLowerCase();if(!raw)return"";
+if(/failed to fetch|networkerror|load failed|network request failed/.test(m))return"Keine Verbindung zum Server. Prüfe dein Internet und versuche es nochmals.";
+if(/jwt expired|invalid jwt|refresh token/.test(m))return"Die Anmeldung ist abgelaufen. Lade die Seite neu.";
+if(/rate limit|too many requests|\b429\b/.test(m))return"Zu viele Anfragen auf einmal. Warte kurz und versuche es dann nochmals.";
+if(/permission denied|row-level security|not allowed|forbidden|\b403\b/.test(m))return"Das darfst du in diesem Raum nicht.";
+if(/\b(the|is|are|was|not|could|failed|invalid|error|unable|must|should|cannot|violates|duplicate|constraint|function|null|value|unexpected)\b/.test(m))return`Etwas ist schiefgelaufen. Bitte versuche es nochmals. (Details: ${raw})`;
+return raw}
+function errorNotice(){return S.error?`<div class="notice error" role="alert">${esc(errorText(S.error))}</div>`:""}

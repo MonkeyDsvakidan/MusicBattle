@@ -19,7 +19,7 @@ function quizBestLine(){
 
 // Einladungsseite nach dem Scannen (?join=CODE&m=quiz)
 function renderQuizInvite(j){
-  $("app").innerHTML=`<section class="card invitecard"><div class="eyebrow">EINLADUNG · MUSIK-QUIZ</div><h2>Quiz <span class="roomcode">${esc(j.code)}</span></h2><p class="muted">Spiel mit – auf deinem eigenen Handy. Spotify ist freiwillig: Wer es verbindet, steuert Songs bei.</p>${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}<input type="hidden" id="joinCode" value="${esc(j.code)}"><label for="joinName">Dein Name</label><input id="joinName" value="${esc(lastName())}" placeholder="Dein Name" autocomplete="nickname" maxlength="30"><div class="mainaction invitebtns"><button class="btn primary" id="inviteQuiz">Mitspielen</button></div><div class="actions centered"><button class="btn ghost" id="inviteCancel">Nicht beitreten</button></div></section>`;
+  $("app").innerHTML=`<section class="card invitecard"><div class="eyebrow">EINLADUNG · MUSIK-QUIZ</div><h2>Quiz <span class="roomcode">${esc(j.code)}</span></h2><p class="muted">Spiel mit – auf deinem eigenen Handy. Spotify ist freiwillig: Wer es verbindet, steuert Songs bei.</p>${errorNotice()}<input type="hidden" id="joinCode" value="${esc(j.code)}"><label for="joinName">Dein Name</label><input id="joinName" value="${esc(lastName())}" placeholder="Dein Name" autocomplete="nickname" maxlength="30"><div class="mainaction invitebtns"><button class="btn primary" id="inviteQuiz">Mitspielen</button></div><div class="actions centered"><button class="btn ghost" id="inviteCancel">Nicht beitreten</button></div></section>`;
   $("inviteQuiz").onclick=()=>joinRoom("quizzer");
   $("inviteCancel").onclick=()=>{S.pendingJoin=null;S.error="";render()};
 }
@@ -46,7 +46,7 @@ function renderQuizLobby(){
   const poolLine=sum.tracks?`${sum.tracks} Songs von ${sum.people} ${sum.people===1?"Person":"Personen"}`:"Noch keine Songs";
   const hint=sum.enough?"":`<p class="muted">Für ein Quiz braucht es mindestens ${QUIZ_POOL_MIN} Songs – mindestens eine Person muss Spotify verbinden.</p>`;
   const lengthPick=`<div class="lengthpick" role="group" aria-label="Anzahl Fragen">${[10,15,20].map(n=>`<button class="btn${n===len?" on":""}" data-quiz-length="${n}" aria-pressed="${n===len}">${n} Fragen</button>`).join("")}</div>`;
-  $("app").innerHTML=`<section class="card lobby quizlobby"><div class="eyebrow">QUIZ · MUSIKWISSEN</div><h2 class="roomcode">${esc(S.room.code)}</h2>${inviteBlock(false)}${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}${S.notice?`<div class="notice">${esc(S.notice)}</div>`:""}
+  $("app").innerHTML=`<section class="card lobby quizlobby"><div class="eyebrow">QUIZ · MUSIKWISSEN</div><h2 class="roomcode">${esc(S.room.code)}</h2>${inviteBlock(false)}${errorNotice()}${S.notice?`<div class="notice">${esc(S.notice)}</div>`:""}
     <div class="sectionhead" style="margin-top:14px"><h3>Mitspieler · ${quizzers.length}</h3><span class="chip">${esc(poolLine)}</span></div>
     <div class="stack">${quizzers.map(row).join("")}</div>
     ${mineHasSongs&&!S.quizSyncing?`<div class="actions"><button class="btn ghost" id="quizSpotify">Meine Songs neu laden</button></div>`:""}
@@ -63,7 +63,7 @@ function renderQuizLobby(){
 function renderQuizRunning(){
   const q=quizCurrentQuestion(),total=Number(S.room.quiz_length)||S.quizQuestions.length||10,no=Number(S.room.quiz_question_no)||0;
   const head=`<div class="quizhead"><span class="chip">Frage ${Math.max(no,1)} / ${total}</span>${q?`<span class="eyebrow">${esc(QUIZ_KIND_LABEL[q.kind]||"")}</span>`:""}</div>`;
-  const msg=`${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}`;
+  const msg=`${errorNotice()}`;
   const body=!q?quizReadyView():q.status==="open"?quizQuestionView(q):quizRevealView(q,no>=total);
   $("app").innerHTML=`<section class="card quizplay">${head}${msg}${body}${roomExitControls()}</section>`;
   bindRoomExitControls();
@@ -140,7 +140,7 @@ function renderQuizFinished(){
     ${table.length>1?`<div class="podium">${order.map(step).join("")}</div>`:""}
     <div class="statsgrid">${me?`<div class="statcard"><span>Dein Platz</span><b>${me.place} von ${table.length}</b></div><div class="statcard"><span>Deine Treffer</span><b>${me.scored} / ${total}</b></div>`:""}<div class="statcard"><span>Schnellste Antwort</span><b>${fastest?`${quizSeconds(fastest.fastestMs)}`:"–"}</b>${fastest?`<small>${esc(fastest.name)}</small>`:""}</div></div>
     <div class="quizstand"><div class="eyebrow">RANGLISTE</div><ol>${table.map(r=>`<li><span>${r.place}. ${esc(r.name)}<small>${r.scored} / ${total} Treffer${r.fastestMs!==null?` · schnellste ${quizSeconds(r.fastestMs)}`:""}</small></span><b>${pts(r.points)}</b></li>`).join("")}</ol></div>
-    ${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}
+    ${errorNotice()}
     ${isHost()?`<div class="actions rematch"><button class="btn primary" id="quizAgain"${S.quizStarting?" disabled":""}>${S.quizStarting?"Neue Fragen werden erstellt …":"Nochmal"}</button></div><p class="muted center">Gleiche Runde, neue Fragen – schon gespielte Songs kommen möglichst nicht nochmals.</p>`:`<p class="muted center">Der Host kann nochmal starten – mit neuen Fragen.</p>`}
     ${roomExitControls()}</section>`;
   bindRoomExitControls();
@@ -156,7 +156,7 @@ function renderSoloFinished(me,total){
   $("app").innerHTML=`<section class="card finalwrap quizfinal"${animAttr(`quizfinal:${S.room.id}:${S.room.quiz_game_no}`,2500)}>
     <div class="finalscore"><div class="eyebrow">SOLO · ${total} FRAGEN</div><h2>Dein Ergebnis</h2><div class="big">${pts(me.points)}</div>${best}</div>
     <div class="statsgrid"><div class="statcard"><span>Treffer</span><b>${me.scored} / ${total}</b></div><div class="statcard"><span>Schnellste Antwort</span><b>${me.fastestMs!==null?quizSeconds(me.fastestMs):"–"}</b></div><div class="statcard"><span>Beantwortet</span><b>${me.answered} / ${total}</b></div></div>
-    ${S.error?`<div class="notice error">${esc(S.error)}</div>`:""}
+    ${errorNotice()}
     ${isHost()?`<div class="actions rematch"><button class="btn primary" id="quizAgain"${S.quizStarting?" disabled":""}>${S.quizStarting?"Neue Fragen werden erstellt …":"Nochmal"}</button></div><p class="muted center">Neue Fragen – schon gespielte Songs kommen möglichst nicht nochmals.</p>`:""}
     ${roomExitControls()}</section>`;
   bindRoomExitControls();
