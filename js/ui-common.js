@@ -110,3 +110,5 @@ function renderMissingPlayerNotice(){
   if(S.members.some(m=>m.role==="player"&&m.player_slot===2))return;
   $("app").insertAdjacentHTML("afterbegin",`<div class="notice" role="status" style="margin-bottom:14px"><strong>Spieler 2 hat das Match verlassen.</strong> Das Match wartet: Mit dem Raumcode <strong>${esc(S.room.code)}</strong> kann Spieler 2 über „Als Spieler 2 beitreten“ auf seinen Platz zurück.</div>`);
 }
+// Q.1: Fehlerbox; Text über errorText() aus js/errors.js
+function errorNotice(){return S.error?`<div class="notice error" role="alert">${esc(errorText(S.error))}</div>`:""}

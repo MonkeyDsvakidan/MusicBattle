@@ -2,7 +2,7 @@
 // Nach JS/CSS-Änderungen BUILD hier und die ?v=-Parameter in index.html erhöhen.
 // main.js startet die App (genau ein init()), wenn alles geladen ist.
 (async()=>{
-  const BUILD="20261111-1";
+  const BUILD="20261114-1";
   // Alben-Tool (Roadmap W.1): eigene Seite ?tool=alben, kein Teil des Spiels – lädt nur tools/, keine Spiel-Skripte.
   // Die Rückkehr vom Spotify-Login (gleiche Redirect-URI wie das Spiel) gehört dem Tool, wenn der state von ihm stammt.
   const q=new URLSearchParams(location.search);
@@ -22,7 +22,7 @@
   const jurorsRes=await fetch(`./supabase/functions/_shared/jurors.json?v=${BUILD}`);
   if(!jurorsRes.ok)throw new Error("Juroren konnten nicht geladen werden");
   window.MB_JUROR_DATA=await jurorsRes.json();
-  const files=["config","state","ui-common","artist-filter","spotify","room","draft","battle","quiz","votes","jury","ui-screens","ui-quiz","main"];
+  const files=["config","state","errors","ui-common","artist-filter","spotify","room","draft","battle","quiz","votes","jury","ui-screens","ui-quiz","main"];
   for(const name of files){
     await new Promise((resolve,reject)=>{
       const s=document.createElement("script");
@@ -32,4 +32,4 @@
       document.head.appendChild(s);
     });
   }
-})().catch(err=>{console.error(err);document.getElementById("app").innerHTML=`<div class="card"><div class="notice error">App konnte nicht geladen werden: ${String(err)}</div></div>`});
+})().catch(err=>{console.error(err);const app=document.getElementById("app");app.innerHTML=`<div class="card"><div class="notice error" role="alert">Music Battle konnte nicht geladen werden. Prüfe dein Internet und lade die Seite neu.</div><div class="actions centered"><button class="btn" type="button" id="reloadApp">Neu laden</button></div><p class="muted" style="font-size:13px" id="loadErr"></p></div>`;document.getElementById("loadErr").textContent=`Details: ${String(err&&err.message||err)}`;document.getElementById("reloadApp").onclick=()=>location.reload()});
