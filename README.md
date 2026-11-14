@@ -40,6 +40,10 @@ Jeder Juror vergibt 10–9 oder 10–8. Fehlen die nötigen Daten oder liegen be
 
 Unter `…/MusicBattle/?tool=alben` ersetzt der Alben-Fix Singles in den eigenen Spotify-Playlists und gelikten Songs durch die Version aus einem gespeicherten Album bzw. einer gespeicherten EP (Album hat Vorrang; Albumversion liken, Single entliken). Zuerst läuft ein Testlauf, geändert wird erst nach Bestätigung; optional nur für ein Album. Zweiter Knopf **Doppelte entfernen**: findet Songs, die mehrfach in einer Playlist oder in verschiedenen Versionen (Single/Album/Deluxe) über Playlists und Likes verteilt sind; pro Song wählt man, welche Version bleibt. Nutzt die Spotify-App des Spiels mit eigener Anmeldung, Code in `tools/`.
 
+## Werkzeug: Albumrad (kein Teil des Spiels)
+
+Unter `…/MusicBattle/?tool=rad` erscheinen die gespeicherten Spotify-Alben als Rad aus Covern. Scrollen, Ziehen oder die Pfeiltasten drehen das Rad; Tippen auf ein Cover holt es nach vorne, Tippen auf das vordere Cover zeigt Titel und einen Link zu Spotify. Geplant (Roadmap W.5–W.9): Vorschläge, Protokoll gehört/abgelehnt, Tags, Räder nach Vibe.
+
 ## Technik
 
 - **Frontend:** statisches HTML, CSS und Vanilla-JavaScript ohne Build-Step und ohne Framework. `index.html` lädt `app.js`, das die Daten (`themes.json`, `jurors.json`) und danach die Skripte in `js/` lädt.
