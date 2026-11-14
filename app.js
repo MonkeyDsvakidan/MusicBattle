@@ -2,14 +2,16 @@
 // Nach JS/CSS-Änderungen BUILD hier und die ?v=-Parameter in index.html erhöhen.
 // main.js startet die App (genau ein init()), wenn alles geladen ist.
 (async()=>{
-  const BUILD="20261114-1";
-  // Alben-Tool (Roadmap W.1): eigene Seite ?tool=alben, kein Teil des Spiels – lädt nur tools/, keine Spiel-Skripte.
-  // Die Rückkehr vom Spotify-Login (gleiche Redirect-URI wie das Spiel) gehört dem Tool, wenn der state von ihm stammt.
+  const BUILD="20261114-2";
+  // Werkzeuge (Roadmap „Werkzeuge“): eigene Seiten ?tool=alben / ?tool=rad, kein Teil des Spiels – laden nur tools/, keine Spiel-Skripte.
+  // Die Rückkehr vom Spotify-Login (gleiche Redirect-URI wie das Spiel) gehört dem Werkzeug, von dem der state stammt.
+  const TOOLS={alben:{stateKey:"mb_alben_state",css:"alben",js:["alben-logic","alben"]},rad:{stateKey:"mb_rad_state",css:"rad",js:["rad-logic","rad"]}};
   const q=new URLSearchParams(location.search);
-  let albenState=null;try{albenState=sessionStorage.getItem("mb_alben_state")}catch{}
-  if(q.get("tool")==="alben"||(q.get("state")&&q.get("state")===albenState)){
-    const css=document.createElement("link");css.rel="stylesheet";css.href=`./tools/alben.css?v=${BUILD}`;document.head.appendChild(css);
-    for(const name of ["alben-logic","alben"]){
+  let tool=TOOLS[q.get("tool")]||null;
+  if(!tool&&q.get("state"))tool=Object.values(TOOLS).find(t=>{try{return sessionStorage.getItem(t.stateKey)===q.get("state")}catch{return false}})||null;
+  if(tool){
+    const css=document.createElement("link");css.rel="stylesheet";css.href=`./tools/${tool.css}.css?v=${BUILD}`;document.head.appendChild(css);
+    for(const name of tool.js){
       await new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=`./tools/${name}.js?v=${BUILD}`;s.onload=resolve;s.onerror=()=>reject(new Error(`${name}.js konnte nicht geladen werden`));document.head.appendChild(s)});
     }
     return;
