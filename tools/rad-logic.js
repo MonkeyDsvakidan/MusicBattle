@@ -101,4 +101,69 @@ function radBackoffSeconds(attempt,retryAfter){
   return 2**(attempt+1);
 }
 
-if(typeof module!=="undefined")module.exports={radMod,radAlbum,radPickCover,radAlbums,radCircumference,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE};
+// ---------- Vorschlag und Protokoll (W.5) ----------
+
+// Zufälliges Album vorschlagen: nicht das aktuelle und keines aus exclude (in dieser Sitzung abgelehnt).
+// Sind alle ausgeschlossen, zählt nur noch „nicht das aktuelle“. Liefert den Index oder -1.
+function radSuggest(albums,{exclude=new Set(),currentId="",rnd=Math.random}={}){
+  const all=(albums||[]).map((a,i)=>({id:a.id,i}));
+  if(!all.length)return -1;
+  let pool=all.filter(x=>x.id!==currentId&&!exclude.has(x.id));
+  if(!pool.length)pool=all.filter(x=>x.id!==currentId);
+  if(!pool.length)pool=all;
+  return pool[Math.min(pool.length-1,Math.floor(rnd()*pool.length))].i;
+}
+
+// Weg des Rads zum vorgeschlagenen Album: immer vorwärts; ist es weit weg, springt das Rad kurz davor
+// (lead Alben) und dreht nur das letzte Stück sichtbar – sonst müssten hunderte Cover geladen werden.
+function radSpin(pos,index,count,lead=10){
+  const base=Math.round(pos);
+  let forward=radMod(index-base,count);
+  if(forward===0)forward=count;
+  const to=base+forward;
+  return {from:forward>lead?to-lead:pos,to};
+}
+
+// Zähler aus der Datenbank (Zeilen von mb_rad_counts) als Nachschlagetabelle je Album
+function radCountsMap(rows){
+  const out={};
+  for(const r of rows||[])if(r&&r.album_id)out[r.album_id]={listens:Number(r.listens)||0,rejects:Number(r.rejects)||0,lastListen:r.last_listen||"",lastReject:r.last_reject||""};
+  return out;
+}
+
+// Einen Eintrag (kind: listen/reject) dazuzählen bzw. mit delta = -1 wieder abziehen; verändert counts nicht
+function radCount(counts,albumId,kind,delta=1){
+  const c={listens:0,rejects:0,lastListen:"",lastReject:"",...(counts||{})[albumId]};
+  if(kind==="listen")c.listens=Math.max(0,c.listens+delta);
+  else if(kind==="reject")c.rejects=Math.max(0,c.rejects+delta);
+  return {...counts,[albumId]:c};
+}
+
+// Zeile unter dem Titel: „3× gehört · 1× abgelehnt“
+function radCountText(c){
+  const l=c?.listens||0,r=c?.rejects||0;
+  if(!l&&!r)return "Noch nie gehört";
+  return [l?`${l}× gehört`:"Noch nie gehört",r?`${r}× abgelehnt`:""].filter(Boolean).join(" · ");
+}
+
+// Protokoll-Zeilen: Einträge (neueste zuerst) mit Albumdaten; nicht mehr gespeicherte Alben bleiben als solche sichtbar
+function radProtocol(events,albums){
+  const byId=new Map((albums||[]).map(a=>[a.id,a]));
+  return (events||[]).filter(e=>e&&e.album_id&&(e.kind==="listen"||e.kind==="reject")).map(e=>{
+    const a=byId.get(e.album_id);
+    return {id:e.id,kind:e.kind,at:e.created_at||"",name:a?a.name:"Nicht mehr gespeichertes Album",artists:a?a.artists.join(", "):"",cover:a?a.coverSmall:""};
+  });
+}
+
+// Datum fürs Protokoll: „heute 14:05“, „gestern 09:30“, sonst „12.11.2026“
+function radWhen(iso,now=new Date()){
+  const d=new Date(iso);
+  if(!iso||Number.isNaN(d.getTime()))return "";
+  const p=n=>String(n).padStart(2,"0"),day=x=>new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();
+  const diff=Math.round((day(now)-day(d))/86400000),time=`${p(d.getHours())}:${p(d.getMinutes())}`;
+  if(diff===0)return `heute ${time}`;
+  if(diff===1)return `gestern ${time}`;
+  return `${p(d.getDate())}.${p(d.getMonth()+1)}.${d.getFullYear()}`;
+}
+
+if(typeof module!=="undefined")module.exports={radMod,radAlbum,radPickCover,radAlbums,radCircumference,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radSuggest,radSpin,radCountsMap,radCount,radCountText,radProtocol,radWhen};

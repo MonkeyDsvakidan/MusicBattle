@@ -17,3 +17,7 @@ verify_jwt = true
 
 [functions.mb-quiz-reveal]
 verify_jwt = true
+
+# Albumrad (W.5): eigene Prüfung über das Spotify-Token, kein Supabase-Login
+[functions.mb-rad]
+verify_jwt = false
