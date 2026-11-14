@@ -2,7 +2,7 @@
 // Nach JS/CSS-Änderungen BUILD hier und die ?v=-Parameter in index.html erhöhen.
 // main.js startet die App (genau ein init()), wenn alles geladen ist.
 (async()=>{
-  const BUILD="20261113-1";
+  const BUILD="20261114-1";
   // Alben-Tool (Roadmap W.1): eigene Seite ?tool=alben, kein Teil des Spiels – lädt nur tools/, keine Spiel-Skripte.
   // Die Rückkehr vom Spotify-Login (gleiche Redirect-URI wie das Spiel) gehört dem Tool, wenn der state von ihm stammt.
   const q=new URLSearchParams(location.search);
@@ -22,7 +22,7 @@
   const jurorsRes=await fetch(`./supabase/functions/_shared/jurors.json?v=${BUILD}`);
   if(!jurorsRes.ok)throw new Error("Juroren konnten nicht geladen werden");
   window.MB_JUROR_DATA=await jurorsRes.json();
-  const files=["config","state","ui-common","artist-filter","spotify","room","draft","battle","quiz","votes","jury","ui-screens","ui-quiz","main"];
+  const files=["config","state","errors","ui-common","artist-filter","spotify","room","draft","battle","quiz","votes","jury","ui-screens","ui-quiz","main"];
   for(const name of files){
     await new Promise((resolve,reject)=>{
       const s=document.createElement("script");
