@@ -129,3 +129,7 @@ Reine Logik (z. B. Jury-Bewertung) wird als reine Funktion geschrieben und mit `
 - **Ecke** – Spielerseite im Battle: Pinke Ecke = Spieler A, Cyan Ecke = Spieler B
 - **Punktezettel / Gürtel** – Tabelle (Kategorien bzw. Juroren) mit Total / Banner für den Runden- bzw. Matchsieg
 - **Kategorie-Abstimmung** – Normalfall der Rundenwertung seit 6.3 (`mb_category_votes`, `js/votes.js`); Kategorien `theme`, `vibe`, `lyrics`, `surprise`, `connoisseur`
+
+## Allgemeine Regeln (zusätzlich)
+
+Zusätzlich zu dieser Datei gelten die Skills aus Aladins Konto: **webseiten-check** (hier Teil A Design und Teil C Sicherheit – privates Projekt), beim Programmieren **ponytail**, bei Design-Arbeiten **unslop** (unter `.claude/skills/`, falls vorhanden). Bei einem Widerspruch geht diese Datei vor. Ist unklar, welche Regel gilt, zuerst bei Aladin nachfragen.
