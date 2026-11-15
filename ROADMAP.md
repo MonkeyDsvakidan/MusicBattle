@@ -374,6 +374,9 @@ Prüfung nach einer Design-Checkliste (u. a. keine Emojis als Icons, Tab-Titel +
   - Geprüft: `node --test` grün; Startseite lokal bei 375 px mit Fehler „Failed to fetch“ → deutsche Meldung; 404-Seite bei 375 px, kein seitliches Scrollen. Spielablauf nicht betroffen (nur Anzeige der Fehlertexte).
   - *Überarbeitet 14.11.2026 nach Review (BUILD `20261114-1`):* Die erste Fassung riet nach englischen Wörtern und machte dabei aus der deutschen Spotify-Konto-Anleitung («Not you?») einen allgemeinen Satz, aus `Spotify Playback 403` eine Raum-Rechte-Meldung und liess Backend-Meldungen wie `draft skip unavailable` englisch. Neu: eigene Datei `js/errors.js` mit fester Übersetzungstabelle für **alle** `raise exception`-Texte der Migrationen (`BACKEND_ERRORS`), Spotify-Fehler mit Rat je Status + Spotifys Details, Verbindungsfehler mit «erst neu laden und Stand prüfen» (Aktion kann schon gespeichert sein), sonst Text unverändert. `tests/errors.test.js` schlägt fehl, wenn eine Migration einen neuen Fehlertext ohne Übersetzung bringt.
 
+- [x] **Q.2 Feinschliff nach erweiterter Checkliste** (Wunsch des Nutzers 15.11.2026)
+  - *Erledigt 15.11.2026 (BUILD `20261115-1`):* `body` mit `min-height:100dvh` (Fallback `100vh`), damit auf dem Handy unter der Adressleiste nichts springt. Übrige neue Punkte (eine Hauptaktion pro Screen, Fortschrittsanzeige, Bestätigung destruktiver Aktionen, Zahlen in Bungee) waren schon erfüllt.
+
 ---
 
 ## Gefundene Bugs
