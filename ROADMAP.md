@@ -380,6 +380,13 @@ Prüfung nach einer Design-Checkliste (u. a. keine Emojis als Icons, Tab-Titel +
 - [x] **Q.3 Bedienung nach Projekt-Check** (Wunsch des Nutzers 15.11.2026)
   - *Erledigt 15.11.2026 (BUILD `20261115-2`):* Status in Spielerzeilen («Spotify bereit», Rundensieger im Endstand) als Text mit farbigem Punkt statt Rahmen – sah aus wie ein Knopf. «Rematch» direkt unter dem Endstand statt nach der Rundenliste. Abstimmung kompakter (weniger Abstand auf dem Handy), Knopf zeigt «Noch X von 5 wählen» statt nur grau. 2-Geräte-Modus: unter dem Song des Gegners steht «Läuft auf dem Gerät von …» (dort fehlte bisher jeder Hinweis, warum kein Abspielen-Knopf da ist).
 
+- [x] **S.1 Sicherheits-Check: direkte Schreibrechte einschränken** (Wunsch des Nutzers 15.11.2026, Reel „15 ways your vibecoded app gets hacked“)
+  - Befund: Jedes Raummitglied darf seine eigene Zeile in `mb_members` direkt ändern – auch `role`, `player_slot`, `room_id` und `draft_skip_used` (z. B. Skip zurücksetzen, sich vom Juror zum Spieler machen). Der Host darf in `mb_rooms` alle Spalten ändern (Code, Host, Spielstand) und Runden in `mb_rounds` direkt anlegen/ändern (`winner_slot`). In `mb_submissions` sind alle Spalten änderbar (Songwahl selbst ist per Trigger `mb_lock_submission_identity` gesperrt, Metadaten wie Release-Datum nicht).
+  - Lösung: Migration `20261115220000_tighten_client_write_columns.sql` – nur noch die Spalten, die das Frontend wirklich direkt schreibt (`mb_rooms.status/quiz_length/updated_at`, `mb_submissions.start_ms`); alles andere läuft schon über SECURITY-DEFINER-RPCs. Kein Code im Frontend betroffen (geprüft: alle `.update/.insert/.upsert` in `js/` und `tools/`; keine INVOKER-Funktion schreibt diese Tabellen).
+  - Weiter geprüft, ohne Handlungsbedarf: Raumcodes (6 Zeichen, 32er-Alphabet ≈ 1 Mrd.), Secrets im Repo inkl. Historie (keine), Ausgaben über `esc()`, `mb-rad` (`verify_jwt=false`, prüft aber das Spotify-Token und schreibt nur eigene Zeilen; 300 Einträge/Std.).
+  - *Erledigt 16.11.2026:* SQL vom Nutzer im Supabase SQL Editor ausgeführt (darum nicht in der Remote-Migrationshistorie, Datei liegt trotzdem im Repo). Lesend geprüft: `mb_members.role`, `mb_submissions.spotify_track_id`, `mb_rooms.host_user_id` und `mb_rounds` INSERT nicht mehr erlaubt; `mb_submissions.start_ms` und `mb_rooms.status` weiterhin erlaubt.
+  - Folgeaufgaben: `mb_draft_picks` wird direkt eingefügt – `artist_draft_weight` könnte gefälscht werden (Schummeln, kein Datenleck) → später über RPC. `mb-rad` „tags_fetch“ mit `force` umgeht den 30-Tage-Cache (Last.fm-Kontingent) → Limit pro Stunde ergänzen. `mb-ai-jury` ist noch deployt → im Dashboard löschen (Nutzer).
+
 ---
 
 ## Gefundene Bugs
@@ -445,6 +452,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 ## Entscheidungslog
 *(Datum · Entscheidung · Begründung)*
 
+- 15.11.2026 · Sicherheit (S.1): Clients schreiben direkt nur noch Raum-Status/Quiz-Länge (Host) und den Startpunkt des eigenen Songs; alles andere nur über RPCs · Sicherheits-Check nach Reel
 - 15.11.2026 · Abstimmen-Knopf zeigt, wie viele Kategorien noch fehlen; Rematch steht direkt unter dem Endstand (Q.3) · Projekt-Check nach Checkliste (UX-Regeln Fitts/Doherty)
 - 14.11.2026 · Albumrad (W.4–W.9) als Werkzeug `?tool=rad`: eigene helle, schlichte Optik (nur Cover, Text erst nach Tippen) statt der Spiel-Tokens – Vorlage des Nutzers (Framer-Template „Theo Nolan“); Daten später in der Datenbank ans Spotify-Konto gebunden; „gehört“ per Tippen und automatisch; Räder automatisch aus Tags, anpassbar · Entscheide des Nutzers
 - 13.11.2026 · Fehlermeldungen werden auf Deutsch angezeigt; englische Technik-Meldungen nur noch klein als „Details“ (Q.1) · Wunsch des Nutzers: Seiten nach der Reel-Checkliste prüfen („Real error messages“)
