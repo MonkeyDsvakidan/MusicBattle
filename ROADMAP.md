@@ -258,6 +258,8 @@ Reihenfolge: 6.1 → 6.2 → 6.3. 6.1 baut auf 5.6/5.7 auf; 6.3 ist der grösste
 
 ---
 
+- [ ] **6.7 Gemeinsamer Skip im Draft** (Wunsch Nutzer 15.11.2026). Zusätzlich zum einmaligen, einseitigen Skip pro Spieler: Ein gezogener Künstler kann **beliebig oft** übersprungen werden, wenn **beide Spieler einverstanden** sind (einer schlägt vor, der andere bestätigt; Pass & Play: Bestätigung auf demselben Gerät). Ebenen: Frontend (`js/draft.js`, Draft-Screen), neue RPC(s) für Vorschlag/Bestätigung, ggf. Spalte für den offenen Vorschlag, Realtime. Vor der Umsetzung klären (Entscheidung): Zählt der gemeinsame Skip im Sudden-Death-Draft auch? Läuft der Vorschlag nach einer Zeit ab? Bleibt der einseitige Skip unverändert?
+
 ## Phase 7 – Spotify-Quiz (Idee des Nutzers, 02.11.2026)
 
 Ein Musik-Quiz aus den Spotify-Daten der Spielenden, für 1 bis n Personen, als **neuer Modus in Music Battle** (Entscheidung I). Zwei Quiz-Arten:
