@@ -452,7 +452,9 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
   .exitbar .btn{flex:1 1 40%}
   .turnbanner strong{font-size:30px}
   .member{align-items:flex-start;flex-direction:column}
-  .member>.btn,.member>.chip{align-self:stretch;text-align:center;justify-content:center}
+  .member>.btn{align-self:stretch;text-align:center;justify-content:center}
+  .votecat{padding:var(--s2) var(--s3)}
+  .ballot{gap:var(--s2)}
   .track{grid-template-columns:46px minmax(0,1fr)}
   .track>.chip{grid-column:1/-1;justify-content:center}
   .finalscore .big{font-size:38px}
@@ -536,3 +538,7 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .solorole .lengthpick{margin-bottom:var(--s3)}
 .bestline{margin:var(--s2) 0 0;color:var(--gold);font-weight:700}
 .quizfinal .finalscore .num{font:400 16px var(--f-num);color:var(--gold)}
+
+/* Status in Spielerzeilen ist Text mit Punkt, kein Knopf (Q.3) */
+.member>.chip{border:0;background:none;padding:0;gap:6px;font-size:13px}
+.member>.chip::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}

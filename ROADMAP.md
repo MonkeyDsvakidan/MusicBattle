@@ -377,6 +377,9 @@ Prüfung nach einer Design-Checkliste (u. a. keine Emojis als Icons, Tab-Titel +
 - [x] **Q.2 Feinschliff nach erweiterter Checkliste** (Wunsch des Nutzers 15.11.2026)
   - *Erledigt 15.11.2026 (BUILD `20261115-1`):* `body` mit `min-height:100dvh` (Fallback `100vh`), damit auf dem Handy unter der Adressleiste nichts springt. Übrige neue Punkte (eine Hauptaktion pro Screen, Fortschrittsanzeige, Bestätigung destruktiver Aktionen, Zahlen in Bungee) waren schon erfüllt.
 
+- [x] **Q.3 Bedienung nach Projekt-Check** (Wunsch des Nutzers 15.11.2026)
+  - *Erledigt 15.11.2026 (BUILD `20261115-2`):* Status in Spielerzeilen («Spotify bereit», Rundensieger im Endstand) als Text mit farbigem Punkt statt Rahmen – sah aus wie ein Knopf. «Rematch» direkt unter dem Endstand statt nach der Rundenliste. Abstimmung kompakter (weniger Abstand auf dem Handy), Knopf zeigt «Noch X von 5 wählen» statt nur grau. 2-Geräte-Modus: unter dem Song des Gegners steht «Läuft auf dem Gerät von …» (dort fehlte bisher jeder Hinweis, warum kein Abspielen-Knopf da ist).
+
 ---
 
 ## Gefundene Bugs
@@ -442,6 +445,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 ## Entscheidungslog
 *(Datum · Entscheidung · Begründung)*
 
+- 15.11.2026 · Abstimmen-Knopf zeigt, wie viele Kategorien noch fehlen; Rematch steht direkt unter dem Endstand (Q.3) · Projekt-Check nach Checkliste (UX-Regeln Fitts/Doherty)
 - 14.11.2026 · Albumrad (W.4–W.9) als Werkzeug `?tool=rad`: eigene helle, schlichte Optik (nur Cover, Text erst nach Tippen) statt der Spiel-Tokens – Vorlage des Nutzers (Framer-Template „Theo Nolan“); Daten später in der Datenbank ans Spotify-Konto gebunden; „gehört“ per Tippen und automatisch; Räder automatisch aus Tags, anpassbar · Entscheide des Nutzers
 - 13.11.2026 · Fehlermeldungen werden auf Deutsch angezeigt; englische Technik-Meldungen nur noch klein als „Details“ (Q.1) · Wunsch des Nutzers: Seiten nach der Reel-Checkliste prüfen („Real error messages“)
 - 11.11.2026 · Alben-Tool (W.3): gespeicherte EPs (Typ „single“ mit 4+ Songs) zählen als Ziel wie Alben; Album hat Vorrang vor EP, EP vor Compilation; ein Song von einer gespeicherten EP wird nur durch ein Album ersetzt · Wunsch des Nutzers: Singles mit Version auf einer gespeicherten EP blieben bisher stehen
