@@ -42,7 +42,7 @@ Unter `…/MusicBattle/?tool=alben` ersetzt der Alben-Fix Singles in den eigenen
 
 ## Werkzeug: Albumrad (kein Teil des Spiels)
 
-Unter `…/MusicBattle/?tool=rad` erscheinen die gespeicherten Spotify-Alben als Rad aus Covern. Scrollen, Ziehen oder die Pfeiltasten drehen das Rad; Tippen auf ein Cover holt es nach vorne, Tippen auf das vordere Cover zeigt Titel, Zähler und „Hören“ (öffnet Spotify). Der runde Knopf unten schlägt ein zufälliges Album vor; „Hören“ und „Ablehnen“ werden pro Spotify-Konto gezählt (Menü „⋯“ → Protokoll), auf allen Geräten gleich. Geplant (Roadmap W.7–W.9): Räder nach Farbe der Cover, Vorschlag aus einem Farb-Rad, automatisches Erkennen.
+Unter `…/MusicBattle/?tool=rad` erscheinen die gespeicherten Spotify-Alben als Rad aus Covern. Scrollen, Ziehen oder die Pfeiltasten drehen das Rad; Tippen auf ein Cover holt es nach vorne, Tippen auf das vordere Cover zeigt Titel, Zähler und „Hören“ (öffnet Spotify). Der runde Knopf unten schlägt ein zufälliges Album vor; „Hören“ und „Ablehnen“ werden pro Spotify-Konto gezählt (Menü „⋯“ → Protokoll), auf allen Geräten gleich. Die Alben sind zusätzlich nach der Farbe ihres Covers in fünf Räder aufgeteilt (Warm, Kalt, Violett/Pink, Dunkel, Hell); die Punkte oben oder seitliches Wischen wechseln das Rad, und ein Album lässt sich von Hand in ein anderes Rad legen. Geplant (Roadmap W.8–W.9): Vorschlag aus eigenen Picks, automatisches Erkennen.
 
 ## Technik
 
