@@ -36,7 +36,6 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `mb_quiz_pool` | Quiz (7.1): Song-Metadaten der Verbundenen je Raum/Mitglied (Titel, Künstler, Album, Jahr, Cover, Quelle); Clients lesen nur eigene Zeilen, schreiben nur über `mb_quiz_set_pool` |
 | `mb_quiz_questions` / `mb_quiz_solutions` | Quiz-Fragen (`year`, `older`, `cover`, `whose`) mit `started_at`/`deadline_at`/`answer_count`, sichtbar ab `open`; Lösung getrennt, sichtbar erst nach `revealed`; nur serverseitig beschreibbar |
 | `mb_rad_events` | Albumrad (W.5): Protokoll je Spotify-Konto und Album (`kind` `listen`/`reject`, `source` `tap`/`auto`); RLS ohne Policies, keine Rechte für Clients – nur über die Edge Function `mb-rad` (Service-Rolle); Zähler über `mb_rad_counts(p_user)` |
-| `mb_rad_tags` | Überbleibsel der gestrichenen Tags (W.6): wird nicht mehr gelesen oder geschrieben; Löschen wartet auf die Bestätigung des Nutzers |
 | `mb_quiz_answers` | Quiz-Antworten (eine pro Person und Frage, `answer_ms` per Serveruhr, `points`); eigene sofort, fremde nach dem Aufdecken lesbar; schreiben nur über `mb_quiz_answer` |
 
 ## Code-Aufbau (seit Roadmap 2.2)
