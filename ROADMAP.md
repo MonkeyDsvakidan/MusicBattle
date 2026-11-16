@@ -382,6 +382,7 @@ Eigene Seite `?tool=rad`: die gespeicherten Spotify-Alben als Cover-Rad, dazu Vo
   - **Sortieren** (neue Reihe, kurze Beschriftungen): zuletzt gespeichert (Standard wie bisher), Künstler A–Z, Erscheinungsjahr alt → neu und neu → alt. Kein Jahrzehnt-Filter.
   - **Buchstaben:** bei Sortierung nach Künstler eine Reihe A–Z, die zum ersten Künstler mit diesem Buchstaben dreht (Buchstaben ohne Künstler ausgegraut).
   - **Kombinierbar:** Sortierung gilt im gezeigten Farb-Rad (z. B. Warm, nach Künstler).
+  - *Zwischenstand 16.11.2026 (BUILD `20261116-4`, nur lokal committet, **nicht gepusht**):* Logik (`radSort`, `radLetter`, `radLetterIndex`, `radSortName`, 5 Tests, gesamt 146 grün) und Oberfläche (`radDots` mit eingeklappter/aufgeklappter Leiste, `radSetSort`, `radJump`, Stile in `rad.css`) sind geschrieben. **Im Browser noch nicht fertig geprüft** – der Testlauf brach wegen des Nutzungslimits ab (der eine Fehler kam vom Testskript: es hielt nach dem Neuaufbau ein altes Element fest). Vor dem Live-Stellen prüfen: Auf-/Zuklappen, vier Sortierungen, Buchstaben springen, Kombination mit Farb-Rad, 375 px und 1280 px, gemerkte Sortierung nach Neuladen. Danach CLAUDE.md/README nachführen.
   - Technisch offen: Sortierung auf dem Gerät merken; „The“/Artikel beim Sortieren ignorieren; Umlaute und Ziffern in der Buchstabenreihe (Vorschlag: „#“ für alles ausser A–Z).
 
 ## Qualitäts-Check (Wunsch des Nutzers, 13.11.2026)

@@ -8,7 +8,7 @@ const RAD_CLIENT_ID="173f861652ae4b668769c76f0adab3a1";
 const RAD_AUTH="https://accounts.spotify.com/authorize",RAD_TOKEN="https://accounts.spotify.com/api/token",RAD_API="https://api.spotify.com/v1";
 // „zuletzt gehört“ wird erst ab W.9 gebraucht – schon jetzt angefragt, damit später keine zweite Anmeldung nötig ist
 const RAD_SCOPES="user-library-read user-read-recently-played";
-const RAD_KEYS={state:"mb_rad_state",verifier:"mb_rad_pkce",access:"mb_rad_access",expires:"mb_rad_expires",refresh:"mb_rad_refresh",albums:"mb_rad_albums",colors:"mb_rad_colors_v1"};
+const RAD_KEYS={state:"mb_rad_state",verifier:"mb_rad_pkce",access:"mb_rad_access",expires:"mb_rad_expires",refresh:"mb_rad_refresh",albums:"mb_rad_albums",colors:"mb_rad_colors_v1",sort:"mb_rad_sort"};
 const RAD_CACHE_MS=60*60*1000; // Albumliste höchstens 1 Stunde aus dem Zwischenspeicher
 const RAD_FOCUS_DEG=20;        // vorne = rechts, leicht unten
 const RAD_TOP=48;              // Platz oben für die Rad-Punkte (gleicher Wert wie --rad-top in rad.css)
@@ -23,7 +23,8 @@ const RAD_STATE_ERR="Protokoll konnte nicht geladen werden – Zähler fehlen.";
 const RAD={view:"init",albums:[],error:"",progress:"",pos:0,to:0,open:false,ring:null,els:new Map(),raf:0,drag:null,snapTimer:0,counts:null,events:[],suggested:"",skipped:new Set(),sheet:false,
   // Farb-Räder (W.7): all = alle Alben, albums = Alben des gezeigten Rads (wheel) · colors = berechnete Farbgruppe je Album
   // (auf dem Gerät gemerkt) · moves = von Hand gewähltes Rad je Album (Datenbank) · posBy = Stand je Rad
-  all:[],wheel:"all",colors:{},moves:{},posBy:{},colorRun:false};
+  // Leiste (W.10): sort = Reihenfolge im Rad (auf dem Gerät gemerkt) · bar = Leiste oben aufgeklappt
+  all:[],wheel:"all",colors:{},moves:{},posBy:{},colorRun:false,sort:"added",bar:false};
 
 function radEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function radGet(store,k){try{return store.getItem(k)}catch{return null}}
@@ -160,7 +161,7 @@ function radWheelList(){return radWheels(RAD.all,RAD.colors,RAD.moves)}
 // Alben des gewählten Rads übernehmen; gibt es das Rad nicht (mehr), gilt „Alle“
 function radPick(){
   const list=radWheelList(),w=list.find(x=>x.key===RAD.wheel)||list[0];
-  RAD.wheel=w.key;RAD.albums=w.albums;
+  RAD.wheel=w.key;RAD.albums=radSort(w.albums,RAD.sort);
 }
 function radGoWheel(key){
   if(key===RAD.wheel)return;
@@ -180,14 +181,41 @@ function radWheelsChanged(){
   radRender();
 }
 
-// Punkte oben: ein Punkt je Rad in dessen Farbe, der gezeigte ist grösser. Tippen wechselt das Rad.
+// Leiste oben. Eingeklappt: nur der Punkt des gezeigten Rads (Tippen klappt auf). Aufgeklappt: ein Punkt je Rad
+// in dessen Farbe, darunter die Sortierung und – bei Sortierung nach Künstler – die Buchstaben A–Z.
 function radDots(){
   const box=document.getElementById("radWheels");
   if(!box)return;
-  const list=radWheelList();
-  box.hidden=list.length<2;
-  box.innerHTML=list.map(w=>`<button class="rad-dot rad-dot-${w.key}" type="button" data-wheel="${w.key}" aria-pressed="${w.key===RAD.wheel}" aria-label="Rad ${radEsc(w.name)}, ${w.albums.length} Alben" title="${radEsc(w.name)} (${w.albums.length})"></button>`).join("");
+  const list=radWheelList(),cur=list.find(w=>w.key===RAD.wheel)||list[0];
+  box.classList.toggle("open",RAD.bar);
+  if(!RAD.bar){
+    box.innerHTML=`<button class="rad-dot rad-dot-${cur.key}" id="radBarOpen" type="button" aria-expanded="false" aria-pressed="true" aria-label="Räder und Sortierung öffnen. Gezeigt: Rad ${radEsc(cur.name)}, ${cur.albums.length} Alben" title="Räder und Sortierung"></button>`;
+    document.getElementById("radBarOpen").addEventListener("click",()=>{RAD.bar=true;radDots();box.querySelector('[aria-pressed="true"]')?.focus()});
+    return;
+  }
+  const letters=RAD.sort==="artist"?radLetterIndex(RAD.albums):null;
+  box.innerHTML=`<div class="rad-bar-row">${list.map(w=>`<button class="rad-dot rad-dot-${w.key}" type="button" data-wheel="${w.key}" aria-pressed="${w.key===RAD.wheel}" aria-label="Rad ${radEsc(w.name)}, ${w.albums.length} Alben" title="${radEsc(w.name)} (${w.albums.length})"></button>`).join("")}</div>
+    <div class="rad-bar-row" role="group" aria-label="Sortierung">${RAD_SORTS.map(o=>`<button class="rad-sort" type="button" data-sort="${o.key}" aria-pressed="${o.key===RAD.sort}">${radEsc(o.name)}</button>`).join("")}</div>
+    ${letters?`<div class="rad-letters" role="group" aria-label="Zum Künstler mit Anfangsbuchstaben springen">${RAD_LETTERS.map(l=>`<button class="rad-letter" type="button" data-letter="${l}"${l in letters?"":" disabled"}>${l}</button>`).join("")}</div>`:""}`;
   box.querySelectorAll(".rad-dot").forEach(b=>b.addEventListener("click",()=>radGoWheel(b.dataset.wheel)));
+  box.querySelectorAll(".rad-sort").forEach(b=>b.addEventListener("click",()=>radSetSort(b.dataset.sort)));
+  box.querySelectorAll(".rad-letter").forEach(b=>b.addEventListener("click",()=>radJump(letters[b.dataset.letter])));
+}
+
+function radSetSort(key){
+  RAD.sort=key;radSet(localStorage,RAD_KEYS.sort,key);RAD.posBy={};
+  radWheelsChanged();radDots();
+}
+
+// Rad zu einem Platz drehen (Buchstabenreihe): vorwärts, weite Wege abgekürzt wie beim Vorschlag
+function radJump(index){
+  if(!RAD.ring||index==null||RAD.albums.length<2)return;
+  clearTimeout(RAD.snapTimer);
+  RAD.open=false;RAD.suggested="";
+  if(radFocusIndex(RAD.to,RAD.albums.length)===index)return;
+  const spin=radSpin(RAD.to,index,RAD.albums.length,Math.min(10,RAD.ring.slots));
+  RAD.pos=radCalm()?spin.to:spin.from;
+  radTurnTo(spin.to);
 }
 
 // Farbgruppe jedes Covers aus dem kleinen Coverbild lesen (16 × 16 Punkte genügen) und auf dem Gerät merken.
@@ -366,6 +394,7 @@ function radOnWheel(e){
 function radOnDown(e){
   if(RAD.view!=="wheel"||!RAD.ring||e.button>0)return;
   if(e.target.closest("a,button,summary,details,select"))return;
+  if(RAD.bar){RAD.bar=false;radDots()}
   clearTimeout(RAD.snapTimer);
   RAD.drag={id:e.pointerId,y:e.clientY,x:e.clientX,pos:RAD.pos,moved:false,lastY:e.clientY,lastT:e.timeStamp,v:0,item:e.target.closest(".rad-item")};
 }
@@ -414,6 +443,7 @@ function radOnUp(e){
 function radOnKey(e){
   if(RAD.view!=="wheel")return;
   if(RAD.sheet){if(e.key==="Escape"){RAD.sheet=false;radSheet()}return}
+  if(e.key==="Escape"&&RAD.bar){RAD.bar=false;radDots();document.getElementById("radBarOpen")?.focus();return}
   if(e.target.closest("a,button,summary,select"))return;
   const many=radWheelList().length>1;
   if(many&&(e.key==="ArrowRight"||e.key==="ArrowLeft")){e.preventDefault();radGoWheel(radNextWheel(radWheelList(),RAD.wheel,e.key==="ArrowRight"?1:-1))}
@@ -449,7 +479,7 @@ function radRender(){
     </div>
     <button class="rad-dice" id="radSuggest" type="button" aria-label="Album vorschlagen" title="Album vorschlagen"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h3.500c2 0 3.200 1 4.300 2.600l2.400 4.800c1.100 1.600 2.300 2.600 4.300 2.600H21"/><path d="M3 17h3.500c1.300 0 2.300-.4 3.100-1.200M21 7h-3.500c-1.300 0-2.300.4-3.100 1.200"/><path d="M18 4l3 3-3 3M18 14l3 3-3 3"/></svg></button>
     <details class="rad-menu"><summary aria-label="Menü">⋯</summary><div class="rad-menu-box"><button class="rad-link" id="radProtocol" type="button">Protokoll</button><button class="rad-link" id="radReload" type="button">Alben neu laden</button><button class="rad-link" id="radLogout" type="button">Abmelden</button></div></details>
-    <div class="rad-wheels" id="radWheels" role="group" aria-label="Farb-Räder" hidden></div>
+    <div class="rad-wheels" id="radWheels" role="group" aria-label="Räder und Sortierung"></div>
     <div class="rad-sheet" id="radSheet" role="dialog" aria-label="Protokoll" hidden></div>`;
     const st=radStage();
     st.addEventListener("wheel",radOnWheel,{passive:false});
@@ -468,6 +498,8 @@ function radRender(){
 async function radInit(){
   document.documentElement.classList.add("rad");
   document.title="Albumrad";
+  const savedSort=radGet(localStorage,RAD_KEYS.sort);
+  if(RAD_SORTS.some(o=>o.key===savedSort))RAD.sort=savedSort;
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content","#ffffff");
   radRender();
   window.addEventListener("resize",()=>{if(RAD.view==="wheel"&&radStage()){radMeasure();radDraw()}});

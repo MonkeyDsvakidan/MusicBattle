@@ -1,6 +1,6 @@
 const test=require("node:test");
 const assert=require("node:assert/strict");
-const {radMod,radAlbum,radPickCover,radAlbums,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radSuggest,radSpin,radCountsMap,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radColorGroup,radWheels,radNextWheel}=require("../tools/rad-logic.js");
+const {radMod,radAlbum,radPickCover,radAlbums,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radSuggest,radSpin,radCountsMap,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radColorGroup,radWheels,radNextWheel,RAD_SORTS,RAD_LETTERS,radSortName,radLetter,radSort,radLetterIndex}=require("../tools/rad-logic.js");
 
 const imgs=[{url:"big",width:640},{url:"mid",width:300},{url:"small",width:64}];
 const item=(id,extra={})=>({added_at:"2026-11-01T10:00:00Z",album:{id,name:`Album ${id}`,album_type:"album",total_tracks:12,release_date:"2020-05-01",artists:[{name:"Eno"}],images:imgs,uri:`spotify:album:${id}`,external_urls:{spotify:`https://open.spotify.com/album/${id}`},...extra}});
@@ -204,4 +204,43 @@ test("Nachbar-Rad: vor und zurück, am Ende von vorne",()=>{
   assert.equal(radNextWheel(w,"cold",1),"all");
   assert.equal(radNextWheel(w,"all",-1),"cold");
   assert.equal(radNextWheel(w,"gibt-es-nicht",1),"warm");
+});
+
+// ---------- Sortieren und Buchstaben (W.10) ----------
+const al=(id,artist,year)=>({id,name:`Album ${id}`,artists:artist?[artist]:[],year});
+const mixed=[al("1","The Roots","1999"),al("2","Élodie","2010"),al("3","2Pac","1996"),al("4","Nas","1994"),al("5","nas","2001"),al("6","Beyoncé",""),al("7","","2005")];
+
+test("Sortiername und Buchstabe: The, Akzente, Ziffern, kein Künstler",()=>{
+  assert.equal(radSortName(mixed[0]),"roots");
+  assert.equal(radLetter(mixed[0]),"R");
+  assert.equal(radLetter(mixed[1]),"E");
+  assert.equal(radLetter(mixed[2]),"#");
+  assert.equal(radLetter(mixed[6]),"#");
+  assert.equal(radLetter(al("x","Ärzte","")),"A");
+  assert.equal(radLetter(al("x","Theodor","")),"T","nur „The “ mit Leerzeichen fällt weg");
+});
+
+test("Sortieren nach Künstler: # zuerst, dann A–Z, gleicher Künstler nach Jahr",()=>{
+  const ids=radSort(mixed,"artist").map(a=>a.id);
+  assert.deepEqual(ids.slice(0,2).sort(),["3","7"],"Ziffern und ohne Künstler vorne");
+  assert.deepEqual(ids.slice(2),["6","2","4","5","1"]);
+  assert.deepEqual(mixed.map(a=>a.id),["1","2","3","4","5","6","7"],"Original bleibt");
+});
+
+test("Sortieren nach Jahr: alt → neu und neu → alt, ohne Jahr am Schluss",()=>{
+  assert.deepEqual(radSort(mixed,"old").map(a=>a.id),["4","3","1","5","7","2","6"]);
+  assert.deepEqual(radSort(mixed,"new").map(a=>a.id),["2","7","5","1","3","4","6"]);
+});
+
+test("Sortieren: gespeichert und Unbekanntes lassen die Reihenfolge",()=>{
+  assert.deepEqual(radSort(mixed,"added").map(a=>a.id),["1","2","3","4","5","6","7"]);
+  assert.deepEqual(radSort(mixed,"quatsch").map(a=>a.id),["1","2","3","4","5","6","7"]);
+  assert.deepEqual(radSort(undefined,"artist"),[]);
+});
+
+test("Buchstabenreihe: erster Platz je Buchstabe",()=>{
+  const idx=radLetterIndex(radSort(mixed,"artist"));
+  assert.deepEqual(idx,{"#":0,B:2,E:3,N:4,R:6});
+  assert.equal(RAD_LETTERS.length,27);
+  assert.equal(RAD_SORTS.length,4);
 });

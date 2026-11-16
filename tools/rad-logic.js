@@ -208,4 +208,36 @@ function radNextWheel(wheels,key,dir){
   return wheels.length?wheels[radMod(i+dir,wheels.length)].key:"all";
 }
 
-if(typeof module!=="undefined")module.exports={radMod,radAlbum,radPickCover,radAlbums,radCircumference,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radSuggest,radSpin,radCountsMap,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radIsGroup,radColorGroup,radWheels,radNextWheel};
+// ---------- Sortieren und Buchstaben (W.10) ----------
+
+const RAD_SORTS=[{key:"added",name:"Neu gespeichert"},{key:"artist",name:"Künstler A–Z"},{key:"old",name:"Jahr alt → neu"},{key:"new",name:"Jahr neu → alt"}];
+const RAD_LETTERS=["#",..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+
+// Künstlername zum Sortieren: klein, ohne Akzente/Umlaut-Punkte, ohne „The “ am Anfang
+function radSortName(a){
+  return String(a?.artists?.[0]||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/^the\s+/,"").trim();
+}
+// Buchstabe für die Buchstabenreihe: A–Z, alles andere (Ziffern, Zeichen, kein Künstler) unter „#“
+function radLetter(a){const c=radSortName(a).charAt(0).toUpperCase();return c>="A"&&c<="Z"?c:"#"}
+
+// Alben eines Rads ordnen; verändert die Liste nicht. „added“ = Reihenfolge von Spotify (zuletzt gespeichert zuerst).
+// Künstler: „#“ zuerst, dann A–Z, innerhalb eines Künstlers nach Jahr. Jahr: Alben ohne Jahr stehen am Schluss.
+function radSort(albums,key){
+  const list=[...(albums||[])];
+  const byArtist=(x,y)=>(radLetter(x)==="#")-(radLetter(y)==="#")?(radLetter(x)==="#"?-1:1):radSortName(x).localeCompare(radSortName(y))||String(x.year).localeCompare(String(y.year))||String(x.name).localeCompare(String(y.name));
+  if(key==="artist")return list.sort(byArtist);
+  if(key==="old"||key==="new"){
+    const dir=key==="old"?1:-1;
+    return list.sort((x,y)=>(!x.year)-(!y.year)||dir*(Number(x.year)-Number(y.year))||byArtist(x,y));
+  }
+  return list;
+}
+
+// Für eine nach Künstler sortierte Liste: Buchstabe → Platz des ersten Albums mit diesem Buchstaben
+function radLetterIndex(albums){
+  const out={};
+  (albums||[]).forEach((a,i)=>{const l=radLetter(a);if(!(l in out))out[l]=i});
+  return out;
+}
+
+if(typeof module!=="undefined")module.exports={radMod,radAlbum,radPickCover,radAlbums,radCircumference,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radSuggest,radSpin,radCountsMap,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radIsGroup,radColorGroup,radWheels,radNextWheel,RAD_SORTS,RAD_LETTERS,radSortName,radLetter,radSort,radLetterIndex};
