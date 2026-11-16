@@ -377,6 +377,12 @@ Eigene Seite `?tool=rad`: die gespeicherten Spotify-Alben als Cover-Rad, dazu Vo
   - Bekannt: Am Handy ragt die Ecke des Covers rechts unten um wenige Pixel in den leeren Rand der Mitte, wenn die Auswahl „Rad“ sichtbar ist (überdeckt keinen Text). Bunte Cover ohne klare Hauptfarbe können überraschend einsortiert werden – dafür gibt es das Verschieben.
 - [ ] **W.8 Vorschlag nach Farbe und Picks:** Vorschlag aus dem gerade gezeigten Farb-Rad (seit W.7 erledigt) oder aus einer eigenen Auswahl; selten Gehörtes bevorzugt, oft Abgelehntes seltener.
 - [ ] **W.9 Automatisches Erkennen:** was direkt in Spotify gehört wurde, mitzählen (`/me/player/recently-played`, nur die letzten 50 Songs → bei jedem Öffnen abgleichen; Regel „ab wann gilt ein Album als gehört“ mit dem Nutzer klären).
+- [ ] **W.10 Leiste einklappen, Sortieren, Buchstaben** (Wunsch des Nutzers, 16.11.2026: die Farbpunkte gefallen, im gleichen Stil mehr davon). Entscheide des Nutzers:
+  - **Einklappen:** eingeklappt ist oben nur der Punkt des gezeigten Rads sichtbar; Antippen klappt alle Reihen auf, Tippen daneben klappt zu.
+  - **Sortieren** (neue Reihe, kurze Beschriftungen): zuletzt gespeichert (Standard wie bisher), Künstler A–Z, Erscheinungsjahr alt → neu und neu → alt. Kein Jahrzehnt-Filter.
+  - **Buchstaben:** bei Sortierung nach Künstler eine Reihe A–Z, die zum ersten Künstler mit diesem Buchstaben dreht (Buchstaben ohne Künstler ausgegraut).
+  - **Kombinierbar:** Sortierung gilt im gezeigten Farb-Rad (z. B. Warm, nach Künstler).
+  - Technisch offen: Sortierung auf dem Gerät merken; „The“/Artikel beim Sortieren ignorieren; Umlaute und Ziffern in der Buchstabenreihe (Vorschlag: „#“ für alles ausser A–Z).
 
 ## Qualitäts-Check (Wunsch des Nutzers, 13.11.2026)
 
@@ -468,6 +474,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 - 16.11.2026 · Gemeinsamer Skip (6.7): beliebig oft, wenn beide einverstanden sind; gilt auch im Sudden-Death-Draft; Vorschlag läuft nicht ab; einseitiger Skip (1×) bleibt · Entscheid des Nutzers
 - 15.11.2026 · Sicherheit (S.1): Clients schreiben direkt nur noch Raum-Status/Quiz-Länge (Host) und den Startpunkt des eigenen Songs; alles andere nur über RPCs · Sicherheits-Check nach Reel
 - 15.11.2026 · Abstimmen-Knopf zeigt, wie viele Kategorien noch fehlen; Rematch steht direkt unter dem Endstand (Q.3) · Projekt-Check nach Checkliste (UX-Regeln Fitts/Doherty)
+- 16.11.2026 · Albumrad W.10 geplant: Leiste oben einklappbar (nur aktiver Punkt), Sortieren nach Künstler und Erscheinungsjahr, Buchstabenreihe A–Z, kombinierbar mit den Farb-Rädern; kein Jahrzehnt-Filter · Entscheide des Nutzers
 - 16.11.2026 · Albumrad W.7: fünf Farb-Räder Warm, Kalt, Violett/Pink, Dunkel, Hell plus „Alle“ als Standard; Verschieben von Hand pro Spotify-Konto in der Datenbank; Vorschlag kommt aus dem gezeigten Rad; Pfeil links/rechts wechselt das Rad · Entscheide des Nutzers (Gruppen, Alle, Verschieben), Rest technisch
 - 16.11.2026 · Albumrad: **Tags gestrichen** (W.6 wieder entfernt) und Räder künftig nach **Farbe der Cover** statt nach Vibe (W.7/W.8 umgeschrieben) · Entscheid des Nutzers nach dem Test
 - 16.11.2026 · (überholt) Albumrad W.6: Tags kommen vom Album bei Last.fm, bei zu wenigen vom Künstler; automatische Tags lassen sich ausblenden (nicht löschen) und zurückholen, eigene Tags frei eintippen; Tag-Zeile erscheint nur in der Mitte nach Tippen (Bildschirm bleibt sonst ohne Text) · technische Entscheide im Rahmen des Plans
