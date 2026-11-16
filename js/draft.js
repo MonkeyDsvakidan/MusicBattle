@@ -11,7 +11,7 @@ function balancedRounds(){const cats=Object.keys(THEMES).sort(()=>Math.random()-
 
 async function initializeRounds(){if(!isHost())return;if((S.rounds||[]).length>=5||S.room?.status==="battle")return;const payload=balancedRounds();const {error}=await sb.rpc("mb_start_battle",{p_room_id:S.room.id,p_rounds:payload});if(error){await reloadRoomNow();if((S.rounds||[]).length>=5||S.room?.status==="battle"){S.error="";render();return}S.error=error.message;render();return}await reloadRoomNow()}
 
-function allSkippedArtistIds(){return new Set(S.members.map(m=>m.draft_skipped_artist_id).filter(Boolean))}
+function allSkippedArtistIds(){return new Set([...S.members.map(m=>m.draft_skipped_artist_id).filter(Boolean),...(S.room?.draft_shared_skips||[])])}
 
 // Ziehen gewichtet nach Hörverhalten und Genre (Hip-Hop bevorzugt, 6.5); Hörbuch-Autoren werden vor dem Anzeigen
 // per Suche erkannt, aus dem Pool entfernt und es wird neu gezogen (6.4). Geprüfte Künstler merkt sich der Pool.
@@ -47,6 +47,34 @@ async function useDraftSkip(slotNo){
   if(error){S.error=error.message;render();return}
   S.currentArtist=null;S.currentArtistSlot=null;
   await reloadRoomNow();drawArtist(slotNo);
+}
+
+// Gemeinsamer Skip (6.7): Der Ziehende schlägt vor, der andere Spieler sagt Ja/Nein (Pass & Play auf demselben Gerät).
+// Beliebig oft, auch im Sudden-Death-Draft, ohne Ablaufzeit. Der Vorschlag liegt im Raum (draft_skip_proposal),
+// damit das andere Gerät den Künstler sieht; angenommene Künstler stehen in draft_shared_skips.
+async function proposeSharedSkip(slotNo){
+  const a=S.currentArtist;if(!a||S.currentArtistSlot!==slotNo)return;
+  const {error}=await sb.rpc("mb_propose_shared_skip",{p_room_id:S.room.id,p_slot:slotNo,p_artist_id:a.id,p_artist_name:a.name,p_artist_image:a.image||null});
+  if(error)S.error=error.message;await reloadRoomNow();
+}
+
+async function answerSharedSkip(slotNo,accept){
+  const {error}=await sb.rpc("mb_answer_shared_skip",{p_room_id:S.room.id,p_slot:slotNo,p_accept:accept});
+  if(error)S.error=error.message;await reloadRoomNow();
+}
+
+// Nach jedem Laden: offenen eigenen Vorschlag wiederherstellen (z. B. nach Neuladen der Seite)
+// und einen gemeinsam übersprungenen Künstler verwerfen und neu ziehen.
+function applySharedSkipState(){
+  const p=S.room?.draft_skip_proposal;
+  if(p&&!S.currentArtist&&ownsPlayerSlot(p.slot)){
+    S.currentArtist=(S.artistPools[p.slot]||[]).find(a=>a.id===p.artist_id)||{id:p.artist_id,name:p.artist_name,image:p.artist_image||""};
+    S.currentArtistSlot=p.slot;
+  }
+  if(S.currentArtist&&(S.room?.draft_shared_skips||[]).includes(S.currentArtist.id)){
+    const slot=S.currentArtistSlot;S.currentArtist=null;S.currentArtistSlot=null;
+    if(ownsPlayerSlot(slot)&&["draft","sudden_draft"].includes(S.room.status))setTimeout(()=>drawArtist(slot));
+  }
 }
 
 async function startSuddenDeath(){const theme=SUDDEN_THEMES[Math.floor(Math.random()*SUDDEN_THEMES.length)],{error}=await sb.rpc("mb_start_sudden_death",{p_room_id:S.room.id,p_theme:theme});if(error){S.error=error.message;render();return}S.currentArtist=null;S.currentArtistSlot=null;await reloadRoomNow()}

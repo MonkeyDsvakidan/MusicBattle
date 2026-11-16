@@ -25,7 +25,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 
 | Tabelle | Inhalt |
 |---|---|
-| `mb_rooms` | Raum, Code, Host, `game` (`battle`/`quiz`), `status` (lobby → draft → battle → tiebreak → sudden_draft → finished; Quiz: lobby → quiz → finished), `current_round`, `device_mode`, Quiz: `quiz_kind`, `quiz_length`, `quiz_game_no`, `quiz_question_no`; `rematch_room_id` (6.6, RPC `mb_rematch`: neuer Raum mit denselben Mitgliedern direkt im Draft) |
+| `mb_rooms` | Raum, Code, Host, `game` (`battle`/`quiz`), `status` (lobby → draft → battle → tiebreak → sudden_draft → finished; Quiz: lobby → quiz → finished), `current_round`, `device_mode`, Quiz: `quiz_kind`, `quiz_length`, `quiz_game_no`, `quiz_question_no`; `rematch_room_id` (6.6, RPC `mb_rematch`: neuer Raum mit denselben Mitgliedern direkt im Draft); gemeinsamer Skip (6.7): `draft_skip_proposal` (offener Vorschlag), `draft_shared_skips` – nur über `mb_propose_shared_skip`/`mb_answer_shared_skip` |
 | `mb_members` | Spieler/Juroren pro Raum, `player_slot`, Spotify-Status, Draft-Skip; Quiz: Rolle `quizzer` (ohne Platz), `quiz_track_count` |
 | `mb_draft_picks` | gezogene Künstler pro Runde/Slot inkl. `artist_draft_weight` |
 | `mb_rounds` | Thema, Kategorie, Status, `winner_slot` |
@@ -52,7 +52,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `js/artist-filter.js` | Draft-Pool (6.4/6.5): Kapitel-Titel/Hörbuch-Autoren erkennen (`looksLikeChapterTitle`, `chapterArtistIds`), Hip-Hop-Gewicht (`genreGroup`, `effectiveDraftWeight`); reine Funktionen, auch für `node --test` exportiert |
 | `js/spotify.js` | Spotify-Login (PKCE), Token, Künstler-Pool (ohne Hörbuch-Autoren), Web Playback |
 | `js/room.js` | Anmeldung, Raum laden/beitreten/erstellen/verlassen, Sync (Realtime + Poll mit Fingerabdruck), `init`, Einladungslink `?join=CODE&m=…` (`readInviteFromUrl`, `joinErrorText`, letzter Name), Rematch (`startRematch`, `followRematch`: alle Geräte folgen `mb_rooms.rematch_room_id`) |
-| `js/draft.js` | Draft (Ziehen gewichtet nach Hörverhalten + Genre, Hörbuch-Prüfung per Suche), Skip, Sudden-Death-Draft |
+| `js/draft.js` | Draft (Ziehen gewichtet nach Hörverhalten + Genre, Hörbuch-Prüfung per Suche), Skip, gemeinsamer Skip (`proposeSharedSkip`, `answerSharedSkip`, `applySharedSkipState`), Sudden-Death-Draft |
 | `js/battle.js` | Songsuche, Einreichen (stösst danach `mb-track-profile` im Hintergrund an), Startpunkt |
 | `js/quiz.js` | Spotify-Quiz (Phase 7): Song-Pool bauen (`buildQuizPool`, reine Funktion), laden/hochladen (`fetchQuizTracks`, `uploadQuizPool` → RPC `mb_quiz_set_pool`), Lobby-Zusammenfassung `quizPoolSummary`, Rangliste `quizStandings`, Aktionen (`createQuizRoom`, Spotify im Quiz über Speicherplatz 1 `connectQuizSpotify`/`autoQuizSpotify`, `setQuizLength`, `startQuiz`), Beta-Schalter `quizEnabled` (`?quiz=1`); Fragen-Ablauf (7.6): `loadQuizData`, `openNextQuestion`, `answerQuiz`, `revealQuestion` (Host automatisch), Takt `quizTick` (Zeit, Balken, verpixeltes Cover), Musik `playQuizTrack` nur auf dem Host-Gerät; Solo (7.8): `startSoloQuiz`, `isSoloQuiz`, Highscore `soloHighscore` (rein) / `recordSoloResult` (`localStorage` `mb_quiz_best`); auch für `node --test` exportiert |
 | `js/ui-quiz.js` | Quiz-Bildschirme: Quiz-Startseite, Einladung, Lobby (`renderQuizLobby`, 7.5), Fragen (`renderQuizRunning`: Bereit/Frage/Aufdecken, 7.6), Endstand mit Podest und „Nochmal“ (`renderQuizFinished`, 7.7), Solo-Karte und Solo-Endstand (`renderSoloFinished`, `quizBestLine`, 7.8), Verteiler `renderQuiz` |
