@@ -21,6 +21,7 @@ function out(data: unknown, status = 200) {
 const MAX_PER_HOUR = 300;  // Schutz vor Dauerfeuer: so viele Protokoll-Einträge pro Konto und Stunde
 const RECENT = 100;        // so viele letzte Einträge liefert "state" fürs Protokoll
 const FETCH_BATCH = 8;     // so viele Alben pro "tags_fetch"
+const FETCH_PER_HOUR = 3000; // Schutz fürs Last.fm-Kontingent: so viele frisch geholte Alben pro Konto und Stunde
 const TAG_MAX_AGE_MS = 30 * 24 * 3600_000; // geholte Tags gelten 30 Tage
 const ALBUM_ID = /^[A-Za-z0-9]{1,64}$/;
 const TAG_COLS = "album_id,auto,added,hidden,fetched_at";
@@ -122,18 +123,19 @@ Deno.serve(async (req) => {
     if (action === "tags_fetch") {
       const key = Deno.env.get("LASTFM_API_KEY");
       if (!key) return out({ error: "lastfm key missing" }, 503);
-      const force = body?.force === true;
       const wanted = (Array.isArray(body?.albums) ? body.albums : []).slice(0, FETCH_BATCH)
         .map((a: any) => ({ id: String(a?.id || ""), name: String(a?.name || "").slice(0, 200), artist: String(a?.artist || "").slice(0, 200) }))
         .filter((a: any) => ALBUM_ID.test(a.id) && a.name && a.artist);
       if (!wanted.length) return out({ error: "albums required" }, 400);
       const existing = await admin.from("mb_rad_tags").select(TAG_COLS).eq("spotify_user", user).in("album_id", wanted.map((a: any) => a.id));
       if (existing.error) return out({ error: "failed to load", detail: existing.error.message }, 500);
+      const { count: fresh } = await admin.from("mb_rad_tags").select("album_id", { count: "exact", head: true }).eq("spotify_user", user).gte("fetched_at", new Date(Date.now() - 3600_000).toISOString());
+      if (Number(fresh || 0) >= FETCH_PER_HOUR) return out({ error: "too many tag fetches" }, 429);
       const have = new Map((existing.data ?? []).map((r: any) => [r.album_id, r]));
       const failed: string[] = [];
       const rows = await Promise.all(wanted.map(async (a: any) => {
         const old: any = have.get(a.id);
-        if (!force && old?.fetched_at && Date.now() - new Date(old.fetched_at).getTime() < TAG_MAX_AGE_MS) return old;
+        if (old?.fetched_at && Date.now() - new Date(old.fetched_at).getTime() < TAG_MAX_AGE_MS) return old;
         const auto = await fetchAuto(key, a.name, a.artist);
         if (!auto) { failed.push(a.id); return old ?? null; }
         const now = new Date().toISOString();

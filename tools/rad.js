@@ -19,7 +19,8 @@ const RAD_STATE_ERR="Protokoll konnte nicht geladen werden – Zähler fehlen.";
 // view: init | login | loading | wheel · pos = Stand des Rads (Kommazahl), to = Ziel · open = Info in der Mitte sichtbar
 // counts = Zähler je Album (null, solange nicht geladen) · events = letzte Protokoll-Einträge
 // suggested = Album-ID des laufenden Vorschlags · skipped = in dieser Sitzung abgelehnt · sheet = Protokoll offen
-const RAD={view:"init",albums:[],error:"",progress:"",pos:0,to:0,open:false,ring:null,els:new Map(),raf:0,drag:null,snapTimer:0,counts:null,events:[],suggested:"",skipped:new Set(),sheet:false};
+// tags = Tags je Album ({tags:[{name,own}],hidden,fetched}) · tagFor = Album-ID, dessen Tag-Blatt offen ist (W.6)
+const RAD={view:"init",albums:[],error:"",progress:"",pos:0,to:0,open:false,ring:null,els:new Map(),raf:0,drag:null,snapTimer:0,counts:null,events:[],suggested:"",skipped:new Set(),sheet:false,tags:{},tagFor:"",tagErr:"",tagBusy:false,tagRun:false};
 
 function radEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function radGet(store,k){try{return store.getItem(k)}catch{return null}}
@@ -71,7 +72,7 @@ async function radToken(){
 }
 
 function radForget(){for(const k of [RAD_KEYS.access,RAD_KEYS.expires])radDel(sessionStorage,k);radDel(localStorage,RAD_KEYS.refresh);radDel(localStorage,RAD_KEYS.albums)}
-function radLogout(){radForget();Object.assign(RAD,{view:"login",albums:[],error:"",open:false,pos:0,to:0,counts:null,events:[],suggested:"",skipped:new Set(),sheet:false});radRender()}
+function radLogout(){radForget();Object.assign(RAD,{view:"login",albums:[],error:"",open:false,pos:0,to:0,counts:null,events:[],suggested:"",skipped:new Set(),sheet:false,tags:{},tagFor:"",tagErr:""});radRender()}
 
 // ---------- Spotify lesen ----------
 const radSleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -136,17 +137,54 @@ async function radFn(body,keepalive=false){
   if(!t)throw Error("Nicht mit Spotify verbunden.");
   const r=await fetch(RAD_FN,{method:"POST",keepalive,headers:{"Content-Type":"application/json"},body:JSON.stringify({...body,spotify_token:t})});
   const data=await r.json().catch(()=>null);
-  if(!r.ok||!data?.ok)throw Error(r.status===429?"Zu viele Einträge in kurzer Zeit. Bitte später nochmals.":"Das Protokoll ist gerade nicht erreichbar.");
+  if(!r.ok||!data?.ok)throw Error(r.status===429?"Zu viele Einträge in kurzer Zeit. Bitte später nochmals.":data?.error==="tag invalid"?"Der Tag ist leer oder zu lang (höchstens 30 Zeichen).":data?.error==="too many tags"?"Höchstens 30 eigene Tags pro Album.":"Der Speicher ist gerade nicht erreichbar.");
   return data;
 }
 
 async function radLoadState(){
   try{
     const d=await radFn({action:"state"});
-    RAD.counts=radCountsMap(d.counts);RAD.events=d.events||[];
+    RAD.counts=radCountsMap(d.counts);RAD.events=d.events||[];radTagsMerge(d.tags);
     if(RAD.error===RAD_STATE_ERR)RAD.error="";
+    radFetchTags();
   }catch(e){if(!RAD.error)RAD.error=RAD_STATE_ERR}
-  if(RAD.view==="wheel"){radStatus();radDraw();if(RAD.sheet)radSheet()}
+  if(RAD.view==="wheel"){radStatus();radDraw();radSheet()}
+}
+
+// ---------- Tags (W.6) ----------
+function radTagsMerge(rows){for(const r of rows||[])if(r?.album_id)RAD.tags[r.album_id]=r}
+
+// Für alle Alben ohne geholte Tags: im Hintergrund in Paketen zu 8 von Last.fm holen lassen (Edge Function).
+// Jedes Album wird pro Sitzung höchstens einmal versucht; bei einem Fehler hört der Lauf auf (nächstes Öffnen macht weiter).
+async function radFetchTags(){
+  if(RAD.tagRun)return;
+  RAD.tagRun=true;
+  const todo=RAD.albums.filter(a=>!RAD.tags[a.id]?.fetched&&a.artists[0]),total=todo.length;
+  try{
+    for(let i=0;i<total&&RAD.view==="wheel";i+=8){
+      RAD.progress=`Tags holen… ${i} von ${total}`;radStatus();
+      const d=await radFn({action:"tags_fetch",albums:todo.slice(i,i+8).map(a=>({id:a.id,name:a.name,artist:a.artists[0]}))});
+      radTagsMerge(d.tags);
+      if(RAD.view==="wheel"){radDraw();if(RAD.tagFor)radSheet()}
+    }
+  }catch(e){if(!RAD.error)RAD.error="Tags konnten nicht alle geholt werden. Beim nächsten Öffnen geht es weiter."}
+  RAD.progress="";RAD.tagRun=false;
+  if(RAD.view==="wheel")radStatus();
+}
+
+// Tag an einem Album ein- oder ausschalten (eigener Tag dazu/weg, automatischer Tag aus-/einblenden)
+async function radTagSet(albumId,tag,on){
+  if(RAD.tagBusy)return;
+  RAD.tagBusy=true;RAD.tagErr="";
+  try{radTagsMerge((await radFn({action:"tag_set",album_id:albumId,tag,on})).tags)}
+  catch(e){RAD.tagErr=`Nicht gespeichert: ${e.message||e}`}
+  RAD.tagBusy=false;
+  if(RAD.view==="wheel"){radDraw();radSheet();if(on)document.getElementById("radTagInput")?.focus()}
+}
+
+function radTagText(id){
+  const t=(RAD.tags[id]?.tags||[]).map(x=>x.name);
+  return t.length?t.slice(0,4).join(" · ")+(t.length>4?` +${t.length-4}`:""):"Tags hinzufügen";
 }
 
 // Eintrag sofort zählen und speichern; klappt das Speichern nicht, wird er wieder abgezogen und gemeldet
@@ -226,13 +264,15 @@ function radInfo(){
   const a=RAD.albums[radFocusIndex(RAD.pos,RAD.albums.length)];
   if(!info||!a)return;
   const suggested=RAD.suggested===a.id,countText=RAD.counts?radCountText(RAD.counts[a.id]):"";
-  const sig=`${a.id}|${suggested}|${countText}`;
+  const tagText=RAD.counts?radTagText(a.id):"";
+  const sig=`${a.id}|${suggested}|${countText}|${tagText}`;
   if(info.dataset.sig!==sig){
     info.dataset.sig=sig;
-    info.innerHTML=`<div class="rad-title">${radEsc(a.name)}</div><div class="rad-sub">${radEsc(a.artists.join(", "))}${a.year?` · ${radEsc(a.year)}`:""}</div>${countText?`<div class="rad-count">${radEsc(countText)}</div>`:""}<div class="rad-acts"><a class="rad-btn rad-go" id="radGo" href="${radEsc(a.url)}" target="_blank" rel="noopener">Hören</a>${suggested?`<button class="rad-btn rad-no" id="radNo" type="button">Ablehnen</button>`:""}</div>`;
+    info.innerHTML=`<div class="rad-title">${radEsc(a.name)}</div><div class="rad-sub">${radEsc(a.artists.join(", "))}${a.year?` · ${radEsc(a.year)}`:""}</div>${countText?`<div class="rad-count">${radEsc(countText)}</div>`:""}${tagText?`<button class="rad-tagline" id="radTagsBtn" type="button" aria-label="Tags bearbeiten: ${radEsc(tagText)}">${radEsc(tagText)}</button>`:""}<div class="rad-acts"><a class="rad-btn rad-go" id="radGo" href="${radEsc(a.url)}" target="_blank" rel="noopener">Hören</a>${suggested?`<button class="rad-btn rad-no" id="radNo" type="button">Ablehnen</button>`:""}</div>`;
     // Der Link öffnet Spotify selbst (kein blockiertes Pop-up); der Klick wird nur zusätzlich gezählt
     document.getElementById("radGo").addEventListener("click",()=>radListen(a));
     document.getElementById("radNo")?.addEventListener("click",()=>radReject(a));
+    document.getElementById("radTagsBtn")?.addEventListener("click",()=>{RAD.tagFor=a.id;RAD.tagErr="";radSheet();document.getElementById("radTagInput")?.focus()});
   }
   // Während das Rad noch dreht, bleibt die Mitte leer – sonst flackern die Titel durch
   info.hidden=!RAD.open||Math.abs(RAD.to-RAD.pos)>0.5||!!RAD.drag;
@@ -240,18 +280,38 @@ function radInfo(){
   if(say&&!RAD.raf&&say.dataset.id!==a.id){say.dataset.id=a.id;say.textContent=`${a.name} – ${a.artists.join(", ")}`}
 }
 
-// Protokoll als Blatt über dem Rad: Summen und die letzten 100 Einträge
+// Tag-Blatt für ein Album: Tags antippen = entfernen, ausgeblendete antippen = zurückholen, unten eigenen Tag eintippen
+function radTagSheet(box,a){
+  const row=RAD.tags[a.id]||{tags:[],hidden:[]};
+  const own=[...new Set(Object.values(RAD.tags).flatMap(r=>r.tags.filter(t=>t.own).map(t=>t.name)))].sort();
+  const chip=(t,on,label)=>`<button class="rad-chip${on?"":" off"}" type="button" data-tag="${radEsc(t)}" data-on="${on?0:1}" aria-label="${radEsc(label)}">${radEsc(t)}<span aria-hidden="true">${on?"×":"+"}</span></button>`;
+  box.setAttribute("aria-label","Tags");
+  box.innerHTML=`<div class="rad-sheet-head"><h2 class="rad-h">Tags</h2><button class="rad-link" id="radSheetClose" type="button">Schliessen</button></div>
+    <p class="rad-note">${radEsc(a.name)} – ${radEsc(a.artists.join(", "))}</p>
+    ${row.tags.length?`<div class="rad-chips">${row.tags.map(t=>chip(t.name,true,`Tag ${t.name} entfernen`)).join("")}</div>`:`<p class="rad-note">${row.fetched?"Für dieses Album gibt es noch keine Tags. Schreib unten einen eigenen.":"Tags werden noch geholt. Du kannst schon eigene hinzufügen."}</p>`}
+    ${row.hidden?.length?`<p class="rad-note">Entfernt – antippen holt sie zurück:</p><div class="rad-chips">${row.hidden.map(t=>chip(t,false,`Tag ${t} zurückholen`)).join("")}</div>`:""}
+    <form class="rad-tagform" id="radTagForm"><label class="rad-label" for="radTagInput">Eigener Tag</label><div class="rad-tagrow"><input class="rad-input" id="radTagInput" list="radOwnTags" maxlength="30" autocomplete="off" autocapitalize="none" enterkeyhint="done"><button class="rad-btn" type="submit">Hinzufügen</button></div><datalist id="radOwnTags">${own.map(t=>`<option value="${radEsc(t)}">`).join("")}</datalist></form>
+    <p class="rad-note rad-err" role="alert">${radEsc(RAD.tagErr)}</p>`;
+  box.querySelectorAll(".rad-chip").forEach(b=>b.addEventListener("click",()=>radTagSet(a.id,b.dataset.tag,b.dataset.on==="1")));
+  document.getElementById("radTagForm").addEventListener("submit",e=>{e.preventDefault();const v=document.getElementById("radTagInput").value.trim();if(v)radTagSet(a.id,v,true)});
+}
+
+// Blatt über dem Rad: Tags eines Albums (W.6) oder das Protokoll mit Summen und den letzten 100 Einträgen
 function radSheet(){
   const box=document.getElementById("radSheet");
   if(!box)return;
-  box.hidden=!RAD.sheet;
+  const close=()=>{RAD.sheet=false;RAD.tagFor="";radSheet();radStage()?.focus()};
+  const tagAlbum=RAD.tagFor&&RAD.albums.find(a=>a.id===RAD.tagFor);
+  box.hidden=!RAD.sheet&&!tagAlbum;
+  if(tagAlbum){radTagSheet(box,tagAlbum);document.getElementById("radSheetClose").addEventListener("click",close);return}
   if(!RAD.sheet)return;
+  box.setAttribute("aria-label","Protokoll");
   const rows=radProtocol(RAD.events,RAD.albums);
   const sum=Object.values(RAD.counts||{}).reduce((t,c)=>({l:t.l+c.listens,r:t.r+c.rejects}),{l:0,r:0});
   const list=rows.length?`<ul class="rad-log">${rows.map(r=>`<li>${r.cover?`<img src="${radEsc(r.cover)}" alt="" loading="lazy">`:`<span class="rad-nocover"></span>`}<span class="rad-log-txt"><span class="rad-log-name">${radEsc(r.name)}</span><span class="rad-log-sub">${radEsc(r.artists)}</span></span><span class="rad-log-what"><span class="${r.kind==="listen"?"rad-yes":"rad-nope"}">${r.kind==="listen"?"gehört":"abgelehnt"}</span><span class="rad-log-sub">${radEsc(radWhen(r.at))}</span></span></li>`).join("")}</ul>${RAD.events.length>=100?`<p class="rad-note">Es werden die letzten 100 Einträge gezeigt.</p>`:""}`
     :`<p class="rad-note">${RAD.counts?"Noch keine Einträge. Tippe unten auf den Vorschlag-Knopf.":"Protokoll wird geladen…"}</p>`;
   box.innerHTML=`<div class="rad-sheet-head"><h2 class="rad-h">Protokoll</h2><button class="rad-link" id="radSheetClose" type="button">Schliessen</button></div>${RAD.counts?`<p class="rad-note rad-sum">${sum.l}× gehört · ${sum.r}× abgelehnt</p>`:""}${list}`;
-  document.getElementById("radSheetClose").addEventListener("click",()=>{RAD.sheet=false;radSheet();radStage()?.focus()});
+  document.getElementById("radSheetClose").addEventListener("click",close);
 }
 
 function radTick(){
@@ -271,7 +331,7 @@ function radSnapSoon(){clearTimeout(RAD.snapTimer);RAD.snapTimer=setTimeout(()=>
 
 // ---------- Bedienung ----------
 function radOnWheel(e){
-  if(RAD.view!=="wheel"||!RAD.ring||RAD.sheet)return;
+  if(RAD.view!=="wheel"||!RAD.ring||RAD.sheet||RAD.tagFor)return;
   e.preventDefault();
   const px=(Math.abs(e.deltaY)>=Math.abs(e.deltaX)?e.deltaY:e.deltaX)*(e.deltaMode===1?32:e.deltaMode===2?RAD.ring.stepPx*3:1);
   // Höchstens ein Album pro Scroll-Schritt, damit auch Mausräder mit grossen Schritten ruhig drehen
@@ -319,7 +379,7 @@ function radOnUp(e){
 
 function radOnKey(e){
   if(RAD.view!=="wheel")return;
-  if(RAD.sheet){if(e.key==="Escape"){RAD.sheet=false;radSheet()}return}
+  if(RAD.sheet||RAD.tagFor){if(e.key==="Escape"){RAD.sheet=false;RAD.tagFor="";radSheet()}return}
   if(e.target.closest("a,button,summary"))return;
   if(e.key==="ArrowDown"||e.key==="ArrowRight"){e.preventDefault();radTurnTo(Math.round(RAD.to)+1)}
   else if(e.key==="ArrowUp"||e.key==="ArrowLeft"){e.preventDefault();radTurnTo(Math.round(RAD.to)-1)}
