@@ -7,6 +7,9 @@ html.rad{
   --rad-muted:#5c5c5c;     /* Kontrast 6.7:1 auf Weiss */
   --rad-line:#d9d9d9;
   --rad-err:#b3261e;
+  /* Farben der Rad-Punkte (W.7) – nur dort verwendet */
+  --rad-warm:#d9480f;--rad-cold:#1971c2;--rad-pink:#ae3ec9;--rad-dark:#111111;--rad-light:#ececec;
+  --rad-top:48px;          /* Platz oben für die Rad-Punkte (gleicher Wert wie RAD_TOP in rad.js) */
   --rad-bottom:76px;       /* Platz unten für den Vorschlag-Knopf (gleicher Wert wie RAD_BOTTOM in rad.js) */
   color-scheme:light;background:var(--rad-bg);overflow:hidden;overscroll-behavior:none;
 }
@@ -25,15 +28,20 @@ html.rad #app{position:fixed;inset:0;height:100dvh}
 
 .rad-stage{position:absolute;inset:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;outline-offset:-4px}
 .rad-stage:active{cursor:grabbing}
-.rad-ring{position:absolute;left:50%;top:calc(50% - var(--rad-bottom)/2);width:0;height:0}
+.rad-ring{position:absolute;left:50%;top:calc(50% + (var(--rad-top) - var(--rad-bottom))/2);width:0;height:0}
 .rad-item{position:absolute;left:0;top:0;width:var(--rad-size);height:var(--rad-size);will-change:transform;background:var(--rad-line);box-shadow:0 6px 18px rgba(0,0,0,.14);cursor:pointer}
 .rad-item img{display:block;width:100%;height:100%;max-width:none;object-fit:cover;pointer-events:none;-webkit-user-drag:none}
 
-.rad-info{position:absolute;left:50%;top:calc(50% - var(--rad-bottom)/2);transform:translate(-50%,-50%);z-index:200;display:grid;gap:6px;justify-items:center;text-align:center;overflow-wrap:anywhere}
+.rad-info{position:absolute;left:50%;top:calc(50% + (var(--rad-top) - var(--rad-bottom))/2);transform:translate(-50%,-50%);z-index:200;display:grid;gap:6px;justify-items:center;text-align:center;overflow-wrap:anywhere}
 .rad-info[hidden]{display:none}
 .rad-title{font:600 20px/1.15 var(--f-text);letter-spacing:-.01em;color:var(--rad-ink)}
 .rad-sub{font:400 14px/1.35 var(--f-text);color:var(--rad-muted)}
 .rad-count{font:400 13px/1.35 var(--f-text);color:var(--rad-muted)}
+/* Auswahl „Rad“ in der Mitte: von Hand in ein anderes Farb-Rad legen */
+.rad-select{width:100%;text-align:center;text-overflow:ellipsis;min-height:44px;padding:0 4px;border:0;border-radius:0;background:none;color:var(--rad-ink);font:400 13px/1.35 var(--f-text);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+/* styles.css färbt select:focus pink – hier bleibt es bei der Rad-Farbe */
+.rad-select:focus,.rad-select:hover{border:0;box-shadow:none}
+.rad-select:focus-visible,.rad-dot:focus-visible{outline:2px solid var(--rad-ink);outline-offset:3px}
 .rad-acts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:6px}
 .rad-acts .rad-btn{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;font-size:15px;text-decoration:none}
 .rad-acts .rad-no{background:none;color:var(--rad-ink);box-shadow:inset 0 0 0 1.5px var(--rad-ink)}
@@ -41,6 +49,19 @@ html.rad #app{position:fixed;inset:0;height:100dvh}
 /* Vorschlag-Knopf unten in der Mitte: nur ein Zeichen, kein Text */
 .rad-dice{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:250;width:52px;height:52px;display:grid;place-items:center;padding:0;border:0;border-radius:999px;background:var(--rad-ink);color:var(--rad-bg);cursor:pointer}
 .rad-dice:focus-visible{outline:2px solid var(--rad-ink);outline-offset:3px}
+
+/* Farb-Räder: Punkte oben in der Mitte, einer je Rad; der gezeigte ist grösser */
+.rad-wheels{position:fixed;top:calc(4px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:260;display:flex}
+.rad-wheels[hidden]{display:none}
+.rad-dot{width:44px;height:44px;padding:0;border:0;background:none;display:grid;place-items:center;cursor:pointer}
+.rad-dot::before{content:"";width:14px;height:14px;border-radius:999px;background:var(--dot);box-shadow:inset 0 0 0 1.5px var(--dot-line,var(--dot))}
+.rad-dot[aria-pressed="true"]::before{width:24px;height:24px}
+.rad-dot-all{--dot:var(--rad-bg);--dot-line:var(--rad-ink)}
+.rad-dot-warm{--dot:var(--rad-warm)}
+.rad-dot-cold{--dot:var(--rad-cold)}
+.rad-dot-pink{--dot:var(--rad-pink)}
+.rad-dot-dark{--dot:var(--rad-dark)}
+.rad-dot-light{--dot:var(--rad-light);--dot-line:var(--rad-muted)}
 
 /* Protokoll */
 .rad-sheet{position:fixed;inset:0;z-index:400;overflow-y:auto;overscroll-behavior:contain;background:var(--rad-bg);padding:calc(12px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}

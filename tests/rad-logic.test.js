@@ -1,6 +1,6 @@
 const test=require("node:test");
 const assert=require("node:assert/strict");
-const {radMod,radAlbum,radPickCover,radAlbums,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radSuggest,radSpin,radCountsMap,radCount,radCountText,radProtocol,radWhen}=require("../tools/rad-logic.js");
+const {radMod,radAlbum,radPickCover,radAlbums,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radSuggest,radSpin,radCountsMap,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radColorGroup,radWheels,radNextWheel}=require("../tools/rad-logic.js");
 
 const imgs=[{url:"big",width:640},{url:"mid",width:300},{url:"small",width:64}];
 const item=(id,extra={})=>({added_at:"2026-11-01T10:00:00Z",album:{id,name:`Album ${id}`,album_type:"album",total_tracks:12,release_date:"2020-05-01",artists:[{name:"Eno"}],images:imgs,uri:`spotify:album:${id}`,external_urls:{spotify:`https://open.spotify.com/album/${id}`},...extra}});
@@ -150,4 +150,58 @@ test("Datum im Protokoll",()=>{
   assert.equal(radWhen(new Date(2026,10,13,23,59).toISOString(),now),"gestern 23:59");
   assert.equal(radWhen(new Date(2026,10,2,12,0).toISOString(),now),"02.11.2026");
   assert.equal(radWhen("",now),"");
+});
+
+// ---------- Farb-Räder (W.7) ----------
+const fill=(...colors)=>colors.flatMap(([r,g,b,count])=>Array.from({length:count},()=>[r,g,b,255])).flat();
+
+test("Farbgruppe: klare Farben",()=>{
+  assert.equal(radColorGroup(fill([220,30,30,16])),"warm","Rot");
+  assert.equal(radColorGroup(fill([240,150,20,16])),"warm","Orange");
+  assert.equal(radColorGroup(fill([240,220,40,16])),"warm","Gelb");
+  assert.equal(radColorGroup(fill([120,70,30,16])),"warm","Braun");
+  assert.equal(radColorGroup(fill([40,160,70,16])),"cold","Grün");
+  assert.equal(radColorGroup(fill([30,90,220,16])),"cold","Blau");
+  assert.equal(radColorGroup(fill([30,200,200,16])),"cold","Türkis");
+  assert.equal(radColorGroup(fill([150,50,220,16])),"pink","Violett");
+  assert.equal(radColorGroup(fill([240,60,160,16])),"pink","Pink");
+});
+
+test("Farbgruppe: ohne Farbe entscheidet die Helligkeit",()=>{
+  assert.equal(radColorGroup(fill([10,10,10,16])),"dark");
+  assert.equal(radColorGroup(fill([250,250,250,16])),"light");
+  assert.equal(radColorGroup(fill([90,90,90,16])),"dark","dunkles Grau");
+  assert.equal(radColorGroup(fill([190,190,190,16])),"light","helles Grau");
+});
+
+test("Farbgruppe: wenig Farbe auf Schwarz bleibt dunkel, viel Farbe gewinnt",()=>{
+  assert.equal(radColorGroup(fill([10,10,10,14],[220,30,30,2])),"dark","ein Achtel rot");
+  assert.equal(radColorGroup(fill([10,10,10,10],[220,30,30,6])),"warm","über ein Viertel rot");
+  assert.equal(radColorGroup(fill([30,90,220,9],[220,30,30,7])),"cold","mehr Blau als Rot");
+});
+
+test("Farbgruppe: durchsichtige Punkte zählen nicht, leeres Bild hat keine Gruppe",()=>{
+  assert.equal(radColorGroup([220,30,30,0,10,10,10,255]),"dark");
+  assert.equal(radColorGroup([]),"");
+  assert.equal(radColorGroup([220,30,30,0]),"");
+});
+
+test("Räder: Alle zuerst, leere Gruppen fehlen, Verschiebung geht vor, auto nimmt die berechnete Farbe",()=>{
+  const w=radWheels(five,{a:"warm",b:"warm",c:"cold",d:"dark"},{b:"pink",c:"auto",d:"quatsch"});
+  assert.deepEqual(w.map(x=>x.key),["all","warm","cold","pink","dark"]);
+  assert.deepEqual(w[0].albums.map(a=>a.id),["a","b","c","d","e"]);
+  assert.deepEqual(w.find(x=>x.key==="warm").albums.map(a=>a.id),["a"]);
+  assert.deepEqual(w.find(x=>x.key==="pink").albums.map(a=>a.id),["b"]);
+  assert.deepEqual(w.find(x=>x.key==="cold").albums.map(a=>a.id),["c"]);
+  assert.equal(w.find(x=>x.key==="pink").name,"Violett/Pink");
+  assert.deepEqual(radWheels(five).map(x=>x.key),["all"],"ohne Farben nur Alle");
+  assert.equal(RAD_GROUPS.length,5);
+});
+
+test("Nachbar-Rad: vor und zurück, am Ende von vorne",()=>{
+  const w=radWheels(five,{a:"warm",c:"cold"});
+  assert.equal(radNextWheel(w,"all",1),"warm");
+  assert.equal(radNextWheel(w,"cold",1),"all");
+  assert.equal(radNextWheel(w,"all",-1),"cold");
+  assert.equal(radNextWheel(w,"gibt-es-nicht",1),"warm");
 });

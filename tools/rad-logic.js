@@ -166,4 +166,46 @@ function radWhen(iso,now=new Date()){
   return `${p(d.getDate())}.${p(d.getMonth()+1)}.${d.getFullYear()}`;
 }
 
-if(typeof module!=="undefined")module.exports={radMod,radAlbum,radPickCover,radAlbums,radCircumference,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radSuggest,radSpin,radCountsMap,radCount,radCountText,radProtocol,radWhen};
+// ---------- Farb-Räder (W.7) ----------
+
+// Die fünf Farbgruppen (Entscheid des Nutzers 16.11.2026); „all“ ist kein Eintrag hier, sondern das Rad mit allen Alben
+const RAD_GROUPS=[{key:"warm",name:"Warm"},{key:"cold",name:"Kalt"},{key:"pink",name:"Violett/Pink"},{key:"dark",name:"Dunkel"},{key:"light",name:"Hell"}];
+function radIsGroup(key){return RAD_GROUPS.some(g=>g.key===key)}
+
+// Farbgruppe eines Covers aus seinen Bildpunkten (RGBA-Werte hintereinander, wie von canvas.getImageData).
+// Bunte Punkte stimmen nach Farbton ab (gewichtet mit der Sättigung): Rot/Orange/Gelb = warm, Grün/Blau = kalt,
+// Violett/Pink = pink. Ist weniger als ein Viertel des Covers bunt, entscheidet die Helligkeit: dunkel oder hell.
+function radColorGroup(px){
+  const votes={warm:0,cold:0,pink:0};
+  let n=0,colorful=0,lightSum=0;
+  for(let i=0;i+3<px.length;i+=4){
+    if(px[i+3]<128)continue;
+    const r=px[i]/255,g=px[i+1]/255,b=px[i+2]/255,max=Math.max(r,g,b),min=Math.min(r,g,b),l=(max+min)/2,d=max-min;
+    n++;lightSum+=l;
+    const sat=d===0?0:d/(1-Math.abs(2*l-1));
+    if(sat<0.25||l<0.12||l>0.92)continue; // grau, fast schwarz oder fast weiss: zählt nicht als bunt
+    let h=max===r?((g-b)/d)%6:max===g?(b-r)/d+2:(r-g)/d+4;
+    h=(h*60+360)%360;
+    votes[h<70||h>=345?"warm":h<260?"cold":"pink"]+=sat;
+    colorful++;
+  }
+  if(!n)return "";
+  if(colorful/n>=0.25)return Object.keys(votes).reduce((best,k)=>votes[k]>votes[best]?k:best,"warm");
+  return lightSum/n<0.5?"dark":"light";
+}
+
+// Räder bilden: zuerst „Alle“, dann jede Farbgruppe, die Alben hat. Eine Verschiebung von Hand (moves) geht der
+// berechneten Farbe (colors) vor; „auto“ oder Unbekanntes heisst: berechnete Farbe. Alben ohne Farbe stehen nur in „Alle“.
+function radWheels(albums,colors={},moves={}){
+  const of=a=>radIsGroup(moves[a.id])?moves[a.id]:radIsGroup(colors[a.id])?colors[a.id]:"";
+  const list=albums||[];
+  return [{key:"all",name:"Alle",albums:list},...RAD_GROUPS.map(g=>({...g,albums:list.filter(a=>of(a)===g.key)})).filter(w=>w.albums.length)];
+}
+
+// Nachbar-Rad beim Wischen (dir +1/-1), am Ende geht es von vorne weiter
+function radNextWheel(wheels,key,dir){
+  const i=Math.max(0,wheels.findIndex(w=>w.key===key));
+  return wheels.length?wheels[radMod(i+dir,wheels.length)].key:"all";
+}
+
+if(typeof module!=="undefined")module.exports={radMod,radAlbum,radPickCover,radAlbums,radCircumference,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radSuggest,radSpin,radCountsMap,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radIsGroup,radColorGroup,radWheels,radNextWheel};

@@ -8,9 +8,10 @@ const RAD_CLIENT_ID="173f861652ae4b668769c76f0adab3a1";
 const RAD_AUTH="https://accounts.spotify.com/authorize",RAD_TOKEN="https://accounts.spotify.com/api/token",RAD_API="https://api.spotify.com/v1";
 // „zuletzt gehört“ wird erst ab W.9 gebraucht – schon jetzt angefragt, damit später keine zweite Anmeldung nötig ist
 const RAD_SCOPES="user-library-read user-read-recently-played";
-const RAD_KEYS={state:"mb_rad_state",verifier:"mb_rad_pkce",access:"mb_rad_access",expires:"mb_rad_expires",refresh:"mb_rad_refresh",albums:"mb_rad_albums"};
+const RAD_KEYS={state:"mb_rad_state",verifier:"mb_rad_pkce",access:"mb_rad_access",expires:"mb_rad_expires",refresh:"mb_rad_refresh",albums:"mb_rad_albums",colors:"mb_rad_colors_v1"};
 const RAD_CACHE_MS=60*60*1000; // Albumliste höchstens 1 Stunde aus dem Zwischenspeicher
 const RAD_FOCUS_DEG=20;        // vorne = rechts, leicht unten
+const RAD_TOP=48;              // Platz oben für die Rad-Punkte (gleicher Wert wie --rad-top in rad.css)
 const RAD_BOTTOM=76;           // Platz unten für den Vorschlag-Knopf (gleicher Wert wie --rad-bottom in rad.css)
 // Protokoll (W.5): Edge Function mb-rad im Supabase-Projekt des Spiels; sie prüft das Spotify-Token selbst
 const RAD_FN="https://swgraidbdxpjqnvxacpq.supabase.co/functions/v1/mb-rad";
@@ -19,7 +20,10 @@ const RAD_STATE_ERR="Protokoll konnte nicht geladen werden – Zähler fehlen.";
 // view: init | login | loading | wheel · pos = Stand des Rads (Kommazahl), to = Ziel · open = Info in der Mitte sichtbar
 // counts = Zähler je Album (null, solange nicht geladen) · events = letzte Protokoll-Einträge
 // suggested = Album-ID des laufenden Vorschlags · skipped = in dieser Sitzung abgelehnt · sheet = Protokoll offen
-const RAD={view:"init",albums:[],error:"",progress:"",pos:0,to:0,open:false,ring:null,els:new Map(),raf:0,drag:null,snapTimer:0,counts:null,events:[],suggested:"",skipped:new Set(),sheet:false};
+const RAD={view:"init",albums:[],error:"",progress:"",pos:0,to:0,open:false,ring:null,els:new Map(),raf:0,drag:null,snapTimer:0,counts:null,events:[],suggested:"",skipped:new Set(),sheet:false,
+  // Farb-Räder (W.7): all = alle Alben, albums = Alben des gezeigten Rads (wheel) · colors = berechnete Farbgruppe je Album
+  // (auf dem Gerät gemerkt) · moves = von Hand gewähltes Rad je Album (Datenbank) · posBy = Stand je Rad
+  all:[],wheel:"all",colors:{},moves:{},posBy:{},colorRun:false};
 
 function radEsc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function radGet(store,k){try{return store.getItem(k)}catch{return null}}
@@ -71,7 +75,7 @@ async function radToken(){
 }
 
 function radForget(){for(const k of [RAD_KEYS.access,RAD_KEYS.expires])radDel(sessionStorage,k);radDel(localStorage,RAD_KEYS.refresh);radDel(localStorage,RAD_KEYS.albums)}
-function radLogout(){radForget();Object.assign(RAD,{view:"login",albums:[],error:"",open:false,pos:0,to:0,counts:null,events:[],suggested:"",skipped:new Set(),sheet:false});radRender()}
+function radLogout(){radForget();Object.assign(RAD,{view:"login",albums:[],error:"",open:false,pos:0,to:0,counts:null,events:[],suggested:"",skipped:new Set(),sheet:false,all:[],wheel:"all",moves:{},posBy:{}});radRender()}
 
 // ---------- Spotify lesen ----------
 const radSleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -108,7 +112,7 @@ function radReadCache(){
 // Albumliste holen: frischer Zwischenspeicher reicht; sonst von Spotify (ein alter Stand bleibt dabei schon sichtbar)
 async function radLoad(force=false){
   const cache=radReadCache();
-  if(cache?.items.length){RAD.albums=cache.items;RAD.view="wheel"}
+  if(cache?.items.length){RAD.all=cache.items;radPick();RAD.view="wheel";radReadColors()}
   if(RAD.view==="wheel"&&!RAD.counts)radLoadState();
   if(!force&&cache&&Date.now()-cache.at<RAD_CACHE_MS){radRender();return}
   if(RAD.view!=="wheel"){RAD.view="loading";RAD.progress="Alben laden…"}
@@ -117,14 +121,15 @@ async function radLoad(force=false){
     const items=await radFetchAlbums();
     const frontId=RAD.albums[radFocusIndex(RAD.to,RAD.albums.length)]?.id;
     radSet(localStorage,RAD_KEYS.albums,JSON.stringify({at:Date.now(),items}));
-    RAD.albums=items;RAD.view="wheel";RAD.progress="";
+    RAD.all=items;radPick();RAD.view="wheel";RAD.progress="";
     // Das Album, das vorne stand, bleibt vorne – auch wenn neue dazugekommen sind
-    const keep=frontId?items.findIndex(a=>a.id===frontId):-1;
+    const keep=frontId?RAD.albums.findIndex(a=>a.id===frontId):-1;
     RAD.pos=RAD.to=keep>=0?keep:0;
+    radReadColors();
     if(!RAD.counts||force)radLoadState();
   }catch(e){
     RAD.progress="";
-    if(e.status===401){radForget();RAD.albums=[];RAD.view="login";RAD.error=e.message}
+    if(e.status===401){radForget();RAD.all=RAD.albums=[];RAD.view="login";RAD.error=e.message}
     else{RAD.error=e.message||String(e);if(RAD.view!=="wheel")RAD.view="login"}
   }
   radRender();
@@ -136,7 +141,7 @@ async function radFn(body,keepalive=false){
   if(!t)throw Error("Nicht mit Spotify verbunden.");
   const r=await fetch(RAD_FN,{method:"POST",keepalive,headers:{"Content-Type":"application/json"},body:JSON.stringify({...body,spotify_token:t})});
   const data=await r.json().catch(()=>null);
-  if(!r.ok||!data?.ok)throw Error(r.status===429?"Zu viele Einträge in kurzer Zeit. Bitte später nochmals.":"Das Protokoll ist gerade nicht erreichbar.");
+  if(!r.ok||!data?.ok)throw Error(r.status===429?"Zu viele Einträge in kurzer Zeit. Bitte später nochmals.":"Der Speicher ist gerade nicht erreichbar.");
   return data;
 }
 
@@ -144,9 +149,85 @@ async function radLoadState(){
   try{
     const d=await radFn({action:"state"});
     RAD.counts=radCountsMap(d.counts);RAD.events=d.events||[];
+    RAD.moves=Object.fromEntries((d.moves||[]).map(m=>[m.album_id,m.wheel]));
     if(RAD.error===RAD_STATE_ERR)RAD.error="";
   }catch(e){if(!RAD.error)RAD.error=RAD_STATE_ERR}
-  if(RAD.view==="wheel"){radStatus();radDraw();if(RAD.sheet)radSheet()}
+  if(RAD.view==="wheel"){radStatus();radWheelsChanged();if(RAD.sheet)radSheet()}
+}
+
+// ---------- Farb-Räder (W.7) ----------
+function radWheelList(){return radWheels(RAD.all,RAD.colors,RAD.moves)}
+// Alben des gewählten Rads übernehmen; gibt es das Rad nicht (mehr), gilt „Alle“
+function radPick(){
+  const list=radWheelList(),w=list.find(x=>x.key===RAD.wheel)||list[0];
+  RAD.wheel=w.key;RAD.albums=w.albums;
+}
+function radGoWheel(key){
+  if(key===RAD.wheel)return;
+  RAD.posBy[RAD.wheel]=Math.round(RAD.to);
+  RAD.wheel=key;radPick();
+  RAD.pos=RAD.to=RAD.posBy[RAD.wheel]||0;RAD.open=false;RAD.suggested="";
+  radRender();
+}
+// Farben oder Verschiebungen haben sich geändert: Punkte oben nachführen; das Rad selbst nur neu aufbauen,
+// wenn sich die Alben des gezeigten Rads geändert haben (sonst würden alle Cover neu geladen)
+function radWheelsChanged(){
+  const before=RAD.albums,front=before[radFocusIndex(RAD.to,before.length)]?.id;
+  radPick();
+  if(before.length===RAD.albums.length&&before.every((a,i)=>a===RAD.albums[i])){radDots();radDraw();return}
+  const keep=RAD.albums.findIndex(a=>a.id===front);
+  RAD.pos=RAD.to=keep>=0?keep:Math.min(radFocusIndex(RAD.to,before.length),RAD.albums.length-1);
+  radRender();
+}
+
+// Punkte oben: ein Punkt je Rad in dessen Farbe, der gezeigte ist grösser. Tippen wechselt das Rad.
+function radDots(){
+  const box=document.getElementById("radWheels");
+  if(!box)return;
+  const list=radWheelList();
+  box.hidden=list.length<2;
+  box.innerHTML=list.map(w=>`<button class="rad-dot rad-dot-${w.key}" type="button" data-wheel="${w.key}" aria-pressed="${w.key===RAD.wheel}" aria-label="Rad ${radEsc(w.name)}, ${w.albums.length} Alben" title="${radEsc(w.name)} (${w.albums.length})"></button>`).join("");
+  box.querySelectorAll(".rad-dot").forEach(b=>b.addEventListener("click",()=>radGoWheel(b.dataset.wheel)));
+}
+
+// Farbgruppe jedes Covers aus dem kleinen Coverbild lesen (16 × 16 Punkte genügen) und auf dem Gerät merken.
+// Läuft im Hintergrund in Paketen zu 8; Spotify erlaubt das Auslesen der Bilder (Access-Control-Allow-Origin: *).
+async function radReadColors(){
+  if(RAD.colorRun)return;
+  RAD.colorRun=true;
+  try{RAD.colors={...JSON.parse(radGet(localStorage,RAD_KEYS.colors)||"{}"),...RAD.colors}}catch{}
+  const todo=RAD.all.filter(a=>!RAD.colors[a.id]&&a.coverSmall);
+  const canvas=document.createElement("canvas");canvas.width=canvas.height=16;
+  const ctx=canvas.getContext("2d",{willReadFrequently:true});
+  let failed=0;
+  const one=a=>new Promise(done=>{
+    const img=new Image();img.crossOrigin="anonymous";
+    img.onload=()=>{try{ctx.drawImage(img,0,0,16,16);const g=radColorGroup(ctx.getImageData(0,0,16,16).data);if(g)RAD.colors[a.id]=g;else failed++}catch{failed++}done()};
+    img.onerror=()=>{failed++;done()};
+    img.src=a.coverSmall;
+  });
+  for(let i=0;i<todo.length&&RAD.view==="wheel";i+=8){
+    if(todo.length>24){RAD.progress=`Farben lesen… ${i} von ${todo.length}`;radStatus()}
+    await Promise.all(todo.slice(i,i+8).map(one));
+  }
+  if(todo.length){
+    radSet(localStorage,RAD_KEYS.colors,JSON.stringify(RAD.colors));
+    RAD.progress="";
+    if(failed===todo.length&&!RAD.error)RAD.error="Die Farben der Cover konnten nicht gelesen werden. Es gibt darum nur das Rad mit allen Alben.";
+  }
+  RAD.colorRun=false;
+  if(RAD.view==="wheel"){radStatus();radWheelsChanged()}
+}
+
+// Album von Hand einem Farb-Rad zuteilen („auto“ = wieder die berechnete Farbe): sofort anzeigen, im Hintergrund speichern
+function radMove(albumId,wheel){
+  const old=RAD.moves[albumId];
+  RAD.moves={...RAD.moves,[albumId]:wheel};RAD.error="";radStatus();radWheelsChanged();
+  radFn({action:"move",album_id:albumId,wheel}).catch(e=>{
+    RAD.moves={...RAD.moves,[albumId]:old};
+    RAD.error=`Nicht gespeichert: ${e.message||e}`;
+    if(RAD.view==="wheel"){radStatus();radWheelsChanged()}
+  });
 }
 
 // Eintrag sofort zählen und speichern; klappt das Speichern nicht, wird er wieder abgezogen und gemeldet
@@ -186,7 +267,7 @@ function radStage(){return document.getElementById("radStage")}
 
 function radMeasure(){
   const st=radStage();if(!st)return;
-  RAD.ring=radRing(st.clientWidth,st.clientHeight-RAD_BOTTOM,RAD.albums.length);
+  RAD.ring=radRing(st.clientWidth,st.clientHeight-RAD_BOTTOM-RAD_TOP,RAD.albums.length);
   st.style.setProperty("--rad-size",`${RAD.ring.size}px`);
   const info=document.getElementById("radInfo");
   // Titel in der Mitte: so schmal, dass er das vordere (grösste) Cover nicht berührt
@@ -226,13 +307,16 @@ function radInfo(){
   const a=RAD.albums[radFocusIndex(RAD.pos,RAD.albums.length)];
   if(!info||!a)return;
   const suggested=RAD.suggested===a.id,countText=RAD.counts?radCountText(RAD.counts[a.id]):"";
-  const sig=`${a.id}|${suggested}|${countText}`;
+  // Auswahl „Rad“ erst, wenn Verschiebungen geladen sind (sonst würde eine frühere Wahl überschrieben wirken)
+  const auto=RAD.colors[a.id],moved=radIsGroup(RAD.moves[a.id])?RAD.moves[a.id]:"auto";
+  const sig=`${a.id}|${suggested}|${countText}|${auto}|${moved}`;
   if(info.dataset.sig!==sig){
     info.dataset.sig=sig;
-    info.innerHTML=`<div class="rad-title">${radEsc(a.name)}</div><div class="rad-sub">${radEsc(a.artists.join(", "))}${a.year?` · ${radEsc(a.year)}`:""}</div>${countText?`<div class="rad-count">${radEsc(countText)}</div>`:""}<div class="rad-acts"><a class="rad-btn rad-go" id="radGo" href="${radEsc(a.url)}" target="_blank" rel="noopener">Hören</a>${suggested?`<button class="rad-btn rad-no" id="radNo" type="button">Ablehnen</button>`:""}</div>`;
+    info.innerHTML=`<div class="rad-title">${radEsc(a.name)}</div><div class="rad-sub">${radEsc(a.artists.join(", "))}${a.year?` · ${radEsc(a.year)}`:""}</div>${countText?`<div class="rad-count">${radEsc(countText)}</div>`:""}${RAD.counts?`<select class="rad-select" id="radMove" aria-label="Farb-Rad dieses Albums"><option value="auto"${moved==="auto"?" selected":""}>Rad: automatisch${auto?` (${radEsc(RAD_GROUPS.find(g=>g.key===auto).name)})`:""}</option>${RAD_GROUPS.map(g=>`<option value="${g.key}"${moved===g.key?" selected":""}>Rad: ${radEsc(g.name)}</option>`).join("")}</select>`:""}<div class="rad-acts"><a class="rad-btn rad-go" id="radGo" href="${radEsc(a.url)}" target="_blank" rel="noopener">Hören</a>${suggested?`<button class="rad-btn rad-no" id="radNo" type="button">Ablehnen</button>`:""}</div>`;
     // Der Link öffnet Spotify selbst (kein blockiertes Pop-up); der Klick wird nur zusätzlich gezählt
     document.getElementById("radGo").addEventListener("click",()=>radListen(a));
     document.getElementById("radNo")?.addEventListener("click",()=>radReject(a));
+    document.getElementById("radMove")?.addEventListener("change",e=>radMove(a.id,e.target.value));
   }
   // Während das Rad noch dreht, bleibt die Mitte leer – sonst flackern die Titel durch
   info.hidden=!RAD.open||Math.abs(RAD.to-RAD.pos)>0.5||!!RAD.drag;
@@ -246,7 +330,7 @@ function radSheet(){
   if(!box)return;
   box.hidden=!RAD.sheet;
   if(!RAD.sheet)return;
-  const rows=radProtocol(RAD.events,RAD.albums);
+  const rows=radProtocol(RAD.events,RAD.all);
   const sum=Object.values(RAD.counts||{}).reduce((t,c)=>({l:t.l+c.listens,r:t.r+c.rejects}),{l:0,r:0});
   const list=rows.length?`<ul class="rad-log">${rows.map(r=>`<li>${r.cover?`<img src="${radEsc(r.cover)}" alt="" loading="lazy">`:`<span class="rad-nocover"></span>`}<span class="rad-log-txt"><span class="rad-log-name">${radEsc(r.name)}</span><span class="rad-log-sub">${radEsc(r.artists)}</span></span><span class="rad-log-what"><span class="${r.kind==="listen"?"rad-yes":"rad-nope"}">${r.kind==="listen"?"gehört":"abgelehnt"}</span><span class="rad-log-sub">${radEsc(radWhen(r.at))}</span></span></li>`).join("")}</ul>${RAD.events.length>=100?`<p class="rad-note">Es werden die letzten 100 Einträge gezeigt.</p>`:""}`
     :`<p class="rad-note">${RAD.counts?"Noch keine Einträge. Tippe unten auf den Vorschlag-Knopf.":"Protokoll wird geladen…"}</p>`;
@@ -281,7 +365,7 @@ function radOnWheel(e){
 
 function radOnDown(e){
   if(RAD.view!=="wheel"||!RAD.ring||e.button>0)return;
-  if(e.target.closest("a,button,summary,details"))return;
+  if(e.target.closest("a,button,summary,details,select"))return;
   clearTimeout(RAD.snapTimer);
   RAD.drag={id:e.pointerId,y:e.clientY,x:e.clientX,pos:RAD.pos,moved:false,lastY:e.clientY,lastT:e.timeStamp,v:0,item:e.target.closest(".rad-item")};
 }
@@ -291,7 +375,10 @@ function radOnMove(e){
   if(!d.moved){
     if(Math.abs(dy)<6&&Math.abs(e.clientX-d.x)<6)return;
     d.moved=true;try{radStage().setPointerCapture(d.id)}catch{}
+    // Seitlich wischen wechselt das Farb-Rad (nur wenn es mehrere gibt), sonst dreht die Bewegung das Rad
+    d.swipe=Math.abs(e.clientX-d.x)>Math.abs(dy)&&radWheelList().length>1;
   }
+  if(d.swipe){const ring=document.getElementById("radRing");if(ring&&!radCalm())ring.style.translate=`${Math.round((e.clientX-d.x)/3)}px 0`;return}
   // Nach oben ziehen = nächstes Album kommt nach vorne
   RAD.pos=d.pos-dy/RAD.ring.stepPx;
   const dt=e.timeStamp-d.lastT;
@@ -301,6 +388,13 @@ function radOnMove(e){
 function radOnUp(e){
   const d=RAD.drag;if(!d||e.pointerId!==d.id)return;
   RAD.drag=null;
+  if(d.swipe){
+    const dx=e.clientX-d.x,ring=document.getElementById("radRing");
+    if(ring)ring.style.translate="";
+    if(e.type!=="pointercancel"&&Math.abs(dx)>50)radGoWheel(radNextWheel(radWheelList(),RAD.wheel,dx<0?1:-1));
+    else radDraw();
+    return;
+  }
   if(d.moved){
     // Schwung mitnehmen (ausser bei „Bewegung reduzieren“), dann einrasten
     const throwBy=radCalm()||e.type==="pointercancel"?0:Math.max(-6,Math.min(6,-d.v*180/RAD.ring.stepPx));
@@ -320,8 +414,10 @@ function radOnUp(e){
 function radOnKey(e){
   if(RAD.view!=="wheel")return;
   if(RAD.sheet){if(e.key==="Escape"){RAD.sheet=false;radSheet()}return}
-  if(e.target.closest("a,button,summary"))return;
-  if(e.key==="ArrowDown"||e.key==="ArrowRight"){e.preventDefault();radTurnTo(Math.round(RAD.to)+1)}
+  if(e.target.closest("a,button,summary,select"))return;
+  const many=radWheelList().length>1;
+  if(many&&(e.key==="ArrowRight"||e.key==="ArrowLeft")){e.preventDefault();radGoWheel(radNextWheel(radWheelList(),RAD.wheel,e.key==="ArrowRight"?1:-1))}
+  else if(e.key==="ArrowDown"||e.key==="ArrowRight"){e.preventDefault();radTurnTo(Math.round(RAD.to)+1)}
   else if(e.key==="ArrowUp"||e.key==="ArrowLeft"){e.preventDefault();radTurnTo(Math.round(RAD.to)-1)}
   else if(e.key==="Enter"||e.key===" "){e.preventDefault();RAD.open=!RAD.open;radDraw()}
   else if(e.key==="Escape"&&RAD.open){RAD.open=false;radDraw()}
@@ -345,7 +441,7 @@ function radRender(){
   if(!RAD.albums.length){
     app.innerHTML=`<div class="rad-center"><p class="rad-note">Du hast noch keine Alben in Spotify gespeichert.</p><button class="rad-btn" id="radReload" type="button">Neu laden</button><button class="rad-link" id="radLogout" type="button">Abmelden</button></div>`;
   }else{
-    app.innerHTML=`<div class="rad-stage" id="radStage" tabindex="0" role="group" aria-label="Albumrad mit ${RAD.albums.length} Alben. Pfeiltasten drehen das Rad, Eingabetaste zeigt den Titel.">
+    app.innerHTML=`<div class="rad-stage" id="radStage" tabindex="0" role="group" aria-label="Albumrad mit ${RAD.albums.length} Alben. Pfeil hoch und runter dreht das Rad, links und rechts wechselt das Farb-Rad, Eingabetaste zeigt den Titel.">
       <div class="rad-ring" id="radRing"></div>
       <div class="rad-info" id="radInfo" hidden></div>
       <p class="rad-status" id="radStatus" role="status">${radEsc(RAD.error||RAD.progress)}</p>
@@ -353,6 +449,7 @@ function radRender(){
     </div>
     <button class="rad-dice" id="radSuggest" type="button" aria-label="Album vorschlagen" title="Album vorschlagen"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h3.500c2 0 3.200 1 4.300 2.600l2.400 4.800c1.100 1.600 2.300 2.600 4.300 2.600H21"/><path d="M3 17h3.500c1.300 0 2.300-.4 3.100-1.200M21 7h-3.500c-1.300 0-2.300.4-3.100 1.200"/><path d="M18 4l3 3-3 3M18 14l3 3-3 3"/></svg></button>
     <details class="rad-menu"><summary aria-label="Menü">⋯</summary><div class="rad-menu-box"><button class="rad-link" id="radProtocol" type="button">Protokoll</button><button class="rad-link" id="radReload" type="button">Alben neu laden</button><button class="rad-link" id="radLogout" type="button">Abmelden</button></div></details>
+    <div class="rad-wheels" id="radWheels" role="group" aria-label="Farb-Räder" hidden></div>
     <div class="rad-sheet" id="radSheet" role="dialog" aria-label="Protokoll" hidden></div>`;
     const st=radStage();
     st.addEventListener("wheel",radOnWheel,{passive:false});
@@ -362,7 +459,7 @@ function radRender(){
     st.addEventListener("pointercancel",radOnUp);
     document.getElementById("radSuggest").addEventListener("click",radSuggestNext);
     document.getElementById("radProtocol").addEventListener("click",()=>{RAD.sheet=true;document.querySelector(".rad-menu").open=false;radSheet();document.getElementById("radSheetClose")?.focus()});
-    radMeasure();radDraw();radSheet();
+    radMeasure();radDraw();radSheet();radDots();
   }
   document.getElementById("radReload").addEventListener("click",()=>radLoad(true));
   document.getElementById("radLogout").addEventListener("click",radLogout);
