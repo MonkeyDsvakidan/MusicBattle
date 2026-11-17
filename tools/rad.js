@@ -12,7 +12,7 @@ const RAD_KEYS={state:"mb_rad_state",verifier:"mb_rad_pkce",access:"mb_rad_acces
 const RAD_CACHE_MS=60*60*1000; // Albumliste höchstens 1 Stunde aus dem Zwischenspeicher
 const RAD_FOCUS_DEG=20;        // vorne = rechts, leicht unten
 const RAD_TOP=48;              // Platz oben für die Rad-Punkte (gleicher Wert wie --rad-top in rad.css)
-const RAD_PICK=1.12;           // gewähltes Cover so viel grösser (gleicher Wert wie in .rad-item.picked in rad.css)
+const RAD_PICK=1.25;           // vorderes Cover im Stillstand so viel grösser (gleicher Wert wie .rad-item.picked in rad.css)
 const RAD_BOTTOM=76;           // Platz unten für den Vorschlag-Knopf (gleicher Wert wie --rad-bottom in rad.css)
 // Protokoll (W.5): Edge Function mb-rad im Supabase-Projekt des Spiels; sie prüft das Spotify-Token selbst
 const RAD_FN="https://swgraidbdxpjqnvxacpq.supabase.co/functions/v1/mb-rad";
@@ -300,7 +300,8 @@ function radMeasure(){
   st.style.setProperty("--rad-size",`${RAD.ring.size}px`);
   const info=document.getElementById("radInfo");
   // Titel in der Mitte: so schmal, dass er das vordere (grösste) Cover nicht berührt
-  if(info)info.style.maxWidth=`${Math.round(Math.max(120,Math.min(420,2*(RAD.ring.rx*Math.cos(RAD_FOCUS_DEG*Math.PI/180)-RAD.ring.size*RAD_MAX_SCALE*RAD_PICK/2)-16)))}px`;
+  RAD.infoW=`${Math.round(Math.max(120,Math.min(420,2*(RAD.ring.rx*Math.cos(RAD_FOCUS_DEG*Math.PI/180)-RAD.ring.size*RAD_MAX_SCALE*RAD_PICK/2)-16)))}px`;
+  if(info)info.style.maxWidth=RAD.infoW;
 }
 
 // Cover an ihre Plätze setzen. Elemente bleiben erhalten, solange ihr Album auf dem Rad ist (keine Bilder neu laden).
@@ -324,8 +325,11 @@ function radDraw(){
     el.style.opacity=p.opacity.toFixed(2);
     el.style.zIndex=String(p.z);
     el.classList.toggle("front",Math.abs(p.d)<0.5);
-    // Gewählt (W.11): vorderes Cover, solange der Titel in der Mitte steht – gleiche Bedingung wie in radInfo
-    el.classList.toggle("picked",Math.abs(p.d)<0.5&&RAD.open&&Math.abs(RAD.to-RAD.pos)<=0.5&&!RAD.drag);
+    // W.11: Steht das Rad still, wird das vordere Cover etwas grösser (picked). Beim Zufallsvorschlag steht es
+    // stattdessen gross in der Mitte (.rad-big in radInfo) und sein Platz im Rad bleibt leer (lifted).
+    const still=Math.abs(p.d)<0.5&&Math.abs(RAD.to-RAD.pos)<=0.5&&!RAD.drag,lifted=still&&RAD.open&&RAD.suggested===RAD.albums[p.index]?.id;
+    el.classList.toggle("picked",still&&!lifted);
+    el.classList.toggle("lifted",lifted);
   }
   for(const [key,el] of RAD.els)if(!live.has(key)){el.remove();RAD.els.delete(key)}
   radInfo();
@@ -341,9 +345,11 @@ function radInfo(){
   // Auswahl „Rad“ erst, wenn Verschiebungen geladen sind (sonst würde eine frühere Wahl überschrieben wirken)
   const auto=RAD.colors[a.id],moved=radIsGroup(RAD.moves[a.id])?RAD.moves[a.id]:"auto";
   const sig=`${a.id}|${suggested}|${countText}|${auto}|${moved}`;
+  const text=document.getElementById("radText"),big=document.getElementById("radBig");
   if(info.dataset.sig!==sig){
     info.dataset.sig=sig;
-    info.innerHTML=`<div class="rad-title">${radEsc(a.name)}</div><div class="rad-sub">${radEsc(a.artists.join(", "))}${a.year?` · ${radEsc(a.year)}`:""}</div>${countText?`<div class="rad-count">${radEsc(countText)}</div>`:""}${RAD.counts?`<select class="rad-select" id="radMove" aria-label="Farb-Rad dieses Albums"><option value="auto"${moved==="auto"?" selected":""}>Rad: automatisch${auto?` (${radEsc(RAD_GROUPS.find(g=>g.key===auto).name)})`:""}</option>${RAD_GROUPS.map(g=>`<option value="${g.key}"${moved===g.key?" selected":""}>Rad: ${radEsc(g.name)}</option>`).join("")}</select>`:""}<div class="rad-acts"><a class="rad-btn rad-go" id="radGo" href="${radEsc(a.url)}" target="_blank" rel="noopener">Hören</a>${suggested?`<button class="rad-btn rad-no" id="radNo" type="button">Ablehnen</button>`:""}</div>`;
+    if(big.dataset.id!==a.id){big.dataset.id=a.id;big.src=a.cover}
+    text.innerHTML=`<div class="rad-title">${radEsc(a.name)}</div><div class="rad-sub">${radEsc(a.artists.join(", "))}${a.year?` · ${radEsc(a.year)}`:""}</div>${countText?`<div class="rad-count">${radEsc(countText)}</div>`:""}${RAD.counts?`<select class="rad-select" id="radMove" aria-label="Farb-Rad dieses Albums"><option value="auto"${moved==="auto"?" selected":""}>Rad: automatisch${auto?` (${radEsc(RAD_GROUPS.find(g=>g.key===auto).name)})`:""}</option>${RAD_GROUPS.map(g=>`<option value="${g.key}"${moved===g.key?" selected":""}>Rad: ${radEsc(g.name)}</option>`).join("")}</select>`:""}<div class="rad-acts"><a class="rad-btn rad-go" id="radGo" href="${radEsc(a.url)}" target="_blank" rel="noopener">Hören</a>${suggested?`<button class="rad-btn rad-no" id="radNo" type="button">Ablehnen</button>`:""}</div>`;
     // Der Link öffnet Spotify selbst (kein blockiertes Pop-up); der Klick wird nur zusätzlich gezählt
     document.getElementById("radGo").addEventListener("click",()=>radListen(a));
     document.getElementById("radNo")?.addEventListener("click",()=>radReject(a));
@@ -351,6 +357,16 @@ function radInfo(){
   }
   // Während das Rad noch dreht, bleibt die Mitte leer – sonst flackern die Titel durch
   info.hidden=!RAD.open||Math.abs(RAD.to-RAD.pos)>0.5||!!RAD.drag;
+  // Grosses Cover (W.11) nur beim Zufallsvorschlag: steht frei in der Mitte, die übrigen Cover treten zurück (.spot),
+  // darum darf es breiter sein als das Innere des Rads (bis 280 px, so dass Text und Knöpfe darunter Platz haben)
+  const st=radStage(),spot=!info.hidden&&suggested;
+  big.hidden=!suggested;
+  st?.classList.toggle("spot",spot);
+  info.style.maxWidth=spot&&st?`${Math.min(420,st.clientWidth-32)}px`:RAD.infoW||"";
+  if(spot&&st){
+    const px=Math.round(Math.max(72,Math.min(280,st.clientWidth-48,st.clientHeight-RAD_TOP-RAD_BOTTOM-text.offsetHeight-32)));
+    if(big.style.width!==`${px}px`)big.style.width=big.style.height=`${px}px`;
+  }
   // Für Screenreader: vorderes Album ansagen, sobald das Rad steht
   if(say&&!RAD.raf&&say.dataset.id!==a.id){say.dataset.id=a.id;say.textContent=`${a.name} – ${a.artists.join(", ")}`}
 }
@@ -476,7 +492,7 @@ function radRender(){
   }else{
     app.innerHTML=`<div class="rad-stage" id="radStage" tabindex="0" role="group" aria-label="Albumrad mit ${RAD.albums.length} Alben. Pfeil hoch und runter dreht das Rad, links und rechts wechselt das Farb-Rad, Eingabetaste zeigt den Titel.">
       <div class="rad-ring" id="radRing"></div>
-      <div class="rad-info" id="radInfo" hidden></div>
+      <div class="rad-info" id="radInfo" hidden><img class="rad-big" id="radBig" alt="" decoding="async"><div class="rad-text" id="radText"></div></div>
       <p class="rad-status" id="radStatus" role="status">${radEsc(RAD.error||RAD.progress)}</p>
       <p class="rad-sr" id="radSay" aria-live="polite"></p>
     </div>

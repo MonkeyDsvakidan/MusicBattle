@@ -32,9 +32,21 @@ html.rad #app{position:fixed;inset:0;height:100dvh}
 .rad-item{position:absolute;left:0;top:0;width:var(--rad-size);height:var(--rad-size);will-change:transform;cursor:pointer}
 /* Hintergrund und Schatten am Bild, damit sie beim Vergrössern (W.11) mitwachsen; transform der .rad-item setzt rad.js */
 .rad-item img{display:block;width:100%;height:100%;max-width:none;object-fit:cover;background:var(--rad-line);box-shadow:0 6px 18px rgba(0,0,0,.14);pointer-events:none;-webkit-user-drag:none}
-/* Gewähltes Cover etwas grösser (gleicher Wert wie RAD_PICK in rad.js) */
-.rad-item.picked img{transform:scale(1.12);box-shadow:0 10px 28px rgba(0,0,0,.2)}
-@media (prefers-reduced-motion:no-preference){.rad-item img{transition:transform .25s ease-out,box-shadow .25s ease-out}}
+/* W.11: vorderes Cover im Stillstand etwas grösser (gleicher Wert wie RAD_PICK in rad.js); beim Zufallsvorschlag
+   steht es gross in der Mitte (.rad-big) und sein Platz im Rad bleibt leer (.lifted) */
+.rad-item.picked img{transform:scale(1.25);box-shadow:0 10px 28px rgba(0,0,0,.2)}
+.rad-item.lifted img{opacity:0}
+/* Beim Zufallsvorschlag treten die übrigen Cover zurück, damit das grosse Cover und der Text frei stehen */
+.rad-stage.spot .rad-item:not(.lifted) img{opacity:.12}
+.rad-big[hidden]{display:none}
+.rad-big{display:block;max-width:none;object-fit:cover;background:var(--rad-line);box-shadow:0 14px 36px rgba(0,0,0,.22);margin-bottom:6px}
+.rad-text{display:grid;gap:6px;justify-items:center;width:100%}
+@media (prefers-reduced-motion:no-preference){
+  .rad-item img{transition:transform .25s ease-out,box-shadow .25s ease-out,opacity .2s ease-out}
+  /* Startet, sobald das grosse Cover erscheint (display:none → sichtbar), nicht bei jedem Neuzeichnen */
+  .rad-big{animation:rad-pop .3s ease-out}
+  @keyframes rad-pop{from{opacity:0;transform:translateX(40%) scale(.55)}to{opacity:1;transform:none}}
+}
 
 .rad-info{position:absolute;left:50%;top:calc(50% + (var(--rad-top) - var(--rad-bottom))/2);transform:translate(-50%,-50%);z-index:200;display:grid;gap:6px;justify-items:center;text-align:center;overflow-wrap:anywhere}
 .rad-info[hidden]{display:none}
@@ -42,7 +54,7 @@ html.rad #app{position:fixed;inset:0;height:100dvh}
 .rad-sub{font:400 14px/1.35 var(--f-text);color:var(--rad-muted)}
 .rad-count{font:400 13px/1.35 var(--f-text);color:var(--rad-muted)}
 /* Auswahl „Rad“ in der Mitte: von Hand in ein anderes Farb-Rad legen */
-.rad-select{width:100%;text-align:center;text-overflow:ellipsis;min-height:44px;padding:0 4px;border:0;border-radius:0;background:none;color:var(--rad-ink);font:400 13px/1.35 var(--f-text);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.rad-select{width:auto;max-width:100%;text-align:center;text-overflow:ellipsis;min-height:44px;padding:0 4px;border:0;border-radius:0;background:none;color:var(--rad-ink);font:400 13px/1.35 var(--f-text);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 /* styles.css färbt select:focus pink – hier bleibt es bei der Rad-Farbe */
 .rad-select:focus,.rad-select:hover{border:0;box-shadow:none}
 .rad-select:focus-visible,.rad-dot:focus-visible{outline:2px solid var(--rad-ink);outline-offset:3px}
