@@ -12,6 +12,7 @@ const RAD_KEYS={state:"mb_rad_state",verifier:"mb_rad_pkce",access:"mb_rad_acces
 const RAD_CACHE_MS=60*60*1000; // Albumliste höchstens 1 Stunde aus dem Zwischenspeicher
 const RAD_FOCUS_DEG=20;        // vorne = rechts, leicht unten
 const RAD_TOP=48;              // Platz oben für die Rad-Punkte (gleicher Wert wie --rad-top in rad.css)
+const RAD_PICK=1.12;           // gewähltes Cover so viel grösser (gleicher Wert wie in .rad-item.picked in rad.css)
 const RAD_BOTTOM=76;           // Platz unten für den Vorschlag-Knopf (gleicher Wert wie --rad-bottom in rad.css)
 // Protokoll (W.5): Edge Function mb-rad im Supabase-Projekt des Spiels; sie prüft das Spotify-Token selbst
 const RAD_FN="https://swgraidbdxpjqnvxacpq.supabase.co/functions/v1/mb-rad";
@@ -299,7 +300,7 @@ function radMeasure(){
   st.style.setProperty("--rad-size",`${RAD.ring.size}px`);
   const info=document.getElementById("radInfo");
   // Titel in der Mitte: so schmal, dass er das vordere (grösste) Cover nicht berührt
-  if(info)info.style.maxWidth=`${Math.round(Math.max(120,Math.min(420,2*(RAD.ring.rx*Math.cos(RAD_FOCUS_DEG*Math.PI/180)-RAD.ring.size*RAD_MAX_SCALE/2)-16)))}px`;
+  if(info)info.style.maxWidth=`${Math.round(Math.max(120,Math.min(420,2*(RAD.ring.rx*Math.cos(RAD_FOCUS_DEG*Math.PI/180)-RAD.ring.size*RAD_MAX_SCALE*RAD_PICK/2)-16)))}px`;
 }
 
 // Cover an ihre Plätze setzen. Elemente bleiben erhalten, solange ihr Album auf dem Rad ist (keine Bilder neu laden).
@@ -323,6 +324,8 @@ function radDraw(){
     el.style.opacity=p.opacity.toFixed(2);
     el.style.zIndex=String(p.z);
     el.classList.toggle("front",Math.abs(p.d)<0.5);
+    // Gewählt (W.11): vorderes Cover, solange der Titel in der Mitte steht – gleiche Bedingung wie in radInfo
+    el.classList.toggle("picked",Math.abs(p.d)<0.5&&RAD.open&&Math.abs(RAD.to-RAD.pos)<=0.5&&!RAD.drag);
   }
   for(const [key,el] of RAD.els)if(!live.has(key)){el.remove();RAD.els.delete(key)}
   radInfo();

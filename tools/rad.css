@@ -29,8 +29,12 @@ html.rad #app{position:fixed;inset:0;height:100dvh}
 .rad-stage{position:absolute;inset:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;outline-offset:-4px}
 .rad-stage:active{cursor:grabbing}
 .rad-ring{position:absolute;left:50%;top:calc(50% + (var(--rad-top) - var(--rad-bottom))/2);width:0;height:0}
-.rad-item{position:absolute;left:0;top:0;width:var(--rad-size);height:var(--rad-size);will-change:transform;background:var(--rad-line);box-shadow:0 6px 18px rgba(0,0,0,.14);cursor:pointer}
-.rad-item img{display:block;width:100%;height:100%;max-width:none;object-fit:cover;pointer-events:none;-webkit-user-drag:none}
+.rad-item{position:absolute;left:0;top:0;width:var(--rad-size);height:var(--rad-size);will-change:transform;cursor:pointer}
+/* Hintergrund und Schatten am Bild, damit sie beim Vergrössern (W.11) mitwachsen; transform der .rad-item setzt rad.js */
+.rad-item img{display:block;width:100%;height:100%;max-width:none;object-fit:cover;background:var(--rad-line);box-shadow:0 6px 18px rgba(0,0,0,.14);pointer-events:none;-webkit-user-drag:none}
+/* Gewähltes Cover etwas grösser (gleicher Wert wie RAD_PICK in rad.js) */
+.rad-item.picked img{transform:scale(1.12);box-shadow:0 10px 28px rgba(0,0,0,.2)}
+@media (prefers-reduced-motion:no-preference){.rad-item img{transition:transform .25s ease-out,box-shadow .25s ease-out}}
 
 .rad-info{position:absolute;left:50%;top:calc(50% + (var(--rad-top) - var(--rad-bottom))/2);transform:translate(-50%,-50%);z-index:200;display:grid;gap:6px;justify-items:center;text-align:center;overflow-wrap:anywhere}
 .rad-info[hidden]{display:none}
