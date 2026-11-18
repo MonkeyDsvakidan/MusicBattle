@@ -1,8 +1,8 @@
-// mb-rad (Roadmap W.5/W.7): Protokoll und Farb-Rad-Verschiebungen des Albumrads. Kein Supabase-Login – wer aufruft, weist sich mit seinem
+// mb-rad (Roadmap W.5/W.7/W.8): Protokoll und Farb-Rad-Verschiebungen des Albumrads. Kein Supabase-Login – wer aufruft, weist sich mit seinem
 // Spotify-Token aus: die Function fragt Spotify (GET /me), wem das Token gehört, und liest/schreibt nur
 // die Zeilen dieses Spotify-Kontos (Service-Rolle; die Tabelle mb_rad_events ist für Clients gesperrt).
-// Darum verify_jwt = false. Aktionen: "state" (Zähler, letzte Einträge, Verschiebungen), "log" (gehört/abgelehnt
-// speichern), "move" (Album von Hand einem Farb-Rad zuteilen; "auto" = wieder die berechnete Farbe).
+// Darum verify_jwt = false. Aktionen: "state" (Zähler, letzte Einträge, Verschiebungen), "log" (gehört/abgelehnt/
+// behalten speichern), "move" (Album von Hand einem Farb-Rad zuteilen; "auto" = wieder die berechnete Farbe).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const cors = {
@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     if (action === "log") {
       const albumId = String(body?.album_id || ""), kind = String(body?.kind || "");
       if (!/^[A-Za-z0-9]{1,64}$/.test(albumId)) return out({ error: "album_id invalid" }, 400);
-      if (kind !== "listen" && kind !== "reject") return out({ error: "kind invalid" }, 400);
+      if (!["listen", "reject", "keep"].includes(kind)) return out({ error: "kind invalid" }, 400);
       const since = new Date(Date.now() - 3600_000).toISOString();
       const { count } = await admin.from("mb_rad_events").select("id", { count: "exact", head: true }).eq("spotify_user", user).gte("created_at", since);
       if (Number(count || 0) >= MAX_PER_HOUR) return out({ error: "too many entries" }, 429);
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
 
     if (action === "state") {
       const [counts, events] = await Promise.all([
-        admin.rpc("mb_rad_counts", { p_user: user }),
+        admin.rpc("mb_rad_stats", { p_user: user }),
         admin.from("mb_rad_events").select("id,album_id,kind,source,created_at").eq("spotify_user", user).order("created_at", { ascending: false }).limit(RECENT),
       ]);
       if (counts.error || events.error) return out({ error: "failed to load", detail: (counts.error || events.error)?.message }, 500);

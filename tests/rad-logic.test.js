@@ -1,6 +1,6 @@
 const test=require("node:test");
 const assert=require("node:assert/strict");
-const {radMod,radAlbum,radPickCover,radAlbums,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radSuggest,radSpin,radCountsMap,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radColorGroup,radWheels,radNextWheel,RAD_SORTS,RAD_LETTERS,radSortName,radLetter,radSort,radLetterIndex}=require("../tools/rad-logic.js");
+const {radMod,radAlbum,radPickCover,radAlbums,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radWeight,radSuggest,radSpin,radCountsMap,RAD_OFTEN,radOftenRejected,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radColorGroup,radWheels,radNextWheel,RAD_SORTS,RAD_LETTERS,radSortName,radLetter,radSort,radLetterIndex}=require("../tools/rad-logic.js");
 
 const imgs=[{url:"big",width:640},{url:"mid",width:300},{url:"small",width:64}];
 const item=(id,extra={})=>({added_at:"2026-11-01T10:00:00Z",album:{id,name:`Album ${id}`,album_type:"album",total_tracks:12,release_date:"2020-05-01",artists:[{name:"Eno"}],images:imgs,uri:`spotify:album:${id}`,external_urls:{spotify:`https://open.spotify.com/album/${id}`},...extra}});
@@ -121,13 +121,12 @@ test("Dreh zum Vorschlag: immer vorwärts, weite Wege werden abgekürzt",()=>{
 });
 
 test("Zähler: aus der Datenbank, dazuzählen und zurücknehmen",()=>{
-  const m=radCountsMap([{album_id:"a",listens:"3",rejects:1,last_listen:"2026-11-14T10:00:00Z",last_reject:null}]);
-  assert.deepEqual(m.a,{listens:3,rejects:1,lastListen:"2026-11-14T10:00:00Z",lastReject:""});
+  const m=radCountsMap([{album_id:"a",listens:"3",rejects:1,rejects_since:"1",last_listen:"2026-11-14T10:00:00Z",last_reject:null}]);
+  assert.deepEqual(m.a,{listens:3,rejects:1,since:1,lastListen:"2026-11-14T10:00:00Z",lastReject:""});
   const m2=radCount(m,"a","listen");
   assert.equal(m2.a.listens,4);
   assert.equal(m.a.listens,3,"Original bleibt");
   assert.equal(radCount(m2,"b","reject").b.rejects,1);
-  assert.equal(radCount({},"b","reject",-1).b.rejects,0);
 });
 
 test("Zählertext",()=>{
@@ -243,4 +242,42 @@ test("Buchstabenreihe: erster Platz je Buchstabe",()=>{
   assert.deepEqual(idx,{"#":0,B:2,E:3,N:4,R:6});
   assert.equal(RAD_LETTERS.length,27);
   assert.equal(RAD_SORTS.length,4);
+});
+
+// ---------- Vorschlag gewichtet und „Oft abgelehnt“ (W.8) ----------
+test("Zähler: Ablehnungen seit dem letzten Hören – reject zählt, listen und keep setzen zurück",()=>{
+  let m=radCount({},"a","reject");m=radCount(m,"a","reject");
+  assert.deepEqual([m.a.rejects,m.a.since],[2,2]);
+  m=radCount(m,"a","listen");
+  assert.deepEqual([m.a.listens,m.a.rejects,m.a.since],[1,2,0]);
+  m=radCount(radCount(m,"a","reject"),"a","keep");
+  assert.deepEqual([m.a.listens,m.a.rejects,m.a.since],[1,3,0],"keep zählt nicht als gehört");
+});
+
+test("Gewicht: nie gehört 1, gehört und oft abgelehnt seltener",()=>{
+  assert.equal(radWeight(undefined),1);
+  assert.equal(radWeight({listens:1,since:0}),0.5);
+  assert.equal(radWeight({listens:0,since:3}),0.25);
+  assert.equal(radWeight({listens:3,since:1}),1/8);
+});
+
+test("Vorschlag gewichtet: selten Gehörtes kommt öfter",()=>{
+  const counts={a:{listens:9,since:0},b:{listens:0,since:0}};
+  const two=five.slice(0,2);
+  let a=0,b=0;
+  for(let k=0;k<100;k++){radSuggest(two,{counts,rnd:()=>(k+0.5)/100})===0?a++:b++}
+  assert.ok(b>=85&&a>=5,`a=${a} b=${b}`);
+  assert.equal(radSuggest(two,{counts,rnd:()=>0.999}),1);
+  assert.equal(radSuggest(two,{counts,rnd:()=>0}),0);
+});
+
+test("Oft abgelehnt: ab 3 seit dem letzten Hören, die meisten zuerst",()=>{
+  const counts={a:{since:3},b:{since:5},c:{since:2},d:{since:0}};
+  assert.deepEqual(radOftenRejected(five,counts).map(x=>x.id),["b","a"]);
+  assert.deepEqual(radOftenRejected(five,null),[]);
+  assert.equal(RAD_OFTEN,3);
+});
+
+test("Protokoll zeigt auch Behalten",()=>{
+  assert.equal(radProtocol([{id:3,album_id:"a",kind:"keep",created_at:"z"}],five)[0].kind,"keep");
 });

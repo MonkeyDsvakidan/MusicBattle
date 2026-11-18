@@ -20,7 +20,7 @@ const RAD_STATE_ERR="Protokoll konnte nicht geladen werden – Zähler fehlen.";
 
 // view: init | login | loading | wheel · pos = Stand des Rads (Kommazahl), to = Ziel · open = Info in der Mitte sichtbar
 // counts = Zähler je Album (null, solange nicht geladen) · events = letzte Protokoll-Einträge
-// suggested = Album-ID des laufenden Vorschlags · skipped = in dieser Sitzung abgelehnt · sheet = Protokoll offen
+// suggested = Album-ID des laufenden Vorschlags · skipped = in dieser Sitzung abgelehnt · sheet = offenes Blatt ("protocol" | "often" | false)
 const RAD={view:"init",albums:[],error:"",progress:"",pos:0,to:0,open:false,ring:null,els:new Map(),raf:0,drag:null,snapTimer:0,counts:null,events:[],suggested:"",skipped:new Set(),sheet:false,
   // Farb-Räder (W.7): all = alle Alben, albums = Alben des gezeigten Rads (wheel) · colors = berechnete Farbgruppe je Album
   // (auf dem Gerät gemerkt) · moves = von Hand gewähltes Rad je Album (Datenbank) · posBy = Stand je Rad
@@ -150,7 +150,7 @@ async function radFn(body,keepalive=false){
 async function radLoadState(){
   try{
     const d=await radFn({action:"state"});
-    RAD.counts=radCountsMap(d.counts);RAD.events=d.events||[];
+    RAD.counts=radCountsMap(d.counts);RAD.events=d.events||[];radOftenMenu();
     RAD.moves=Object.fromEntries((d.moves||[]).map(m=>[m.album_id,m.wheel]));
     if(RAD.error===RAD_STATE_ERR)RAD.error="";
   }catch(e){if(!RAD.error)RAD.error=RAD_STATE_ERR}
@@ -261,24 +261,34 @@ function radMove(albumId,wheel){
 
 // Eintrag sofort zählen und speichern; klappt das Speichern nicht, wird er wieder abgezogen und gemeldet
 function radLog(albumId,kind){
+  const before=RAD.counts?.[albumId];
   RAD.counts=radCount(RAD.counts||{},albumId,kind);
-  RAD.error="";radStatus();
+  RAD.error="";radStatus();radOftenMenu();
   radFn({action:"log",album_id:albumId,kind},true).then(d=>{
     if(d.event)RAD.events=[d.event,...RAD.events].slice(0,100);
     if(RAD.sheet)radSheet();
   }).catch(e=>{
-    RAD.counts=radCount(RAD.counts,albumId,kind,-1);
+    const c={...RAD.counts};
+    if(before)c[albumId]=before;else delete c[albumId];
+    RAD.counts=c;
     RAD.error=`Nicht gespeichert: ${e.message||e}`;
-    if(RAD.view==="wheel"){radStatus();radDraw()}
+    if(RAD.view==="wheel"){radStatus();radDraw();radOftenMenu();if(RAD.sheet)radSheet()}
   });
 }
 
-// Nächster Vorschlag: zufälliges Album (nicht das vordere, keines, das in dieser Sitzung schon abgelehnt wurde)
+// „Oft abgelehnt“ (W.8): Menüeintrag mit Anzahl, Punkt am Menü-Knopf, solange es solche Alben gibt
+function radOftenMenu(){
+  const n=radOftenRejected(RAD.all,RAD.counts).length,b=document.getElementById("radOften"),m=document.querySelector(".rad-menu summary");
+  if(b){b.hidden=!n;b.textContent=`Oft abgelehnt (${n})`}
+  if(m){m.classList.toggle("has-news",n>0);m.setAttribute("aria-label",n?`Menü – ${n} oft abgelehnte Alben`:"Menü")}
+}
+
+// Nächster Vorschlag: zufällig, selten Gehörtes öfter (nicht das vordere, keines, das in dieser Sitzung schon abgelehnt wurde)
 function radSuggestNext(){
   if(RAD.view!=="wheel"||!RAD.albums.length||!RAD.ring)return;
   clearTimeout(RAD.snapTimer);
   const front=RAD.albums[radFocusIndex(RAD.to,RAD.albums.length)];
-  const i=radSuggest(RAD.albums,{exclude:RAD.skipped,currentId:front?.id||""});
+  const i=radSuggest(RAD.albums,{exclude:RAD.skipped,currentId:front?.id||"",counts:RAD.counts});
   if(i<0)return;
   RAD.suggested=RAD.albums[i].id;RAD.open=true;
   if(RAD.albums.length===1){radDraw();return}
@@ -371,15 +381,28 @@ function radInfo(){
   if(say&&!RAD.raf&&say.dataset.id!==a.id){say.dataset.id=a.id;say.textContent=`${a.name} – ${a.artists.join(", ")}`}
 }
 
-// Protokoll als Blatt über dem Rad: Summen und die letzten 100 Einträge
+// Blatt „Oft abgelehnt“: Alben mit 3+ Ablehnungen seit dem letzten Hören; „Behalten“ setzt die Zählung zurück,
+// entfernen geht in Spotify selbst (das Rad hat bewusst keine Schreibrechte für die Bibliothek)
+function radOftenSheet(box){
+  const list=radOftenRejected(RAD.all,RAD.counts);
+  box.setAttribute("aria-label","Oft abgelehnt");
+  box.innerHTML=`<div class="rad-sheet-head"><h2 class="rad-h">Oft abgelehnt</h2><button class="rad-link" id="radSheetClose" type="button">Schliessen</button></div>
+    <p class="rad-note">${list.length?`Diese Alben hast du seit dem letzten Hören mindestens ${RAD_OFTEN}× abgelehnt. Behalten oder in Spotify aus der Bibliothek entfernen?`:"Keine Alben mehr – nichts zu prüfen."}</p>
+    ${list.length?`<ul class="rad-log">${list.map(a=>`<li>${a.coverSmall?`<img src="${radEsc(a.coverSmall)}" alt="" loading="lazy">`:`<span class="rad-nocover"></span>`}<span class="rad-log-txt"><span class="rad-log-name">${radEsc(a.name)}</span><span class="rad-log-sub">${radEsc(a.artists.join(", "))} · ${RAD.counts[a.id].since}× abgelehnt</span><span class="rad-often-acts"><button class="rad-link" type="button" data-keep="${radEsc(a.id)}">Behalten</button><a class="rad-link" href="${radEsc(a.url)}" target="_blank" rel="noopener">In Spotify öffnen</a></span></span></li>`).join("")}</ul>`:""}`;
+  box.querySelectorAll("[data-keep]").forEach(b=>b.addEventListener("click",()=>{radLog(b.dataset.keep,"keep");radSheet();document.getElementById("radSheetClose")?.focus()}));
+}
+
+// Blatt über dem Rad: „Oft abgelehnt“ oder das Protokoll mit Summen und den letzten 100 Einträgen
 function radSheet(){
   const box=document.getElementById("radSheet");
   if(!box)return;
   box.hidden=!RAD.sheet;
   if(!RAD.sheet)return;
+  if(RAD.sheet==="often"){radOftenSheet(box);document.getElementById("radSheetClose").addEventListener("click",()=>{RAD.sheet=false;radSheet();radStage()?.focus()});return}
+  box.setAttribute("aria-label","Protokoll");
   const rows=radProtocol(RAD.events,RAD.all);
   const sum=Object.values(RAD.counts||{}).reduce((t,c)=>({l:t.l+c.listens,r:t.r+c.rejects}),{l:0,r:0});
-  const list=rows.length?`<ul class="rad-log">${rows.map(r=>`<li>${r.cover?`<img src="${radEsc(r.cover)}" alt="" loading="lazy">`:`<span class="rad-nocover"></span>`}<span class="rad-log-txt"><span class="rad-log-name">${radEsc(r.name)}</span><span class="rad-log-sub">${radEsc(r.artists)}</span></span><span class="rad-log-what"><span class="${r.kind==="listen"?"rad-yes":"rad-nope"}">${r.kind==="listen"?"gehört":"abgelehnt"}</span><span class="rad-log-sub">${radEsc(radWhen(r.at))}</span></span></li>`).join("")}</ul>${RAD.events.length>=100?`<p class="rad-note">Es werden die letzten 100 Einträge gezeigt.</p>`:""}`
+  const list=rows.length?`<ul class="rad-log">${rows.map(r=>`<li>${r.cover?`<img src="${radEsc(r.cover)}" alt="" loading="lazy">`:`<span class="rad-nocover"></span>`}<span class="rad-log-txt"><span class="rad-log-name">${radEsc(r.name)}</span><span class="rad-log-sub">${radEsc(r.artists)}</span></span><span class="rad-log-what"><span class="${r.kind==="reject"?"rad-nope":"rad-yes"}">${{listen:"gehört",reject:"abgelehnt",keep:"behalten"}[r.kind]}</span><span class="rad-log-sub">${radEsc(radWhen(r.at))}</span></span></li>`).join("")}</ul>${RAD.events.length>=100?`<p class="rad-note">Es werden die letzten 100 Einträge gezeigt.</p>`:""}`
     :`<p class="rad-note">${RAD.counts?"Noch keine Einträge. Tippe unten auf den Vorschlag-Knopf.":"Protokoll wird geladen…"}</p>`;
   box.innerHTML=`<div class="rad-sheet-head"><h2 class="rad-h">Protokoll</h2><button class="rad-link" id="radSheetClose" type="button">Schliessen</button></div>${RAD.counts?`<p class="rad-note rad-sum">${sum.l}× gehört · ${sum.r}× abgelehnt</p>`:""}${list}`;
   document.getElementById("radSheetClose").addEventListener("click",()=>{RAD.sheet=false;radSheet();radStage()?.focus()});
@@ -497,7 +520,7 @@ function radRender(){
       <p class="rad-sr" id="radSay" aria-live="polite"></p>
     </div>
     <button class="rad-dice" id="radSuggest" type="button" aria-label="Album vorschlagen" title="Album vorschlagen"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h3.500c2 0 3.200 1 4.300 2.600l2.400 4.800c1.100 1.600 2.300 2.600 4.300 2.600H21"/><path d="M3 17h3.500c1.300 0 2.300-.4 3.100-1.200M21 7h-3.500c-1.300 0-2.300.4-3.100 1.200"/><path d="M18 4l3 3-3 3M18 14l3 3-3 3"/></svg></button>
-    <details class="rad-menu"><summary aria-label="Menü">⋯</summary><div class="rad-menu-box"><button class="rad-link" id="radProtocol" type="button">Protokoll</button><button class="rad-link" id="radReload" type="button">Alben neu laden</button><button class="rad-link" id="radLogout" type="button">Abmelden</button></div></details>
+    <details class="rad-menu"><summary aria-label="Menü">⋯</summary><div class="rad-menu-box"><button class="rad-link" id="radOften" type="button" hidden></button><button class="rad-link" id="radProtocol" type="button">Protokoll</button><button class="rad-link" id="radReload" type="button">Alben neu laden</button><button class="rad-link" id="radLogout" type="button">Abmelden</button></div></details>
     <div class="rad-wheels" id="radWheels" role="group" aria-label="Räder und Sortierung"></div>
     <div class="rad-sheet" id="radSheet" role="dialog" aria-label="Protokoll" hidden></div>`;
     const st=radStage();
@@ -507,8 +530,10 @@ function radRender(){
     st.addEventListener("pointerup",radOnUp);
     st.addEventListener("pointercancel",radOnUp);
     document.getElementById("radSuggest").addEventListener("click",radSuggestNext);
-    document.getElementById("radProtocol").addEventListener("click",()=>{RAD.sheet=true;document.querySelector(".rad-menu").open=false;radSheet();document.getElementById("radSheetClose")?.focus()});
-    radMeasure();radDraw();radSheet();radDots();
+    const openSheet=kind=>{RAD.sheet=kind;document.querySelector(".rad-menu").open=false;radSheet();document.getElementById("radSheetClose")?.focus()};
+    document.getElementById("radProtocol").addEventListener("click",()=>openSheet("protocol"));
+    document.getElementById("radOften").addEventListener("click",()=>openSheet("often"));
+    radMeasure();radDraw();radSheet();radDots();radOftenMenu();
   }
   document.getElementById("radReload").addEventListener("click",()=>radLoad(true));
   document.getElementById("radLogout").addEventListener("click",radLogout);

@@ -103,15 +103,23 @@ function radBackoffSeconds(attempt,retryAfter){
 
 // ---------- Vorschlag und Protokoll (W.5) ----------
 
-// Zufälliges Album vorschlagen: nicht das aktuelle und keines aus exclude (in dieser Sitzung abgelehnt).
-// Sind alle ausgeschlossen, zählt nur noch „nicht das aktuelle“. Liefert den Index oder -1.
-function radSuggest(albums,{exclude=new Set(),currentId="",rnd=Math.random}={}){
-  const all=(albums||[]).map((a,i)=>({id:a.id,i}));
+// Gewicht eines Albums für den Vorschlag (W.8): selten Gehörtes kommt öfter, seit dem letzten Hören oft
+// Abgelehntes seltener. Nie gehört, nie abgelehnt = 1; 1× gehört = ½; 3× abgelehnt seit dem letzten Hören = ¼.
+function radWeight(c){return 1/((1+(c?.listens||0))*(1+(c?.since||0)))}
+
+// Album vorschlagen: nicht das aktuelle und keines aus exclude (in dieser Sitzung abgelehnt), zufällig nach radWeight.
+// Sind alle ausgeschlossen, zählt nur noch „nicht das aktuelle“. Ohne counts sind alle gleich wahrscheinlich.
+// Liefert den Index oder -1.
+function radSuggest(albums,{exclude=new Set(),currentId="",counts=null,rnd=Math.random}={}){
+  const all=(albums||[]).map((a,i)=>({id:a.id,i,w:counts?radWeight(counts[a.id]):1}));
   if(!all.length)return -1;
   let pool=all.filter(x=>x.id!==currentId&&!exclude.has(x.id));
   if(!pool.length)pool=all.filter(x=>x.id!==currentId);
   if(!pool.length)pool=all;
-  return pool[Math.min(pool.length-1,Math.floor(rnd()*pool.length))].i;
+  const total=pool.reduce((t,x)=>t+x.w,0);
+  let r=rnd()*total;
+  for(const x of pool){if(r<x.w)return x.i;r-=x.w}
+  return pool[pool.length-1].i;
 }
 
 // Weg des Rads zum vorgeschlagenen Album: immer vorwärts; ist es weit weg, springt das Rad kurz davor
@@ -127,16 +135,24 @@ function radSpin(pos,index,count,lead=10){
 // Zähler aus der Datenbank (Zeilen von mb_rad_counts) als Nachschlagetabelle je Album
 function radCountsMap(rows){
   const out={};
-  for(const r of rows||[])if(r&&r.album_id)out[r.album_id]={listens:Number(r.listens)||0,rejects:Number(r.rejects)||0,lastListen:r.last_listen||"",lastReject:r.last_reject||""};
+  for(const r of rows||[])if(r&&r.album_id)out[r.album_id]={listens:Number(r.listens)||0,rejects:Number(r.rejects)||0,since:Number(r.rejects_since)||0,lastListen:r.last_listen||"",lastReject:r.last_reject||""};
   return out;
 }
 
-// Einen Eintrag (kind: listen/reject) dazuzählen bzw. mit delta = -1 wieder abziehen; verändert counts nicht
-function radCount(counts,albumId,kind,delta=1){
-  const c={listens:0,rejects:0,lastListen:"",lastReject:"",...(counts||{})[albumId]};
-  if(kind==="listen")c.listens=Math.max(0,c.listens+delta);
-  else if(kind==="reject")c.rejects=Math.max(0,c.rejects+delta);
+// Einen Eintrag dazuzählen; verändert counts nicht. since = Ablehnungen seit dem letzten Hören oder Behalten:
+// reject zählt hoch, listen und keep setzen auf 0. (Zurücknehmen nach einem Fehler: alten Stand wiederherstellen.)
+function radCount(counts,albumId,kind){
+  const c={listens:0,rejects:0,since:0,lastListen:"",lastReject:"",...(counts||{})[albumId]};
+  if(kind==="listen"){c.listens++;c.since=0}
+  else if(kind==="reject"){c.rejects++;c.since++}
+  else if(kind==="keep")c.since=0;
   return {...counts,[albumId]:c};
+}
+
+// Oft abgelehnt (W.8): Alben mit mindestens min Ablehnungen seit dem letzten Hören oder Behalten, die meisten zuerst
+const RAD_OFTEN=3;
+function radOftenRejected(albums,counts,min=RAD_OFTEN){
+  return (albums||[]).filter(a=>(counts?.[a.id]?.since||0)>=min).sort((x,y)=>counts[y.id].since-counts[x.id].since);
 }
 
 // Zeile unter dem Titel: „3× gehört · 1× abgelehnt“
@@ -149,7 +165,7 @@ function radCountText(c){
 // Protokoll-Zeilen: Einträge (neueste zuerst) mit Albumdaten; nicht mehr gespeicherte Alben bleiben als solche sichtbar
 function radProtocol(events,albums){
   const byId=new Map((albums||[]).map(a=>[a.id,a]));
-  return (events||[]).filter(e=>e&&e.album_id&&(e.kind==="listen"||e.kind==="reject")).map(e=>{
+  return (events||[]).filter(e=>e&&e.album_id&&["listen","reject","keep"].includes(e.kind)).map(e=>{
     const a=byId.get(e.album_id);
     return {id:e.id,kind:e.kind,at:e.created_at||"",name:a?a.name:"Nicht mehr gespeichertes Album",artists:a?a.artists.join(", "):"",cover:a?a.coverSmall:""};
   });
@@ -240,4 +256,4 @@ function radLetterIndex(albums){
   return out;
 }
 
-if(typeof module!=="undefined")module.exports={radMod,radAlbum,radPickCover,radAlbums,radCircumference,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radSuggest,radSpin,radCountsMap,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radIsGroup,radColorGroup,radWheels,radNextWheel,RAD_SORTS,RAD_LETTERS,radSortName,radLetter,radSort,radLetterIndex};
+if(typeof module!=="undefined")module.exports={radMod,radAlbum,radPickCover,radAlbums,radCircumference,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radWeight,radSuggest,radSpin,radCountsMap,RAD_OFTEN,radOftenRejected,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radIsGroup,radColorGroup,radWheels,radNextWheel,RAD_SORTS,RAD_LETTERS,radSortName,radLetter,radSort,radLetterIndex};
