@@ -191,6 +191,7 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .artistline img{width:64px;height:64px;object-fit:cover;border-radius:var(--r-m)}
 .artistline h3{margin:2px 0 0;font-size:24px;overflow-wrap:anywhere}
 .playcontrols{display:grid;grid-template-columns:1fr auto;gap:var(--s2)}
+.suggest-head{margin-top:var(--s3)}
 .results{display:grid;gap:var(--s2);margin-top:var(--s3);max-height:300px;overflow:auto}
 .track{display:grid;grid-template-columns:46px 1fr auto;gap:var(--s3);align-items:center;min-height:58px;padding:9px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--field);cursor:pointer}
 .track:hover{border-color:var(--a);background:#1c1030}
