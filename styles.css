@@ -546,3 +546,20 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 /* Status in Spielerzeilen ist Text mit Punkt, kein Knopf (Q.3) */
 .member>.chip{border:0;background:none;padding:0;gap:6px;font-size:13px}
 .member>.chip::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+
+/* ---------- Musik-Quiz: eigener Look «Quizshow-Studio» (8.6, Entscheidung O) ----------
+   Gilt, solange die Kopfzeile «Musik-Quiz» zeigt (Klasse html.quiz aus bindBrandHome). Tintenblau statt Violett,
+   Gold als Hauptfarbe (statt Pink/Cyan), Titel in Barlow Condensed statt Sedgwick. Vorlage: design/quiz-look-muster.html */
+html.quiz{
+  --bg:#0f1324; --surface:#181e35; --surface-2:#1f2642; --surface-3:#28304f;
+  --field:#0b0f1d; --line:#2c3556; --line-strong:#43507a;
+  --text:#f1f3fa; --muted:#a9b0c8;
+  --a:#ffd166; --b:#8fb0ff; --cta-end:#ffd166; --on-cta:#241a02;
+  --f-title:"Barlow Condensed","Barlow",system-ui,sans-serif;
+  --glow-a:none; --glow-b:none; --glow-cta:none; --text-glow-a:none; --text-glow-b:none;
+}
+html.quiz body{background-image:none}
+html.quiz h1,html.quiz h2,html.quiz h3{font-weight:700}
+html.quiz .quizbar span{background:var(--gold)}
+html.quiz .finalscore{background:var(--surface-2)}
+html.quiz input:focus,html.quiz select:focus{box-shadow:0 0 0 3px rgba(255,209,102,.2)}

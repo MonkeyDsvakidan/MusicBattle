@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Musik-Quiz Look</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Barlow+Condensed:wght@700&family=Bungee&family=Sedgwick+Ave+Display&display=swap">
+<style>
+/* Musterseite: eigener Look fürs Musik-Quiz (Roadmap 8.6) + Kopfzeile «GameMaster» mit Weg zur Übersicht (8.3). Nur dunkel. */
+:root{--page:#121115;--fg:#f3f1f6;--muted:#a9a5b3;--gold:#ffd166;
+  --f-text:"Barlow",system-ui,sans-serif;--f-num:"Bungee","Arial Black",sans-serif;
+  --s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--r-s:8px;--r-m:14px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--fg);font:400 16px/1.5 var(--f-text);padding:32px 16px 48px}
+.wrap{max-width:1100px;margin:0 auto;display:grid;gap:32px}
+h1{margin:0;font:700 2rem/1.1 "Barlow Condensed",sans-serif}
+.intro p{color:var(--muted);max-width:62ch;margin:8px 0 0}
+.grid{display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));align-items:start}
+.v{display:grid;gap:12px;justify-items:center}
+.v>div:first-child{width:100%;max-width:330px}
+.v h2{margin:0;font:700 1.3rem/1.2 "Barlow Condensed",sans-serif}
+.v p.d{margin:4px 0 0;font-size:.875rem;color:var(--muted)}
+.phone{width:100%;max-width:330px;border-radius:32px;border:6px solid #2a2930;overflow:hidden;background:var(--bg);color:var(--text)}
+/* Kopfzeile: GameMaster-Maske + Spielname, Tipp = zurück zur Übersicht */
+.top{display:flex;align-items:center;gap:10px;padding:16px 16px 8px;min-height:60px}
+.top img{width:36px;height:36px;border-radius:9px;flex:none}
+.top .t{display:grid;line-height:1.1}
+.top small{font:600 11px/1.2 var(--f-text);color:var(--muted2)}
+.top b{font:var(--brand-font);color:var(--text)}
+.top .back{margin-left:auto;font:600 13px/1 var(--f-text);color:var(--muted2);display:flex;align-items:center;gap:4px}
+.scr{padding:8px 16px 20px;display:grid;gap:14px}
+.kick{font:600 11px/1 var(--f-text);letter-spacing:.06em;color:var(--acc)}
+.phone .title{margin:0;font:var(--title-font);color:var(--text)}
+.lead{margin:0;font-size:.9rem;color:var(--muted2)}
+.card{border:1px solid var(--line);border-radius:var(--r-m);background:var(--surface);padding:14px;display:grid;gap:10px}
+.card h3{margin:0;font:var(--card-font);color:var(--text)}
+.field{height:44px;border-radius:var(--r-s);border:1px solid var(--line);background:var(--field);display:flex;align-items:center;padding:0 12px;color:var(--muted2);font-size:.9rem}
+.btn{height:46px;border-radius:var(--r-s);display:grid;place-items:center;font:400 13px/1 var(--f-num);background:var(--acc);color:var(--on-acc)}
+.lens{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lens span{height:44px;border-radius:var(--r-s);border:1px solid var(--line);display:grid;place-items:center;font:400 11px/1.1 var(--f-num);color:var(--text)}
+.lens span.on{border-color:var(--acc);color:var(--acc)}
+/* Frage-Ausschnitt */
+.q{display:grid;gap:8px}
+.timer{height:6px;border-radius:3px;background:var(--line)}.timer i{display:block;height:100%;width:62%;border-radius:3px;background:var(--acc)}
+.ans{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ans span{min-height:48px;border-radius:var(--r-s);background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;font:400 15px/1 var(--f-num);color:var(--text);font-variant-numeric:tabular-nums}
+/* Bestehendes 1v1 zum Vergleich */
+.mb{--bg:#170d24;--surface:#22143a;--field:#140a22;--line:#3d2a5e;--text:#f6f0ff;--muted2:#b8a8d4;--acc:#ff3fa4;--on-acc:#1a0c22;
+  --brand-font:400 20px/1 "Sedgwick Ave Display",cursive;--title-font:400 28px/1.05 "Sedgwick Ave Display",cursive;--card-font:400 20px/1.1 "Sedgwick Ave Display",cursive}
+/* A – Quizshow-Studio: Tintenblau, Gold, Titel Barlow Condensed */
+.va{--bg:#0f1324;--surface:#181e35;--field:#0b0f1d;--line:rgb(220 230 255 / .10);--text:#f1f3fa;--muted2:#a9b0c8;--acc:#ffd166;--on-acc:#241a02;
+  --brand-font:700 20px/1 "Barlow Condensed",sans-serif;--title-font:700 30px/1.05 "Barlow Condensed",sans-serif;--card-font:700 20px/1.1 "Barlow Condensed",sans-serif}
+/* B – Goldene Bühne: warmes Schwarz, Gold, Titel Bungee */
+.vb{--bg:#15120c;--surface:#211c12;--field:#100d08;--line:rgb(255 240 210 / .10);--text:#f8f2e6;--muted2:#bcb09a;--acc:#ffd166;--on-acc:#241a02;
+  --brand-font:400 16px/1 "Bungee",sans-serif;--title-font:400 24px/1.1 "Bungee",sans-serif;--card-font:400 16px/1.15 "Bungee",sans-serif}
+/* C – Nah am 1v1: gleiches Violett, aber Gold statt Pink und eigener Name */
+.vc{--bg:#170d24;--surface:#22143a;--field:#140a22;--line:#3d2a5e;--text:#f6f0ff;--muted2:#b8a8d4;--acc:#ffd166;--on-acc:#241a02;
+  --brand-font:400 20px/1 "Sedgwick Ave Display",cursive;--title-font:400 28px/1.05 "Sedgwick Ave Display",cursive;--card-font:400 20px/1.1 "Sedgwick Ave Display",cursive}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="intro">
+    <h1>Musik-Quiz: eigener Look</h1>
+    <p>Oben links steht neu GameMaster (Maske) mit dem Spielnamen. Ein Tipp darauf oder auf «Alle Spiele» führt zurück zur Übersicht. Darunter drei Farb-Varianten fürs Quiz, links zum Vergleich das 1v1 mit der neuen Kopfzeile.</p>
+  </header>
+  <div class="grid" id="grid"></div>
+</main>
+<template id="tpl">
+  <div class="phone">
+    <div class="top"><img src="https://monkeydsvakidan.github.io/icon-180.png" alt=""><span class="t"><small>GameMaster</small><b class="name"></b></span><span class="back">‹&#xFE0E; Alle Spiele</span></div>
+    <div class="scr"></div>
+  </div>
+</template>
+<script>
+const quiz=`<div><div class="kick">MUSIK-QUIZ</div><h2 class="title">Wer kennt seine Musik?</h2></div>
+<p class="lead">Fragen aus den Spotify-Songs der Mitspieler. Wer schneller richtig liegt, bekommt mehr Punkte.</p>
+<div class="card"><h3>Alleine spielen</h3><div class="lens"><span class="on">10 Fragen</span><span>15 Fragen</span><span>20 Fragen</span></div><div class="btn">Alleine spielen</div></div>
+<div class="card q"><h3>Frage 4 von 10 · In welchem Jahr?</h3><div class="timer"><i></i></div><div class="ans"><span>1997</span><span>2003</span><span>2008</span><span>2014</span></div></div>`;
+const mb=`<div><div class="kick">PASS &amp; PLAY</div><h2 class="title">Wie wollt ihr spielen?</h2></div>
+<p class="lead">Zwei Spieler, fünf Runden, eine Jury.</p>
+<div class="card"><h3>Ein Gerät</h3><div class="field">Dein Name</div><div class="btn">Raum erstellen</div></div>`;
+const V=[["mb","Music 1v1","Heute (zum Vergleich), nur Kopfzeile neu",mb],
+ ["va","Musik-Quiz","A · Quizshow-Studio: Tintenblau, Gold, Titel schmal und kräftig",quiz],
+ ["vb","Musik-Quiz","B · Goldene Bühne: warmes Schwarz, Gold, Titel in Bungee",quiz],
+ ["vc","Musik-Quiz","C · Nah am 1v1: gleiches Violett, Gold statt Pink",quiz]];
+const tpl=document.getElementById("tpl"),grid=document.getElementById("grid");
+for(const [k,name,desc,html] of V){const v=document.createElement("div");v.className="v";
+ v.innerHTML=`<div><h2>${desc.split(":")[0]}</h2><p class="d">${desc.split(":")[1]||""}</p></div>`;
+ const ph=tpl.content.firstElementChild.cloneNode(true);ph.classList.add(k);ph.querySelector(".name").textContent=name;ph.querySelector(".scr").innerHTML=html;v.append(ph);grid.append(v)}
+</script>
+</body>
+</html>
