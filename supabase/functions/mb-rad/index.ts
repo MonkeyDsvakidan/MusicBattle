@@ -1,8 +1,9 @@
-// mb-rad (Roadmap W.5/W.7/W.8): Protokoll und Farb-Rad-Verschiebungen des Albumrads. Kein Supabase-Login – wer aufruft, weist sich mit seinem
+// mb-rad (Roadmap W.5/W.7/W.8/W.9): Protokoll und Farb-Rad-Verschiebungen des Albumrads. Kein Supabase-Login – wer aufruft, weist sich mit seinem
 // Spotify-Token aus: die Function fragt Spotify (GET /me), wem das Token gehört, und liest/schreibt nur
 // die Zeilen dieses Spotify-Kontos (Service-Rolle; die Tabelle mb_rad_events ist für Clients gesperrt).
 // Darum verify_jwt = false. Aktionen: "state" (Zähler, letzte Einträge, Verschiebungen), "log" (gehört/abgelehnt/
-// behalten speichern), "move" (Album von Hand einem Farb-Rad zuteilen; "auto" = wieder die berechnete Farbe).
+// behalten speichern), "move" (Album von Hand einem Farb-Rad zuteilen; "auto" = wieder die berechnete Farbe),
+// "auto" (im Browser aus „zuletzt gespielt“ erkannte Alben als gehört eintragen, höchstens einmal pro Album und Tag).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const cors = {
@@ -17,6 +18,8 @@ function out(data: unknown, status = 200) {
 const MAX_PER_HOUR = 300; // Schutz vor Dauerfeuer: so viele Einträge pro Konto und Stunde
 const RECENT = 100;       // so viele letzte Einträge liefert "state" fürs Protokoll
 const MOVES_PER_HOUR = 500; // so viele Verschiebungen pro Konto und Stunde
+// Kalendertag in der Schweiz – „am selben Tag“ (W.9) meint den Tag des Nutzers, nicht UTC
+const zurichDay = (d: string | Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Zurich" }).format(new Date(d));
 const WHEELS = ["auto", "warm", "cold", "dark", "light"]; // „pink“ seit 20.11.2026 in „cold“ aufgegangen
 
 Deno.serve(async (req) => {
@@ -45,6 +48,13 @@ Deno.serve(async (req) => {
       const since = new Date(Date.now() - 3600_000).toISOString();
       const { count } = await admin.from("mb_rad_events").select("id", { count: "exact", head: true }).eq("spotify_user", user).gte("created_at", since);
       if (Number(count || 0) >= MAX_PER_HOUR) return out({ error: "too many entries" }, 429);
+      // Tippen auf „Hören“ nach einem erkannten „gehört“ am selben Tag zählt nicht nochmals (W.9)
+      if (kind === "listen") {
+        const { data: autos } = await admin.from("mb_rad_events").select("created_at").eq("spotify_user", user).eq("album_id", albumId)
+          .eq("kind", "listen").eq("source", "auto").gte("created_at", new Date(Date.now() - 48 * 3600_000).toISOString());
+        const today = zurichDay(new Date());
+        if ((autos ?? []).some((e: any) => zurichDay(e.created_at) === today)) return out({ ok: true, duplicate: true });
+      }
       const { data, error } = await admin.from("mb_rad_events").insert({ spotify_user: user, album_id: albumId, kind, source: "tap" }).select("id,album_id,kind,source,created_at").single();
       if (error) return out({ error: "failed to store", detail: error.message }, 500);
       return out({ ok: true, event: data });
@@ -65,6 +75,16 @@ Deno.serve(async (req) => {
         if ((page.data ?? []).length < 1000) break;
       }
       return out({ ok: true, counts: counts.data ?? [], events: events.data ?? [], moves });
+    }
+
+    if (action === "auto") {
+      const items = (Array.isArray(body?.items) ? body.items : []).slice(0, 50)
+        .map((x: any) => ({ album_id: String(x?.album_id || ""), at: String(x?.at || "") }))
+        .filter((x: any) => /^[A-Za-z0-9]{1,64}$/.test(x.album_id) && !Number.isNaN(Date.parse(x.at)));
+      if (!items.length) return out({ ok: true, events: [] });
+      const { data, error } = await admin.rpc("mb_rad_add_auto_listens", { p_user: user, p_items: items });
+      if (error) return out({ error: "failed to store", detail: error.message }, 500);
+      return out({ ok: true, events: data ?? [] });
     }
 
     if (action === "move") {

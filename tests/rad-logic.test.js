@@ -1,6 +1,6 @@
 const test=require("node:test");
 const assert=require("node:assert/strict");
-const {radMod,radAlbum,radPickCover,radAlbums,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radWeight,radSuggest,radSpin,radCountsMap,RAD_OFTEN,radOftenRejected,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radColorGroup,radWheels,radNextWheel,RAD_SORTS,RAD_LETTERS,radSortName,radLetter,radSort,radLetterIndex}=require("../tools/rad-logic.js");
+const {radMod,radAlbum,radPickCover,radAlbums,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radWeight,radSuggest,radSpin,radCountsMap,RAD_OFTEN,radOftenRejected,radNeededTracks,radDetectListens,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radColorGroup,radWheels,radNextWheel,RAD_SORTS,RAD_LETTERS,radSortName,radLetter,radSort,radLetterIndex}=require("../tools/rad-logic.js");
 
 const imgs=[{url:"big",width:640},{url:"mid",width:300},{url:"small",width:64}];
 const item=(id,extra={})=>({added_at:"2026-11-01T10:00:00Z",album:{id,name:`Album ${id}`,album_type:"album",total_tracks:12,release_date:"2020-05-01",artists:[{name:"Eno"}],images:imgs,uri:`spotify:album:${id}`,external_urls:{spotify:`https://open.spotify.com/album/${id}`},...extra}});
@@ -139,7 +139,7 @@ test("Zählertext",()=>{
 test("Protokoll: Albumdaten dazu, unbekannte Alben bleiben sichtbar, kaputte Einträge fallen weg",()=>{
   const rows=radProtocol([{id:2,album_id:"b",kind:"reject",created_at:"x"},{id:1,album_id:"zz",kind:"listen",created_at:"y"},{id:0,album_id:"a",kind:"anderes"},null],five);
   assert.equal(rows.length,2);
-  assert.deepEqual(rows[0],{id:2,kind:"reject",at:"x",name:"Album b",artists:"Eno",cover:"c-b"});
+  assert.deepEqual(rows[0],{id:2,kind:"reject",auto:false,at:"x",name:"Album b",artists:"Eno",cover:"c-b"});
   assert.equal(rows[1].name,"Nicht mehr gespeichertes Album");
 });
 
@@ -281,4 +281,42 @@ test("Oft abgelehnt: ab 3 seit dem letzten Hören, die meisten zuerst",()=>{
 
 test("Protokoll zeigt auch Behalten",()=>{
   assert.equal(radProtocol([{id:3,album_id:"a",kind:"keep",created_at:"z"}],five)[0].kind,"keep");
+});
+
+// ---------- Automatisch erkennen (W.9) ----------
+const play=(album,track,iso,total=10)=>({played_at:iso,track:{id:track,album:{id:album,total_tracks:total}}});
+const h=n=>new Date(Date.UTC(2026,10,20,8)+n*3600*1000).toISOString();
+
+test("Nötige Songs: Hälfte, höchstens 8, mindestens 1",()=>{
+  assert.equal(radNeededTracks(10),5);
+  assert.equal(radNeededTracks(7),4);
+  assert.equal(radNeededTracks(30),8);
+  assert.equal(radNeededTracks(1),1);
+  assert.equal(radNeededTracks(undefined),1);
+});
+
+test("Erkennen: Hälfte der Songs innerhalb eines Tages zählt, Zeitpunkt = Song, der die Regel erfüllt",()=>{
+  const saved=new Map([["A",10]]);
+  const items=[play("A","1",h(0)),play("A","2",h(0.1)),play("A","3",h(0.2)),play("A","4",h(0.3)),play("A","5",h(0.4))];
+  assert.deepEqual(radDetectListens(items.reverse(),saved),[{album_id:"A",at:h(0.4)}]);
+  assert.deepEqual(radDetectListens(items.slice(1),saved),[],"4 von 10 reicht nicht");
+});
+
+test("Erkennen: gleicher Song mehrfach zählt einmal, über 24 Stunden verteilt zählt nicht",()=>{
+  const saved=new Map([["A",4]]);
+  assert.deepEqual(radDetectListens([play("A","1",h(0)),play("A","1",h(1)),play("A","1",h(2))],saved),[]);
+  assert.deepEqual(radDetectListens([play("A","1",h(0)),play("A","2",h(25))],saved),[]);
+  assert.equal(radDetectListens([play("A","1",h(0)),play("A","2",h(23))],saved).length,1);
+});
+
+test("Erkennen: nur gespeicherte Alben, Anzahl Songs aus der eigenen Liste, kaputte Einträge fallen weg",()=>{
+  const saved=new Map([["A",2],["B",0]]);
+  const items=[play("A","1",h(0),30),play("C","9",h(0)),play("B","7",h(1),2),{played_at:"kaputt",track:{id:"x",album:{id:"A"}}},null];
+  assert.deepEqual(radDetectListens(items,saved).map(x=>x.album_id),["A","B"],"A braucht 1 von 2 (eigene Liste), B 1 von 2 (Spotify)");
+});
+
+test("Erkennen: zweimal ganz gehört gibt zwei Einträge",()=>{
+  const saved=new Map([["A",4]]);
+  const items=[play("A","1",h(0)),play("A","2",h(1)),play("A","1",h(30)),play("A","2",h(31))];
+  assert.deepEqual(radDetectListens(items,saved).map(x=>x.at),[h(1),h(31)]);
 });

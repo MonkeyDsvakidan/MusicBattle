@@ -153,8 +153,35 @@ async function radLoadState(){
     RAD.counts=radCountsMap(d.counts);RAD.events=d.events||[];radOftenMenu();
     RAD.moves=Object.fromEntries((d.moves||[]).map(m=>[m.album_id,m.wheel]));
     if(RAD.error===RAD_STATE_ERR)RAD.error="";
+    radAutoDetect();
   }catch(e){if(!RAD.error)RAD.error=RAD_STATE_ERR}
   if(RAD.view==="wheel"){radStatus();radWheelsChanged();if(RAD.sheet)radSheet()}
+}
+
+// ---------- Automatisch erkennen (W.9) ----------
+// Beim Öffnen die letzten 50 in Spotify gespielten Songs holen und daraus gehörte Alben bestimmen (Regel in
+// radDetectListens). Die Datenbank trägt jedes Album höchstens einmal pro Tag ein, mehrfaches Öffnen zählt also
+// nicht doppelt. Fehler hier stören das Rad nicht – dann wird beim nächsten Öffnen abgeglichen.
+async function radAutoDetect(){
+  if(RAD.autoRun||!RAD.all.length)return;
+  RAD.autoRun=true;
+  try{
+    const page=await radApi("/me/player/recently-played?limit=50");
+    const found=radDetectListens(page?.items,new Map(RAD.all.map(a=>[a.id,a.tracks])));
+    if(found.length){
+      const d=await radFn({action:"auto",items:found});
+      const added=(d.events||[]).filter(e=>e?.album_id);
+      for(const e of added)RAD.counts=radCount(RAD.counts||{},e.album_id,"listen");
+      if(added.length){
+        RAD.events=[...added,...RAD.events].sort((x,y)=>String(y.created_at).localeCompare(String(x.created_at))).slice(0,100);
+        const msg=added.length===1?"1 Album als gehört erkannt":`${added.length} Alben als gehört erkannt`;
+        RAD.progress=msg;
+        setTimeout(()=>{if(RAD.progress===msg){RAD.progress="";radStatus()}},5000);
+        if(RAD.view==="wheel"){radStatus();radDraw();radOftenMenu();if(RAD.sheet)radSheet()}
+      }
+    }
+  }catch(e){console.warn("Albumrad: automatisches Erkennen übersprungen –",e?.message||e)}
+  RAD.autoRun=false;
 }
 
 // ---------- Farb-Räder (W.7) ----------
@@ -265,6 +292,8 @@ function radLog(albumId,kind){
   RAD.counts=radCount(RAD.counts||{},albumId,kind);
   RAD.error="";radStatus();radOftenMenu();
   radFn({action:"log",album_id:albumId,kind},true).then(d=>{
+    // Heute schon automatisch als gehört erkannt (W.9): zählt nicht nochmals
+    if(d.duplicate){const c={...RAD.counts};if(before)c[albumId]=before;else delete c[albumId];RAD.counts=c;if(RAD.view==="wheel")radDraw()}
     if(d.event)RAD.events=[d.event,...RAD.events].slice(0,100);
     if(RAD.sheet)radSheet();
   }).catch(e=>{
@@ -402,7 +431,7 @@ function radSheet(){
   box.setAttribute("aria-label","Protokoll");
   const rows=radProtocol(RAD.events,RAD.all);
   const sum=Object.values(RAD.counts||{}).reduce((t,c)=>({l:t.l+c.listens,r:t.r+c.rejects}),{l:0,r:0});
-  const list=rows.length?`<ul class="rad-log">${rows.map(r=>`<li>${r.cover?`<img src="${radEsc(r.cover)}" alt="" loading="lazy">`:`<span class="rad-nocover"></span>`}<span class="rad-log-txt"><span class="rad-log-name">${radEsc(r.name)}</span><span class="rad-log-sub">${radEsc(r.artists)}</span></span><span class="rad-log-what"><span class="${r.kind==="reject"?"rad-nope":"rad-yes"}">${{listen:"gehört",reject:"abgelehnt",keep:"behalten"}[r.kind]}</span><span class="rad-log-sub">${radEsc(radWhen(r.at))}</span></span></li>`).join("")}</ul>${RAD.events.length>=100?`<p class="rad-note">Es werden die letzten 100 Einträge gezeigt.</p>`:""}`
+  const list=rows.length?`<ul class="rad-log">${rows.map(r=>`<li>${r.cover?`<img src="${radEsc(r.cover)}" alt="" loading="lazy">`:`<span class="rad-nocover"></span>`}<span class="rad-log-txt"><span class="rad-log-name">${radEsc(r.name)}</span><span class="rad-log-sub">${radEsc(r.artists)}</span></span><span class="rad-log-what"><span class="${r.kind==="reject"?"rad-nope":"rad-yes"}">${r.auto?"gehört (erkannt)":{listen:"gehört",reject:"abgelehnt",keep:"behalten"}[r.kind]}</span><span class="rad-log-sub">${radEsc(radWhen(r.at))}</span></span></li>`).join("")}</ul>${RAD.events.length>=100?`<p class="rad-note">Es werden die letzten 100 Einträge gezeigt.</p>`:""}`
     :`<p class="rad-note">${RAD.counts?"Noch keine Einträge. Tippe unten auf den Vorschlag-Knopf.":"Protokoll wird geladen…"}</p>`;
   box.innerHTML=`<div class="rad-sheet-head"><h2 class="rad-h">Protokoll</h2><button class="rad-link" id="radSheetClose" type="button">Schliessen</button></div>${RAD.counts?`<p class="rad-note rad-sum">${sum.l}× gehört · ${sum.r}× abgelehnt</p>`:""}${list}`;
   document.getElementById("radSheetClose").addEventListener("click",()=>{RAD.sheet=false;radSheet();radStage()?.focus()});

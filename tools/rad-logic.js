@@ -167,7 +167,7 @@ function radProtocol(events,albums){
   const byId=new Map((albums||[]).map(a=>[a.id,a]));
   return (events||[]).filter(e=>e&&e.album_id&&["listen","reject","keep"].includes(e.kind)).map(e=>{
     const a=byId.get(e.album_id);
-    return {id:e.id,kind:e.kind,at:e.created_at||"",name:a?a.name:"Nicht mehr gespeichertes Album",artists:a?a.artists.join(", "):"",cover:a?a.coverSmall:""};
+    return {id:e.id,kind:e.kind,auto:e.source==="auto",at:e.created_at||"",name:a?a.name:"Nicht mehr gespeichertes Album",artists:a?a.artists.join(", "):"",cover:a?a.coverSmall:""};
   });
 }
 
@@ -256,4 +256,36 @@ function radLetterIndex(albums){
   return out;
 }
 
-if(typeof module!=="undefined")module.exports={radMod,radAlbum,radPickCover,radAlbums,radCircumference,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radWeight,radSuggest,radSpin,radCountsMap,RAD_OFTEN,radOftenRejected,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radIsGroup,radColorGroup,radWheels,radNextWheel,RAD_SORTS,RAD_LETTERS,radSortName,radLetter,radSort,radLetterIndex};
+// ---------- Automatisch erkennen (W.9) ----------
+
+// Ein Album gilt als gehört, wenn innerhalb von 24 Stunden mindestens die Hälfte seiner Songs lief (höchstens 8 nötig).
+const RAD_AUTO_MAX=8,RAD_DAY_MS=24*3600*1000;
+function radNeededTracks(total){return Math.max(1,Math.min(RAD_AUTO_MAX,Math.ceil((Number(total)||0)/2)))}
+
+// Aus Spotifys „zuletzt gespielt“ (items: {played_at, track:{id, album:{id,total_tracks}}}) die gehörten Alben bestimmen.
+// Nur Alben aus saved (Map Album-ID → Anzahl Songs; fehlt die Zahl, gilt total_tracks von Spotify). Gezählt werden
+// verschiedene Songs; ist die Regel erfüllt, entsteht ein Eintrag zum Zeitpunkt dieses Songs, danach wird neu gezählt.
+// Liefert [{album_id, at}] (at = ISO-Zeit). Doppelte am selben Tag filtert die Datenbank.
+function radDetectListens(items,saved){
+  const byAlbum=new Map();
+  for(const it of items||[]){
+    const id=it?.track?.album?.id,t=Date.parse(it?.played_at||""),track=it?.track?.id;
+    if(!id||!track||!Number.isFinite(t)||!saved?.has(id))continue;
+    if(!byAlbum.has(id))byAlbum.set(id,{total:saved.get(id)||it.track.album.total_tracks,plays:[]});
+    byAlbum.get(id).plays.push({t,track});
+  }
+  const out=[];
+  for(const [id,{total,plays}] of byAlbum){
+    const need=radNeededTracks(total);
+    plays.sort((a,b)=>a.t-b.t);
+    let win=[];
+    for(const p of plays){
+      win=win.filter(x=>p.t-x.t<RAD_DAY_MS);
+      win.push(p);
+      if(new Set(win.map(x=>x.track)).size>=need){out.push({album_id:id,at:new Date(p.t).toISOString()});win=[]}
+    }
+  }
+  return out.sort((a,b)=>a.at.localeCompare(b.at));
+}
+
+if(typeof module!=="undefined")module.exports={radMod,radAlbum,radPickCover,radAlbums,radCircumference,radRing,radLayout,radFocusIndex,radBackoffSeconds,RAD_MAX_SCALE,RAD_MIN_SCALE,radWeight,radSuggest,radSpin,radCountsMap,RAD_OFTEN,radOftenRejected,radNeededTracks,radDetectListens,radCount,radCountText,radProtocol,radWhen,RAD_GROUPS,radIsGroup,radColorGroup,radWheels,radNextWheel,RAD_SORTS,RAD_LETTERS,radSortName,radLetter,radSort,radLetterIndex};
