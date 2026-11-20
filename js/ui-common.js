@@ -32,7 +32,20 @@ async function mbConfirmLeave(){
   return mbConfirm(`Das Match wartet auf dich. Mit dem Raumcode ${code} kommst du als Spieler 2 auf deinen Platz zurück.`,{title:"Match verlassen?",confirmLabel:"Verlassen",cancelLabel:"Weiterspielen",danger:true});
 }
 
-function bindBrandHome(){const el=$("brandHome");if(el)el.onclick=openModeSelection}
+// Kopfzeile (8.3): GameMaster-Maske + Spielname; Tipp führt zur GameMaster-Übersicht, im laufenden Spiel mit Rückfrage (Raum bleibt offen)
+function currentGameName(){return (S.room?S.room.game==="quiz":window.MB_DEVICE_MODE_CHOICE==="quiz")?"Musik-Quiz":"Music 1v1"}
+function bindBrandHome(){
+  const name=currentGameName();
+  if($("brandTitle"))$("brandTitle").textContent=name;
+  document.title=`${name} · GameMaster`;
+  for(const id of ["brandHome","allGames"]){const el=$(id);if(el)el.onclick=goToOverview}
+}
+async function goToOverview(e){
+  e.preventDefault();
+  const running=S.room?.id&&!["lobby","finished","closed"].includes(S.room.status);
+  if(running&&!(await mbConfirm(`Der Raum bleibt offen. Über ${currentGameName()} kommst du zurück ${S.room.game==="quiz"?"ins Quiz":"ins Match"}.`,{title:"Zur Übersicht?",confirmLabel:"Zur Übersicht",cancelLabel:"Weiterspielen"})))return;
+  location.href="/";
+}
 
 function roomExitControls(){if(!S.room)return"";return `<div class="exitbar"><button class="btn ghost" id="leaveRoomBtn">Raum verlassen</button>${isHost()?`<button class="btn ghost danger" id="newRoomBtn">Neuer Raum</button>`:""}</div>`}
 

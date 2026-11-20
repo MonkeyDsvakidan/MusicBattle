@@ -78,12 +78,15 @@ button{font:inherit}
 .shell{width:min(1180px,calc(100% - 24px));margin:auto;padding:var(--s5) 0 calc(60px + env(safe-area-inset-bottom))}
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:var(--s4);margin-bottom:var(--s5)}
 .brand,.brand-home{display:flex;align-items:center;gap:var(--s3)}
-.brand-home{appearance:none;border:0;background:transparent;color:inherit;padding:0;cursor:pointer;text-align:left;border-radius:var(--r-l)}
+.brand-home{color:inherit;text-decoration:none;min-height:44px;border-radius:var(--r-l)}
 .brand-home:focus-visible{outline-offset:6px}
 .brand-home:hover .mark{transform:translateY(-1px) rotate(-3deg)}
-.mark{width:46px;height:46px;border-radius:var(--r-m);display:grid;place-items:center;font:400 15px var(--f-num);color:var(--on-cta);background:linear-gradient(135deg,var(--a),var(--cta-end));box-shadow:var(--glow-a);transition:transform .15s}
+.mark{width:46px;height:46px;border-radius:var(--r-m);flex:none;transition:transform .15s}
+.topright{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;justify-content:flex-end}
+.allgames{display:inline-flex;align-items:center;min-height:44px;font:600 14px/1 var(--f-text);color:var(--muted);text-decoration:none;white-space:nowrap}
+.allgames:hover{color:var(--text)}
 .brandcopy,.brandcopy .eyebrow{display:block}
-.brandtitle{display:block;font:400 30px/1 var(--f-title)}
+.brandtitle{display:block;font:400 30px/1 var(--f-title);white-space:nowrap}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);padding:var(--s5);box-shadow:var(--sh-card)}
 .card>h2:first-child,.card .sectionhead h2{margin-top:var(--s1)}
 .loading{text-align:center;color:var(--muted)}
