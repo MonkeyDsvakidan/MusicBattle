@@ -132,7 +132,7 @@ function radSpin(pos,index,count,lead=10){
   return {from:forward>lead?to-lead:pos,to};
 }
 
-// Zähler aus der Datenbank (Zeilen von mb_rad_counts) als Nachschlagetabelle je Album
+// Zähler aus der Datenbank (Zeilen von mb_rad_stats) als Nachschlagetabelle je Album
 function radCountsMap(rows){
   const out={};
   for(const r of rows||[])if(r&&r.album_id)out[r.album_id]={listens:Number(r.listens)||0,rejects:Number(r.rejects)||0,since:Number(r.rejects_since)||0,lastListen:r.last_listen||"",lastReject:r.last_reject||""};
