@@ -194,12 +194,6 @@ async function uploadQuizPool(slotNo){
   return Number(data)||0;
 }
 
-// Quiz noch im Aufbau (bis 7.7): Auf der Startseite nur sichtbar, wenn die Seite einmal mit ?quiz=1 geöffnet wurde
-// (bleibt auf dem Gerät gespeichert, ?quiz=0 blendet wieder aus). Einladungslinks zu einem Quiz funktionieren immer.
-function quizEnabled(){
-  try{const q=new URLSearchParams(location.search).get("quiz");if(q==="1")localStorage.setItem("mb_quiz_beta","1");if(q==="0")localStorage.removeItem("mb_quiz_beta");return localStorage.getItem("mb_quiz_beta")==="1"}catch{return false}
-}
-
 async function createQuizRoom(){
   S.error="";
   const name=$("createName")?.value.trim()||"";

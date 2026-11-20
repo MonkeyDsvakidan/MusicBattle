@@ -100,7 +100,7 @@ function render(){
 // Host hat das Match verlassen → Raum ist für alle geschlossen (Entscheidung F)
 function renderClosed(){
   $("roomBadge").innerHTML="";
-  $("app").innerHTML=`<section class="card"><div class="eyebrow">MATCH BEENDET</div><h2>Der Host hat das Match beendet</h2><p class="muted">Raum ${esc(S.room.code)} ist geschlossen. Startet einfach ein neues Match.</p><div class="actions"><button class="btn primary" id="closedHome">Zur Startseite</button></div></section>`;
+  $("app").innerHTML=`<section class="card">${S.room.game==="quiz"?`<div class="eyebrow">QUIZ BEENDET</div><h2>Der Host hat das Quiz beendet</h2><p class="muted">Raum ${esc(S.room.code)} ist geschlossen. Startet einfach ein neues Quiz.</p>`:`<div class="eyebrow">MATCH BEENDET</div><h2>Der Host hat das Match beendet</h2><p class="muted">Raum ${esc(S.room.code)} ist geschlossen. Startet einfach ein neues Match.</p>`}<div class="actions"><button class="btn primary" id="closedHome">Zur Startseite</button></div></section>`;
   $("closedHome").onclick=()=>{resetLocalRoomState();render()};
 }
 
