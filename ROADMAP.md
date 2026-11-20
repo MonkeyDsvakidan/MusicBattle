@@ -334,6 +334,16 @@ Ablauf (I): Beitritt per QR-Code/Link, **jede Person antwortet auf dem eigenen H
   - **Neu „Intro erraten“:** Song läuft auf dem Host-Gerät ab Sekunde 0 (oder kurz danach), Titel und Cover bleiben verdeckt, 4 Songtitel zur Wahl (möglichst desselben Künstlers). Die Song-ID darf nicht im öffentlichen Teil der Frage stehen → Abspiel-Info nur für den Host (z. B. RPC `mb_quiz_host_play`). Hinweis: Mit dem iPhone als Host zeigt die Spotify-App den Titel.
   - **Neu „Welches Album?“:** Songtitel und Künstler sichtbar, 4 Alben desselben Künstlers zur Wahl (ohne Cover); nur wenn der Pool genug Alben des Künstlers hat.
 
+## Phase 8 – GameMaster: alle Spiele in einer App (Wunsch des Nutzers, 20.11.2026)
+
+Music Battle, Musik-Quiz, TotalGuesser und die Aufräum-Tools werden zu einer Spiel-App **«GameMaster»** zusammengefasst (Entscheidung M). Die Repos bleiben getrennt (Weg B): Beide Apps bekommen dieselbe Leiste unten; ein eigenes Repo `monkeydsvakidan.github.io` liefert Startseite, gemeinsames App-Symbol und Manifest, damit es auf dem Handy eine App ist. Vorlage: `design/gamemaster-muster.html`.
+
+- [x] **8.1 Musterseite und Entscheide.** Leiste, Farben und Icons als Musterseite, vom Nutzer ausgewählt (siehe Entscheidung M).
+- [ ] **8.2 Startseite und App-Symbol** im neuen Repo `monkeydsvakidan.github.io`: Startseite mit den vier Einträgen, Manifest (Name «GameMaster», `scope` = ganze Domain, damit Music Battle und TotalGuesser in derselben App laufen), App-Symbol, 404-Seite. Vorher prüfen: Muss das Repo für GitHub Pages öffentlich sein? Wie verhalten sich die bestehenden Manifeste der beiden Apps (installierte Apps, iPhone-Home-Bildschirm)?
+- [ ] **8.3 Leiste in Music Battle.** Unten, 4 Einträge (Music 1v1 · Musik-Quiz · TotalGuesser · Tools), aktiver Eintrag in seiner Farbe mit Strich darüber. Festlegen: wohin «Musik-Quiz» und «Tools» führen (Quiz-Startseite direkt; Tools-Übersicht für `?tool=alben` und `?tool=rad`), Verhalten mitten im Match/Quiz (Rückfrage wie beim Modus-Wechsel), Platz unten (Safe Area, bestehende Ausgangsleiste), Albumrad mit eigener heller Optik.
+- [ ] **8.4 Leiste und neuer Look in TotalGuesser** (Arbeit im Repo TotalGuesser, dort in `PLAN.md` eingetragen).
+- [ ] **8.5 Gesamttest** auf Handy und Desktop: Wechsel zwischen allen Apps, Installation als eine App, Spielstände bleiben erhalten, Spotify-Anmeldung bleibt.
+
 ## Werkzeuge (kein Teil des Spiels)
 
 Eigene Hilfsseiten, die nur die Spotify-App von Music Battle mitbenutzen (gleiche Client-ID und Redirect-URI, keine Supabase, keine Spiel-Skripte). Code unter `tools/`, Einstieg über einen Parameter an der Live-Adresse.
@@ -491,6 +501,7 @@ Damit ist der Smoke-Test aus `CLAUDE.md` einmal vollständig durchlaufen (Ausnah
 ## Entscheidungslog
 *(Datum · Entscheidung · Begründung)*
 
+- 20.11.2026 · **Entscheidung M – GameMaster:** Name «GameMaster»; Repos bleiben getrennt, gemeinsame Startseite + App-Symbol (Weg B); Leiste unten mit Music 1v1 (Icon Boxhandschuh + Note, Pink), Musik-Quiz (Buzzer + Note, Gold), TotalGuesser (Zielscheibe, Orange), Tools (Schraubenschlüssel, neutral); nur dunkel; TotalGuesser wird Variante A «Hallenparkett» (Orange, Ziffern Bernstein, Zahlen/Knöpfe in Bungee, Titel Barlow Condensed) · Entscheide des Nutzers anhand der Musterseite
 - 20.11.2026 · Musik-Quiz für alle sichtbar, ohne „Beta“ (7.9); Schluss-Bildschirm sagt im Quiz „Quiz beendet“ · Auftrag des Nutzers, 7.9 abzuschliessen; der Text „Match beendet“ war im Quiz falsch
 - 19.11.2026 · Song-Vorschläge im Battle (6.8): bis zu 5, zuerst eigene meistgehörte Songs des Künstlers, aufgefüllt mit Spotify-Suche; Pass & Play Spieler 2 bekommt immer eine Leiste (nur Suche) · Entscheid des Nutzers
 - 16.11.2026 · Gemeinsamer Skip (6.7): beliebig oft, wenn beide einverstanden sind; gilt auch im Sudden-Death-Draft; Vorschlag läuft nicht ab; einseitiger Skip (1×) bleibt · Entscheid des Nutzers
