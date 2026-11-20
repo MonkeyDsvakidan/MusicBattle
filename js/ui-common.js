@@ -38,6 +38,7 @@ function bindBrandHome(){
   const name=currentGameName();
   if($("brandTitle"))$("brandTitle").textContent=name;
   document.title=`${name} · GameMaster`;
+  document.documentElement.classList.toggle("quiz",name==="Musik-Quiz"); // eigener Quiz-Look (8.6), Tokens unter html.quiz in styles.css
   for(const id of ["brandHome","allGames"]){const el=$(id);if(el)el.onclick=goToOverview}
 }
 async function goToOverview(e){
