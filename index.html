@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800&family=Barlow+Condensed:wght@700&family=Bungee&family=Sedgwick+Ave+Display&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css?v=20261120-4">
+  <link rel="stylesheet" href="./styles.css?v=20261120-5">
 </head>
 <body>
   <div class="shell">
@@ -24,8 +24,21 @@
     </header>
     <main id="app"><div class="card loading">Initialisiere…</div></main>
   </div>
+  <!-- GameMaster-Leiste unten (8.3): Icons aus design/gamemaster-muster.html; aktiver Eintrag per JS (ui-common.js bzw. app.js für Tools) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="gm-mb" viewBox="0 0 24 24"><path d="M6 15.5V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1.5"/><path d="M5.5 15.5H14a2 2 0 0 0 2-2V8A5 5 0 0 0 11 3H8.5A4.5 4.5 0 0 0 4 7.5V9"/><path d="M4 9a2 2 0 0 0-2 2v1a3.5 3.5 0 0 0 3.5 3.5"/><path d="M4 9.5c2 0 3.5 1 3.5 3"/><ellipse cx="19" cy="19" rx="2" ry="1.6"/><path d="M21 19v-8l1.5 1"/></symbol>
+    <symbol id="gm-quiz" viewBox="0 0 24 24"><path d="M3 15a5 5 0 0 1 10 0"/><rect x="1.5" y="15" width="13" height="4.5" rx="1.3"/><path d="M8 7.5V6M4.3 9.2l-.9-.9M11.7 9.2l.9-.9"/><ellipse cx="19" cy="18.5" rx="2" ry="1.6"/><path d="M21 18.5v-8l1.5 1"/></symbol>
+    <symbol id="gm-tg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+    <symbol id="gm-tools" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></symbol>
+  </svg>
+  <nav class="gmbar" id="gmBar" aria-label="GameMaster">
+    <a href="/MusicBattle/?mode=1v1" data-k="mb"><svg aria-hidden="true"><use href="#gm-mb"/></svg>Music 1v1</a>
+    <a href="/MusicBattle/?mode=quiz" data-k="quiz"><svg aria-hidden="true"><use href="#gm-quiz"/></svg>Musik-Quiz</a>
+    <a href="/TotalGuesser/" data-k="tg"><svg aria-hidden="true"><use href="#gm-tg"/></svg>TotalGuesser</a>
+    <a href="/#tools" data-k="tools"><svg aria-hidden="true"><use href="#gm-tools"/></svg>Tools</a>
+  </nav>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://sdk.scdn.co/spotify-player.js"></script>
-  <script src="./app.js?v=20261120-4"></script>
+  <script src="./app.js?v=20261120-5"></script>
 </body>
 </html>

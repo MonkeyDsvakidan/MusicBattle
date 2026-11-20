@@ -26,6 +26,11 @@
   --warn:#ffd166;
   --bad:#ff6b81;
 
+  /* GameMaster-Leiste unten (8.3, Entscheidung M): neutral in allen Apps, aktiver Eintrag in der Farbe seiner App */
+  --bar-bg:#151419; --bar-line:rgb(255 255 255 / .08); --bar-idle:#8f8a99;
+  --gm-mb:#ff3fa4; --gm-quiz:#ffd166; --gm-tg:#ff8a3d; --gm-tools:#c9c4d3;
+  --gmbar-h:calc(58px + env(safe-area-inset-bottom));
+
   /* Schriften */
   --f-title:"Sedgwick Ave Display","Permanent Marker","Comic Sans MS",cursive;
   --f-num:"Bungee","Arial Black",Impact,sans-serif;
@@ -75,7 +80,7 @@ button{font:inherit}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s3)}
 
 /* ---------- Rahmen ---------- */
-.shell{width:min(1180px,calc(100% - 24px));margin:auto;padding:var(--s5) 0 calc(60px + env(safe-area-inset-bottom))}
+.shell{width:min(1180px,calc(100% - 24px));margin:auto;padding:var(--s5) 0 calc(var(--gmbar-h) + var(--s5))}
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:var(--s4);margin-bottom:var(--s5)}
 .brand,.brand-home{display:flex;align-items:center;gap:var(--s3)}
 .brand-home{color:inherit;text-decoration:none;min-height:44px;border-radius:var(--r-l)}
@@ -546,6 +551,21 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 /* Status in Spielerzeilen ist Text mit Punkt, kein Knopf (Q.3) */
 .member>.chip{border:0;background:none;padding:0;gap:6px;font-size:13px}
 .member>.chip::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+
+/* ---------- GameMaster-Leiste unten (8.3) ----------
+   Liegt über dem Inhalt (z-index unter den Dialogen und den Blättern des Albumrads). */
+.gmbar{position:fixed;left:0;right:0;bottom:0;z-index:350;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  background:var(--bar-bg);border-top:1px solid var(--bar-line);
+  padding:var(--s1) max(var(--s1),env(safe-area-inset-right)) env(safe-area-inset-bottom) max(var(--s1),env(safe-area-inset-left))}
+.gmbar a{position:relative;display:grid;justify-items:center;align-content:center;gap:2px;min-height:52px;padding:0 2px;
+  color:var(--bar-idle);text-decoration:none;font:600 11px/1.2 var(--f-text);text-align:center}
+.gmbar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.gmbar [data-k="mb"]{--act:var(--gm-mb)} .gmbar [data-k="quiz"]{--act:var(--gm-quiz)}
+.gmbar [data-k="tg"]{--act:var(--gm-tg)} .gmbar [data-k="tools"]{--act:var(--gm-tools)}
+.gmbar a:hover{color:var(--text)}
+.gmbar a[aria-current]{color:var(--act)}
+.gmbar a[aria-current]::before{content:"";position:absolute;top:calc(-1 * var(--s1) - 1px);left:50%;width:28px;height:3px;margin-left:-14px;border-radius:0 0 3px 3px;background:var(--act)}
+.gmbar a:focus-visible{outline:2px solid var(--act);outline-offset:-4px;border-radius:var(--r-s)}
 
 /* ---------- Musik-Quiz: eigener Look «Quizshow-Studio» (8.6, Entscheidung O) ----------
    Gilt, solange die Kopfzeile «Musik-Quiz» zeigt (Klasse html.quiz aus bindBrandHome). Tintenblau statt Violett,

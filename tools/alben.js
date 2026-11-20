@@ -490,7 +490,7 @@ function albBind(){
 }
 
 async function albInit(){
-  document.title="Alben-Fix · Music Battle";
+  document.title="Alben-Fix · GameMaster";
   const home=document.getElementById("brandHome");if(home)home.onclick=()=>{location.href=location.pathname};
   ALB.progress="Verbinde mit Spotify…";albRender();
   await albCallback();
