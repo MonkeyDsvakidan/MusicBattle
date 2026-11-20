@@ -1,0 +1,265 @@
+<title>GameMaster Musterseite</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=Bungee&family=Sedgwick+Ave+Display&display=swap">
+<style>
+/* Layout: Musterseite – oben die gemeinsame Leiste, darunter TotalGuesser in drei Farbvarianten als Handy-Ansichten nebeneinander. Nur dunkel. */
+:root{
+  color-scheme:dark;
+  /* Seite (neutral, damit die Varianten wirken) */
+  --page:#121115; --page-2:#1b1a20; --page-line:rgb(255 255 255 / .09);
+  --page-fg:#f3f1f6; --page-muted:#a9a5b3;
+  /* Gemeinsame Leiste */
+  --bar-bg:#151419; --bar-line:rgb(255 255 255 / .08); --bar-idle:#8f8a99;
+  /* Spiel-Farben */
+  --mb-bg:#170d24; --mb-surface:#22143a; --mb-line:#3d2a5e; --mb-text:#f6f0ff; --mb-muted:#b8a8d4;
+  --mb-a:#ff3fa4; --mb-b:#38e1ff; --quiz:#ffd166; --tools:#c9c4d3;
+  /* Schriften: Barlow für Text (alle Apps), Bungee für Zahlen und Knöpfe (alle Apps),
+     Titel je App: Sedgwick Ave (Music Battle), Barlow Condensed (TotalGuesser) */
+  --f-text:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"Bungee","Arial Black",Impact,sans-serif;
+  --f-mb:"Sedgwick Ave Display","Permanent Marker",cursive;
+  --f-tg:"Barlow Condensed","Barlow",system-ui,sans-serif;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;
+  --r-s:8px;--r-m:14px;--r-phone:36px;
+}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--page-fg);font:400 16px/1.5 var(--f-text);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:var(--s6) var(--s7)}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:var(--s7)}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font:700 2rem/1.15 var(--f-tg);letter-spacing:.01em}
+h2{font:700 1.5rem/1.2 var(--f-tg)}
+p{margin:0}
+.muted{color:var(--page-muted)}
+.intro{display:grid;gap:var(--s3);max-width:62ch}
+.kicker{font:600 .8rem/1 var(--f-text);color:var(--page-muted);letter-spacing:.06em;text-transform:uppercase}
+section{display:grid;gap:var(--s5)}
+.sechead{display:grid;gap:var(--s2);max-width:62ch}
+
+/* ---------- Gemeinsame Leiste ---------- */
+.bar{display:grid;grid-template-columns:repeat(4,1fr);background:var(--bar-bg);border-top:1px solid var(--bar-line);
+  padding:var(--s2) var(--s1) calc(var(--s2) + 14px)}
+.bar a{display:grid;justify-items:center;gap:2px;min-height:48px;padding-top:var(--s1);color:var(--bar-idle);text-decoration:none;
+  font:600 11px/1.2 var(--f-text);position:relative}
+.bar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.bar a[aria-current]{color:var(--act)}
+.bar a[aria-current]::before{content:"";position:absolute;top:-9px;width:28px;height:3px;border-radius:0 0 3px 3px;background:var(--act)}
+.bars{display:grid;gap:var(--s4);grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.barcase{display:grid;gap:var(--s2)}
+.barcase .bar{border:1px solid var(--bar-line);border-radius:var(--r-m);padding-bottom:var(--s2)}
+.barcase p{font-size:.875rem}
+
+/* ---------- Handy-Rahmen ---------- */
+.phones{display:grid;gap:var(--s5);grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));align-items:start}
+.variant{display:grid;gap:var(--s3);justify-items:center}
+.variant .label{display:grid;gap:var(--s1);width:100%;max-width:320px}
+.variant .label h3 .chosen{--act:#ff8a3d}
+.variant .label h3{font:700 1.25rem/1.2 var(--f-tg);display:flex;gap:var(--s2);align-items:center}
+.swatch{width:14px;height:14px;border-radius:50%;background:var(--act);flex:none}
+.variant .label p{font-size:.875rem;color:var(--page-muted)}
+.phone{width:100%;max-width:320px;aspect-ratio:320/660;border-radius:var(--r-phone);border:6px solid #2a2930;overflow:hidden;
+  display:flex;flex-direction:column;position:relative;background:var(--bg)}
+.screen{flex:1;overflow:hidden;padding:var(--s5) var(--s4) var(--s4);display:flex;flex-direction:column;gap:var(--s3);color:var(--fg)}
+.phone .bar{border-top-color:var(--line-c, var(--bar-line))}
+
+/* ---------- Music Battle (bestehend, vereinfacht) ---------- */
+.mb{--bg:var(--mb-bg);--fg:var(--mb-text);--act:var(--mb-a)}
+.mb .screen{background:radial-gradient(70% 18rem at 0% 0%,rgb(255 63 164 / .14),transparent 70%),radial-gradient(70% 18rem at 100% 0%,rgb(56 225 255 / .10),transparent 70%)}
+.mb .brand{display:flex;gap:var(--s2);align-items:center;font:400 1.1rem/1 var(--f-mb)}
+.mb .mark{width:32px;height:32px;border-radius:var(--r-s);display:grid;place-items:center;font:400 .7rem/1 var(--f-num);color:#1a0c22;background:linear-gradient(135deg,var(--mb-a),#ff7a59)}
+.mb h4{margin:var(--s2) 0 0;font:400 1.75rem/1.05 var(--f-mb)}
+.mb .mode{display:flex;gap:var(--s3);align-items:center;padding:var(--s3);border:1px solid var(--mb-line);border-radius:var(--r-m);background:var(--mb-surface)}
+.mb .mode b{display:grid;place-items:center;width:32px;height:32px;border-radius:var(--r-s);background:#2a1946;font:400 .85rem/1 var(--f-num);color:var(--quiz);flex:none}
+.mb .mode div{display:grid;gap:2px;min-width:0}
+.mb .mode small{font:600 .65rem/1 var(--f-text);letter-spacing:.08em;color:var(--mb-muted)}
+.mb .mode span{font:400 1rem/1.1 var(--f-mb)}
+
+/* ---------- TotalGuesser: gemeinsamer Aufbau, Farben je Variante ---------- */
+.tg .screen{gap:var(--s3)}
+.tg .top{display:flex;justify-content:space-between;align-items:center}
+.tg .logo{font:700 1.15rem/1 var(--f-tg);letter-spacing:.02em;text-transform:uppercase}
+.tg .logo span{color:var(--act)}
+.tg .chip{font:600 .75rem/1 var(--f-text);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:6px 10px}
+.board{background:var(--board);border:1px solid var(--line);border-radius:var(--r-m);padding:var(--s4);display:grid;gap:var(--s1)}
+.board .lbl{font:600 .7rem/1 var(--f-text);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.board .team{display:flex;gap:var(--s2);align-items:center;font:700 1.35rem/1.1 var(--f-tg)}
+.board .crest{width:28px;height:28px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;font:700 .7rem/1 var(--f-tg);color:var(--muted);flex:none}
+.board .cat{font:500 .95rem/1.3 var(--f-text)}
+.board .hint{font-size:.78rem;color:var(--muted)}
+.target{display:flex;align-items:baseline;justify-content:space-between;margin-top:var(--s2);padding-top:var(--s3);border-top:1px dashed var(--line)}
+.target small{font:600 .7rem/1 var(--f-text);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.target strong{font:400 2.1rem/1 var(--f-num);color:var(--digit);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.tg h5{margin:var(--s1) 0 0;font:700 1.2rem/1.2 var(--f-tg)}
+.search{display:flex;align-items:center;gap:var(--s2);background:var(--field);border:1px solid var(--line);border-radius:var(--r-s);padding:0 var(--s3);height:44px;color:var(--muted);font-size:.9rem}
+.search svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75}
+.btns{display:flex;gap:var(--s2)}
+.btn{flex:1;height:44px;border-radius:var(--r-s);display:grid;place-items:center;font:400 .72rem/1 var(--f-num);letter-spacing:.02em}
+.btn.pri{background:var(--act);color:var(--on-act)}
+.btn.sec{border:1px solid var(--line);color:var(--fg);background:var(--surface)}
+.picks{display:grid;gap:0;font-size:.85rem;border-top:1px solid var(--line)}
+.picks div{display:flex;justify-content:space-between;padding:var(--s2) 0;border-bottom:1px solid var(--line)}
+.picks div>span:last-child{font:400 .75rem/1.6 var(--f-num);color:var(--digit);font-variant-numeric:tabular-nums}
+.picks .who{color:var(--muted)}
+
+/* Variante A – Hallenparkett (Orange) */
+.va{--bg:#17120e;--surface:#231b15;--board:#0f0c09;--field:#110d0a;--line:rgb(255 236 220 / .10);--fg:#f7efe8;--muted:#b9aa9c;
+  --act:#ff8a3d;--on-act:#1d0f05;--digit:#ffb347}
+/* Variante B – Anzeigetafel (LED-Grün) */
+.vb{--bg:#0f1512;--surface:#18201b;--board:#0a0f0c;--field:#0b100d;--line:rgb(220 255 235 / .10);--fg:#eef6f1;--muted:#a3b5aa;
+  --act:#3ee08f;--on-act:#04170c;--digit:#5ef2a0}
+/* Variante C – Flutlicht (Königsblau) */
+.vc{--bg:#0e1220;--surface:#171c2f;--board:#090c17;--field:#0a0d19;--line:rgb(220 230 255 / .10);--fg:#eef1fa;--muted:#a6aecb;
+  --act:#5b8cff;--on-act:#050b1f;--digit:#9db8ff}
+
+/* Leisten-Beispiele: aktive Farbe je App */
+.k-mb{--act:var(--mb-a)} .k-quiz{--act:var(--quiz)} .k-tg{--act:#ff8a3d} .k-tools{--act:var(--tools)}
+
+.icons{display:grid;gap:var(--s5);grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.iconrow{display:grid;gap:var(--s3)}
+.iconrow h3{font:700 1.1rem/1.2 var(--f-tg)}
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3)}
+.opt{display:grid;justify-items:center;gap:var(--s2);padding:var(--s4) var(--s2);border:1px solid var(--page-line);border-radius:var(--r-m);background:var(--page-2);text-align:center}
+.opt svg{width:48px;height:48px;stroke:var(--act);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.opt b{font:700 .95rem/1.1 var(--f-tg)}
+.opt small{font-size:.75rem;color:var(--page-muted);line-height:1.3}
+.chosen,.opt small.chosen{color:var(--act);font:600 .75rem/1 var(--f-text)}
+.notes{display:grid;gap:var(--s3);grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.note{border-top:1px solid var(--page-line);padding-top:var(--s3);display:grid;gap:var(--s1)}
+.note h3{font:700 1.05rem/1.2 var(--f-tg)}
+.note p{font-size:.9rem;color:var(--page-muted)}
+@media (max-width:420px){h1{font-size:1.7rem}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 18v4"/></symbol>
+  <symbol id="i-quiz" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-tools" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></symbol>
+  <symbol id="i-glove" viewBox="0 0 24 24"><path d="M8 16.5V18a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-1.5"/><path d="M7.5 16.5h10a2.5 2.5 0 0 0 2.5-2.5V8.5A5.5 5.5 0 0 0 14.5 3h-4A4.5 4.5 0 0 0 6 7.5V9"/><path d="M6 9H5a2 2 0 0 0-2 2v1.5A4 4 0 0 0 7 16.5h.5"/><path d="M6 9.5c2 0 3.5 1 3.5 3"/><path d="M8 21h9"/></symbol>
+  <symbol id="i-duel" viewBox="0 0 24 24"><ellipse cx="5.5" cy="18" rx="2.5" ry="2"/><path d="M8 18V6.5l3.3 2.3"/><ellipse cx="18.5" cy="18" rx="2.5" ry="2"/><path d="M16 18V6.5l-3.3 2.3"/><path d="M12 2.5V4M9.6 3.2l.6 1.1M14.4 3.2l-.6 1.1"/></symbol>
+  <symbol id="i-glovenote" viewBox="0 0 24 24"><path d="M6 15.5V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1.5"/><path d="M5.5 15.5H14a2 2 0 0 0 2-2V8A5 5 0 0 0 11 3H8.5A4.5 4.5 0 0 0 4 7.5V9"/><path d="M4 9a2 2 0 0 0-2 2v1a3.5 3.5 0 0 0 3.5 3.5"/><path d="M4 9.5c2 0 3.5 1 3.5 3"/><ellipse cx="19" cy="19" rx="2" ry="1.6"/><path d="M21 19v-8l1.5 1"/></symbol>
+  <symbol id="i-notequiz" viewBox="0 0 24 24"><ellipse cx="6" cy="18" rx="3" ry="2.3"/><path d="M9 18V4l4 2.5"/><path d="M15 9.5a3 3 0 1 1 4.2 2.8c-.8.4-1.2 1-1.2 1.9v.3"/><path d="M18 18.5h.01"/></symbol>
+  <symbol id="i-buzzer" viewBox="0 0 24 24"><path d="M6 15a6 6 0 0 1 12 0"/><rect x="3.5" y="15" width="17" height="4.5" rx="1.5"/><path d="M12 4V2.5M6.3 6.3 5.2 5.2M17.7 6.3l1.1-1.1"/></symbol>
+  <symbol id="i-phones" viewBox="0 0 24 24"><path d="M3.5 17v-4a8.5 8.5 0 0 1 17 0v4"/><rect x="2.5" y="14" width="4" height="7" rx="1.5"/><rect x="17.5" y="14" width="4" height="7" rx="1.5"/><path d="M10 11a2 2 0 1 1 2.8 1.8c-.5.3-.8.7-.8 1.3"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-buzzernote" viewBox="0 0 24 24"><path d="M3 15a5 5 0 0 1 10 0"/><rect x="1.5" y="15" width="13" height="4.5" rx="1.3"/><path d="M8 7.5V6M4.3 9.2l-.9-.9M11.7 9.2l.9-.9"/><ellipse cx="19" cy="18.5" rx="2" ry="1.6"/><path d="M21 18.5v-8l1.5 1"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+</svg>
+
+<template id="bar-tpl">
+  <nav class="bar" aria-label="GameMaster">
+    <a href="#" data-k="mb"><svg aria-hidden="true"><use href="#i-glovenote"/></svg>Music 1v1</a>
+    <a href="#" data-k="quiz"><svg aria-hidden="true"><use href="#i-buzzernote"/></svg>Musik-Quiz</a>
+    <a href="#" data-k="tg"><svg aria-hidden="true"><use href="#i-target"/></svg>TotalGuesser</a>
+    <a href="#" data-k="tools"><svg aria-hidden="true"><use href="#i-tools"/></svg>Tools</a>
+  </nav>
+</template>
+
+<template id="tg-tpl">
+  <div class="screen">
+    <div class="top"><div class="logo">Total<span>Guesser</span></div><div class="chip">Basketball</div></div>
+    <div class="board">
+      <div class="lbl">Runde 2 von 5</div>
+      <div class="team"><span class="crest">GSW</span>Golden State Warriors</div>
+      <div class="cat">Punkte in der Karriere</div>
+      <div class="hint">Karrierewert – zählt über alle Teams</div>
+      <div class="target"><small>Zielzahl</small><strong>41’250</strong></div>
+    </div>
+    <h5>Mia ist dran</h5>
+    <div class="search"><svg aria-hidden="true"><use href="#i-search"/></svg>Spieler suchen</div>
+    <div class="btns"><div class="btn sec">Passen</div><div class="btn pri">Auflösen</div></div>
+    <div class="picks">
+      <div><span><span class="who">Mia · </span>Stephen Curry</span><span>?</span></div>
+      <div><span><span class="who">Jonas · </span>Kevin Durant</span><span>?</span></div>
+    </div>
+  </div>
+</template>
+
+<main class="wrap">
+  <header class="intro">
+    <div class="kicker">GameMaster · Musterseite</div>
+    <h1>Die gemeinsame Leiste und drei Farben für TotalGuesser</h1>
+    <p class="muted">Alle Spiele bekommen unten die gleiche Leiste. Jede App behält ihren Charakter, hat aber ihre eigene Farbe. Ein Tipp auf die Leiste wechselt das Spiel. Die Ansichten sind Beispiele mit erfundenen Spielständen.</p>
+  </header>
+
+  <section>
+    <div class="sechead">
+      <h2>1 · Die Leiste</h2>
+      <p class="muted">Immer gleich aufgebaut, dunkel und ruhig. Nur das aktive Spiel leuchtet in seiner Farbe, mit einem kurzen Strich darüber.</p>
+    </div>
+    <div class="bars" id="bars"></div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <h2>2 · TotalGuesser in drei Farben</h2>
+      <p class="muted">Gleicher Aufbau wie heute (Tafel mit Team, Kategorie und Zielzahl). Neu: dunkel wie Music Battle, Zahlen und Knöpfe in derselben Schrift (Bungee), Titel in Barlow Condensed statt der Graffiti-Schrift. Links zum Vergleich Music Battle.</p>
+    </div>
+    <div class="phones">
+      <div class="variant">
+        <div class="label"><h3><span class="swatch" style="--act:var(--mb-a)"></span>Vergleich · Music Battle</h3><p>So wie heute, mit der neuen Leiste.</p></div>
+        <div class="phone mb">
+          <div class="screen">
+            <div class="brand"><span class="mark">MB</span>Music Battle</div>
+            <h4>Wie wollt ihr spielen?</h4>
+            <div class="mode"><b>1</b><div><small>PASS &amp; PLAY</small><span>Ein Gerät</span></div></div>
+            <div class="mode"><b>2</b><div><small>REALTIME</small><span>Zwei Geräte</span></div></div>
+            <div class="mode"><b>J</b><div><small>ICH BIN JUROR</small><span>Nur bewerten</span></div></div>
+          </div>
+          <div data-bar="mb"></div>
+        </div>
+      </div>
+      <div class="variant">
+        <div class="label"><h3><span class="swatch" style="--act:#ff8a3d"></span>A · Hallenparkett <span class="chosen">gewählt</span></h3><p>Warmes Orange wie ein Basketball, Zahlen in Bernstein. Am nächsten an TotalGuesser heute.</p></div>
+        <div class="phone tg va"><div data-tg></div><div data-bar="tg"></div></div>
+      </div>
+      <div class="variant">
+        <div class="label"><h3><span class="swatch" style="--act:#3ee08f"></span>B · Anzeigetafel</h3><p>LED-Grün wie eine Stadiontafel. Hebt sich am stärksten von Music Battle ab.</p></div>
+        <div class="phone tg vb"><div data-tg></div><div data-bar="tg"></div></div>
+      </div>
+      <div class="variant">
+        <div class="label"><h3><span class="swatch" style="--act:#5b8cff"></span>C · Flutlicht</h3><p>Kräftiges Blau, kühl und sportlich. Klar anders als das Cyan von Music Battle.</p></div>
+        <div class="phone tg vc"><div data-tg></div><div data-bar="tg"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <h2>3 · Neue Icons zur Auswahl</h2>
+      <p class="muted">Gewählt: Handschuh + Note für Music 1v1, Buzzer + Note für das Quiz – so auch in der Leiste oben. TotalGuesser (Zielscheibe) und Tools (Schraubenschlüssel) bleiben.</p>
+    </div>
+    <div class="icons">
+      <div class="iconrow k-mb"><h3>Music 1v1</h3><div class="opts">
+        <div class="opt"><svg aria-hidden="true"><use href="#i-glove"/></svg><b>1 · Boxhandschuh</b><small>klar «Kampf», wie der Gürtel im Spiel</small></div>
+        <div class="opt"><svg aria-hidden="true"><use href="#i-duel"/></svg><b>2 · Noten-Duell</b><small>zwei Noten prallen aufeinander</small></div>
+        <div class="opt"><svg aria-hidden="true"><use href="#i-glovenote"/></svg><b>3 · Handschuh + Note</b><small class="chosen">gewählt</small></div>
+      </div></div>
+      <div class="iconrow k-quiz"><h3>Musik-Quiz</h3><div class="opts">
+        <div class="opt"><svg aria-hidden="true"><use href="#i-notequiz"/></svg><b>1 · Note + ?</b><small>Musik und Frage auf einen Blick</small></div>
+        <div class="opt"><svg aria-hidden="true"><use href="#i-buzzernote"/></svg><b>2 · Buzzer + Note</b><small class="chosen">gewählt</small></div>
+        <div class="opt"><svg aria-hidden="true"><use href="#i-phones"/></svg><b>3 · Kopfhörer + ?</b><small>Hinhören und raten</small></div>
+      </div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead"><h2>Was gleich bleibt, was sich unterscheidet</h2></div>
+    <div class="notes">
+      <div class="note"><h3>Für alle gleich</h3><p>Leiste unten, dunkler Grund, Textschrift Barlow, Zahlen und Knöpfe in Bungee, gleiche Abstände und Ecken.</p></div>
+      <div class="note"><h3>Pro Spiel eigen</h3><p>Hauptfarbe, leichter Farbton im Hintergrund und die Titelschrift. Music Battle bleibt Pink/Cyan, das Quiz Gold, die Tools neutral.</p></div>
+      <div class="note"><h3>Deine Wahl</h3><p>TotalGuesser: A (Hallenparkett). Icons: Handschuh + Note, Buzzer + Note, Zielscheibe, Schraubenschlüssel.</p></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const barTpl=document.getElementById('bar-tpl'), tgTpl=document.getElementById('tg-tpl');
+const names={mb:'Music 1v1 aktiv (Pink)',quiz:'Musik-Quiz aktiv (Gold)',tg:'TotalGuesser aktiv (Farbe der gewählten Variante, hier A)',tools:'Tools aktiv (neutral)'};
+function makeBar(active){const n=barTpl.content.firstElementChild.cloneNode(true);n.querySelectorAll('a').forEach(a=>{if(a.dataset.k===active)a.setAttribute('aria-current','page');a.addEventListener('click',e=>e.preventDefault())});return n}
+const bars=document.getElementById('bars');
+for(const k of ['mb','quiz','tg','tools']){const c=document.createElement('div');c.className='barcase k-'+k;c.append(makeBar(k));const p=document.createElement('p');p.className='muted';p.textContent=names[k];c.append(p);bars.append(c)}
+document.querySelectorAll('[data-tg]').forEach(el=>el.replaceWith(tgTpl.content.firstElementChild.cloneNode(true)));
+document.querySelectorAll('[data-bar]').forEach(el=>el.replaceWith(makeBar(el.dataset.bar)));
+</script>
