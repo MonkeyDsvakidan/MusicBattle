@@ -1,6 +1,6 @@
 # Music Battle
 
-Browser-Spiel für zwei Spieler: Künstler aus dem eigenen Spotify draften, pro Runde einen Song zum Thema wählen, und eine Jury entscheidet. Läuft auf dem Handy und am Desktop, auf einem Gerät (Pass & Play) oder auf zwei Geräten in Echtzeit.
+Browser-Spiel für zwei Spieler: Künstler aus dem eigenen Spotify draften, pro Runde einen Song zum Thema wählen, und eine Jury entscheidet. Läuft auf dem Handy und am Desktop, auf einem Gerät (Pass & Play) oder auf zwei Geräten in Echtzeit. Dazu gibt es ein **Musik-Quiz** aus den eigenen Spotify-Songs – alleine oder mit beliebig vielen.
 
 **Live:** https://monkeydsvakidan.github.io/MusicBattle/
 
@@ -22,7 +22,11 @@ Browser-Spiel für zwei Spieler: Künstler aus dem eigenen Spotify draften, pro 
    - Option für den Host (ohne Juroren, solange noch niemand abgestimmt hat): **„Stattdessen Die Jury urteilen lassen“** – fünf automatische Juroren bewerten die Songs anhand gesammelter Songdaten (siehe unten); ihr Urteil kann der Host überstimmen.
 6. **Match** – Fünf Runden, Runde 5 zählt doppelt. Steht es danach unentschieden, folgt **Sudden Death** mit neuen Künstlern. Am Ende zeigt der Endstand Sieger, Statistiken, die Bilanz je Kategorie und – falls benutzt – die Bilanz der Jury. Mit **Rematch** startet der Host direkt ein neues Match mit denselben Leuten (alle wechseln automatisch, Spotify bleibt verbunden, es geht gleich mit dem Draft los).
 
-**Musik-Quiz (Beta, im Aufbau):** Auf der Startseite erscheint „Quiz“, wenn die Seite einmal mit `?quiz=1` geöffnet wurde. Der Host erstellt ein Quiz und lädt per QR-Code ein; jede Person spielt auf dem eigenen Handy. Wer Spotify verbindet, steuert seine Songs bei (mindestens 30 Songs nötig). Der Host wählt 10, 15 oder 20 Fragen und startet. Pro Frage gibt es 20 Sekunden: Erscheinungsjahr schätzen, den älteren von zwei Songs wählen oder das Album zu einem verpixelten Cover erraten. Danach wird aufgedeckt (Lösung, Punkte, Zwischenstand); Musik läuft auf dem Gerät des Hosts. Am Schluss zeigt die Rangliste ein Podest, Treffer und die schnellste Antwort; mit „Nochmal“ startet der Host neue Fragen, möglichst ohne schon gespielte Songs. **Solo:** „Alleine spielen“ startet sofort ein Quiz aus den eigenen Spotify-Songs; der beste Punktestand je Fragenzahl bleibt auf dem Gerät.
+## Musik-Quiz
+
+Auf der Startseite **„Quiz“** wählen. Der Host erstellt ein Quiz und lädt per QR-Code ein; jede Person spielt auf dem eigenen Handy. Wer Spotify verbindet, steuert seine Songs bei (mindestens 30 Songs nötig). Der Host wählt 10, 15 oder 20 Fragen und startet. Pro Frage gibt es 20 Sekunden: Erscheinungsjahr schätzen, den älteren von zwei Songs wählen oder das Album zu einem verpixelten Cover erraten. Danach wird aufgedeckt (Lösung, Punkte, Zwischenstand); Musik läuft auf dem Gerät des Hosts. Am Schluss zeigt die Rangliste ein Podest, Treffer und die schnellste Antwort; mit „Nochmal“ startet der Host neue Fragen, möglichst ohne schon gespielte Songs. **Solo:** „Alleine spielen“ startet sofort ein Quiz aus den eigenen Spotify-Songs; der beste Punktestand je Fragenzahl bleibt auf dem Gerät.
+
+Verlässt der Host das Quiz, ist der Raum für alle geschlossen. Auf dem iPhone als Host läuft die Musik über die Spotify-App (wie im Battle).
 
 ### Die Jury (Option)
 
