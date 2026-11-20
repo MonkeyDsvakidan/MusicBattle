@@ -2,7 +2,7 @@
 // Nach JS/CSS-Änderungen BUILD hier und die ?v=-Parameter in index.html erhöhen.
 // main.js startet die App (genau ein init()), wenn alles geladen ist.
 (async()=>{
-  const BUILD="20261120-1";
+  const BUILD="20261120-2";
   // Werkzeuge (Roadmap „Werkzeuge“): eigene Seiten ?tool=alben / ?tool=rad, kein Teil des Spiels – laden nur tools/, keine Spiel-Skripte.
   // Die Rückkehr vom Spotify-Login (gleiche Redirect-URI wie das Spiel) gehört dem Werkzeug, von dem der state stammt.
   const TOOLS={alben:{stateKey:"mb_alben_state",css:"alben",js:["alben-logic","alben"]},rad:{stateKey:"mb_rad_state",css:"rad",js:["rad-logic","rad"]}};
