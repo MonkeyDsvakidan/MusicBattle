@@ -12,6 +12,8 @@ Music Battle ist ein Browser-Spiel für zwei Spieler (plus optionale menschliche
 4. **Abstimmung** (seit 6.3, Entscheidung G) – Abstimmung in fünf Kategorien (Thema, Vibe, Lyrics, Überraschung, Kenner-Wahl): mit Juroren im Raum stimmen nur sie, sonst die Spieler (Pass & Play nacheinander verdeckt); Mehrheit je Kategorie, Gleichstand zählt für keinen; mehr Kategorien = Rundensieg, Gleichstand → Host entscheidet (auch mit Juroren). Option für den Host ohne Juroren: „Die Jury“ (fünf automatische Juroren, 10–10 bei Gleichstand/fehlenden Daten), deren Urteil er überstimmen kann. Alte Juroren-Scorecards (10–8/10–9) werden nur noch für frühere Runden angezeigt.
 5. **Match** – Runde 5 zählt doppelt, bei Gleichstand Sudden Death (Runde 6), danach Endstand mit Statistiken.
 
+Dazu kommt das **Musik-Quiz** (Phase 7, Quiz-Art B „Musikwissen“, für alle sichtbar seit 7.9): Der Host erstellt einen Quiz-Raum, beliebig viele Mitspieler treten per QR/Link bei (Rolle `quizzer`), wer Spotify verbindet, liefert Songs in den Pool. Der Server erzeugt 10/15/20 Fragen (Jahr, Älter, Cover), jede Person antwortet auf dem eigenen Handy in 20 s, Musik läuft nur auf dem Host-Gerät. Aufdecken mit Punkten (richtig + Tempo), Endstand mit Podest und „Nochmal“. Solo: eine Person ohne Lobby, Highscore auf dem Gerät.
+
 UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor allem Handy, auch Desktop.
 
 ## Tech-Stack
@@ -54,7 +56,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `js/room.js` | Anmeldung, Raum laden/beitreten/erstellen/verlassen, Sync (Realtime + Poll mit Fingerabdruck), `init`, Einladungslink `?join=CODE&m=…` (`readInviteFromUrl`, `joinErrorText`, letzter Name), Rematch (`startRematch`, `followRematch`: alle Geräte folgen `mb_rooms.rematch_room_id`) |
 | `js/draft.js` | Draft (Ziehen gewichtet nach Hörverhalten + Genre, Hörbuch-Prüfung per Suche), Skip, gemeinsamer Skip (`proposeSharedSkip`, `answerSharedSkip`, `applySharedSkipState`), Sudden-Death-Draft |
 | `js/battle.js` | Songsuche, Song-Vorschläge (6.8: `rankSuggestions` rein, für `node --test` exportiert; `loadSuggestions`), Einreichen (stösst danach `mb-track-profile` im Hintergrund an), Startpunkt |
-| `js/quiz.js` | Spotify-Quiz (Phase 7): Song-Pool bauen (`buildQuizPool`, reine Funktion), laden/hochladen (`fetchQuizTracks`, `uploadQuizPool` → RPC `mb_quiz_set_pool`), Lobby-Zusammenfassung `quizPoolSummary`, Rangliste `quizStandings`, Aktionen (`createQuizRoom`, Spotify im Quiz über Speicherplatz 1 `connectQuizSpotify`/`autoQuizSpotify`, `setQuizLength`, `startQuiz`), Beta-Schalter `quizEnabled` (`?quiz=1`); Fragen-Ablauf (7.6): `loadQuizData`, `openNextQuestion`, `answerQuiz`, `revealQuestion` (Host automatisch), Takt `quizTick` (Zeit, Balken, verpixeltes Cover), Musik `playQuizTrack` nur auf dem Host-Gerät; Solo (7.8): `startSoloQuiz`, `isSoloQuiz`, Highscore `soloHighscore` (rein) / `recordSoloResult` (`localStorage` `mb_quiz_best`); auch für `node --test` exportiert |
+| `js/quiz.js` | Spotify-Quiz (Phase 7): Song-Pool bauen (`buildQuizPool`, reine Funktion), laden/hochladen (`fetchQuizTracks`, `uploadQuizPool` → RPC `mb_quiz_set_pool`), Lobby-Zusammenfassung `quizPoolSummary`, Rangliste `quizStandings`, Aktionen (`createQuizRoom`, Spotify im Quiz über Speicherplatz 1 `connectQuizSpotify`/`autoQuizSpotify`, `setQuizLength`, `startQuiz`); Fragen-Ablauf (7.6): `loadQuizData`, `openNextQuestion`, `answerQuiz`, `revealQuestion` (Host automatisch), Takt `quizTick` (Zeit, Balken, verpixeltes Cover), Musik `playQuizTrack` nur auf dem Host-Gerät; Solo (7.8): `startSoloQuiz`, `isSoloQuiz`, Highscore `soloHighscore` (rein) / `recordSoloResult` (`localStorage` `mb_quiz_best`); auch für `node --test` exportiert |
 | `js/ui-quiz.js` | Quiz-Bildschirme: Quiz-Startseite, Einladung, Lobby (`renderQuizLobby`, 7.5), Fragen (`renderQuizRunning`: Bereit/Frage/Aufdecken, 7.6), Endstand mit Podest und „Nochmal“ (`renderQuizFinished`, 7.7), Solo-Karte und Solo-Endstand (`renderSoloFinished`, `quizBestLine`, 7.8), Verteiler `renderQuiz` |
 | `js/votes.js` | Kategorie-Abstimmung (6.3): `VOTE_CATEGORIES` (Schlüssel, Name, Frage), reine Auswertung `categoryResult`, `voteProgress`, `eligibleVoters`; auch für `node --test` exportiert |
 | `js/jury.js` | Scorecards, eigener Entscheid, „Die Jury“ (`runAIJury` ruft `mb-jury` auf), `roundDecision`, `finalizeRound` |
@@ -115,6 +117,7 @@ Es gibt keine automatischen Tests für das Frontend. Nach jeder Änderung den be
 5. Runde 5 doppelt, Unentschieden → Sudden Death → Endstand → Rematch (alle Geräte wechseln)
 6. 2-Geräte-Modus: Beitritt mit Code, Realtime-Sync auf beiden Geräten
 7. Raum verlassen / Modus wechseln / Seite neu laden mitten im Match
+8. Quiz: Solo (Highscore) · Quiz mit 3+ Personen, davon nur 1 mit Spotify und 2 mit Spotify · Neuladen mitten in einer Frage · Host verlässt → alle sehen „Quiz beendet“ · Musik am iPhone-Host über die Spotify-App · „Nochmal“
 
 Bildschirm-Zustände lassen sich auch ohne Datenbank prüfen (seit 4.2): neuen Code auf einen temporären Branch pushen, CSS/JS per `raw.githubusercontent.com` in die Live-Seite einspielen (`(0,eval)` für `js/`-Dateien, `<style>` für CSS), `mbSafeSync`/`reloadRoomNow` stilllegen, `S` mit Testdaten füllen und `render()` aufrufen – bei 375 px (`resize_window` mobile) und 1280 px. Danach Branch per Squash nach `main` übernehmen und löschen. Keine Testvariablen nach App-Funktionen benennen (z. B. nicht `juryScores`). `state.js` nicht neu einspielen (sonst zwei Zustände `S`); `const`-Werte einer per `(0,eval)` eingespielten Datei sind nicht global – bei Bedarf für den Test von Hand auf `window` setzen.
 
@@ -130,6 +133,9 @@ Reine Logik (z. B. Jury-Bewertung) wird als reine Funktion geschrieben und mit `
 - **Die Jury** – Name der automatischen Fünfer-Jury in der App (5.3); im Code `source = 'ai'`, `runAIJury`, `aiScores` (historische Namen, keine KI)
 - **Ecke** – Spielerseite im Battle: Pinke Ecke = Spieler A, Cyan Ecke = Spieler B
 - **Punktezettel / Gürtel** – Tabelle (Kategorien bzw. Juroren) mit Total / Banner für den Runden- bzw. Matchsieg
+- **Quizzer** – Mitspieler im Quiz (Rolle `quizzer`, ohne Spielerplatz, beliebig viele)
+- **Pool** – Songs der Verbundenen in einem Quiz-Raum (`mb_quiz_pool`), aus denen der Server die Fragen erzeugt
+- **Aufdecken** – Abschluss einer Quiz-Frage: Lösung sichtbar, Punkte vergeben (`mb-quiz-reveal`)
 - **Kategorie-Abstimmung** – Normalfall der Rundenwertung seit 6.3 (`mb_category_votes`, `js/votes.js`); Kategorien `theme`, `vibe`, `lyrics`, `surprise`, `connoisseur`
 
 ## Allgemeine Regeln (zusätzlich)
