@@ -1,8 +1,8 @@
 /* room.js – Raum: Anmeldung, Laden, Beitreten, Erstellen, Verlassen, Sync (Realtime + Poll), Start (init)
    Konsolidiert aus app-1 … app-6d (Roadmap 2.2). Klassisches Skript, globale Namen. */
 
-// GameMaster-Startseite (8.2): ?mode=quiz (auch single/two) öffnet direkt diese Wahl; Parameter danach aus der Adresse entfernen
-{const q=new URLSearchParams(location.search),m=q.get("mode");if(["single","two","quiz"].includes(m)){try{localStorage.setItem("mb_device_mode_choice",m)}catch{}q.delete("mode");history.replaceState({},"",location.pathname+(q.size?"?"+q:""))}}
+// GameMaster-Startseite (8.2): ?mode=quiz (auch single/two) öffnet direkt diese Wahl, ?mode=1v1 die 1v1-Startseite (8.3); Parameter danach aus der Adresse entfernen
+{const q=new URLSearchParams(location.search),m=q.get("mode");if(["single","two","quiz","1v1"].includes(m)){try{if(m==="1v1")localStorage.removeItem("mb_device_mode_choice");else localStorage.setItem("mb_device_mode_choice",m)}catch{}q.delete("mode");history.replaceState({},"",location.pathname+(q.size?"?"+q:""))}}
 window.MB_DEVICE_MODE_CHOICE=localStorage.getItem("mb_device_mode_choice")||"";
 
 async function ensureAnon(){const {data:{session}}=await sb.auth.getSession();if(session){S.user=session.user;return true}const {data,error}=await sb.auth.signInAnonymously({options:{data:{app:"music-battle"}}});if(error){S.error="Anonyme Anmeldung ist im Supabase-Projekt noch nicht aktiviert.";render();return false}S.user=data.user;return true}
@@ -56,10 +56,11 @@ function resetDeviceModeChoice(){
   window.MB_DEVICE_MODE_CHOICE="";
   localStorage.removeItem("mb_device_mode_choice");
   renderLanding();
+  return true;
 }
 
 async function openModeSelection(){
-  if(!(await mbConfirmLeave()))return;
+  if(!(await mbConfirmLeave()))return false;
   if(S.room?.id){
     try{await sb.rpc("mb_leave_room",{p_room_id:S.room.id})}catch(e){console.warn("Room leave before mode change failed:",e)}
   }
@@ -67,6 +68,7 @@ async function openModeSelection(){
   window.MB_DEVICE_MODE_CHOICE="";
   localStorage.removeItem("mb_device_mode_choice");
   renderLanding();
+  return true;
 }
 
 async function createRoom(){

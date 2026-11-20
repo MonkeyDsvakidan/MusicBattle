@@ -2,7 +2,7 @@
 // Nach JS/CSS-Änderungen BUILD hier und die ?v=-Parameter in index.html erhöhen.
 // main.js startet die App (genau ein init()), wenn alles geladen ist.
 (async()=>{
-  const BUILD="20261120-4";
+  const BUILD="20261120-5";
   // Werkzeuge (Roadmap „Werkzeuge“): eigene Seiten ?tool=alben / ?tool=rad, kein Teil des Spiels – laden nur tools/, keine Spiel-Skripte.
   // Die Rückkehr vom Spotify-Login (gleiche Redirect-URI wie das Spiel) gehört dem Werkzeug, von dem der state stammt.
   const TOOLS={alben:{stateKey:"mb_alben_state",css:"alben",js:["alben-logic","alben"]},rad:{stateKey:"mb_rad_state",css:"rad",js:["rad-logic","rad"]}};
@@ -10,6 +10,9 @@
   let tool=TOOLS[q.get("tool")]||null;
   if(!tool&&q.get("state"))tool=Object.values(TOOLS).find(t=>{try{return sessionStorage.getItem(t.stateKey)===q.get("state")}catch{return false}})||null;
   if(tool){
+    // GameMaster (8.3): Kopfzeile «Tools», in der Leiste unten «Tools» aktiv
+    document.querySelector('#gmBar [data-k="tools"]')?.setAttribute("aria-current","page");
+    const bt=document.getElementById("brandTitle");if(bt)bt.textContent="Tools";document.title="Tools · GameMaster";
     const css=document.createElement("link");css.rel="stylesheet";css.href=`./tools/${tool.css}.css?v=${BUILD}`;document.head.appendChild(css);
     for(const name of tool.js){
       await new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=`./tools/${name}.js?v=${BUILD}`;s.onload=resolve;s.onerror=()=>reject(new Error(`${name}.js konnte nicht geladen werden`));document.head.appendChild(s)});

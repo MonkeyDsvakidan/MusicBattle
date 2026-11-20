@@ -40,12 +40,27 @@ function bindBrandHome(){
   document.title=`${name} · GameMaster`;
   document.documentElement.classList.toggle("quiz",name==="Musik-Quiz"); // eigener Quiz-Look (8.6), Tokens unter html.quiz in styles.css
   for(const id of ["brandHome","allGames"]){const el=$(id);if(el)el.onclick=goToOverview}
+  bindGameBar(name==="Musik-Quiz"?"quiz":"mb");
+}
+// Leiste unten (8.3): 1v1 ↔ Quiz wechselt wie «Modus ändern» (Raum verlassen, im laufenden Spiel mit Rückfrage);
+// TotalGuesser und Tools sind andere Seiten → wie «Alle Spiele» (Raum bleibt offen)
+function bindGameBar(active){
+  document.querySelectorAll("#gmBar a").forEach(a=>{
+    if(a.dataset.k===active)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");
+    a.onclick=async e=>{
+      if(a.dataset.k==="tg"||a.dataset.k==="tools")return goToOverview(e);
+      e.preventDefault();
+      if(a.dataset.k===active)return;
+      if(await openModeSelection()&&a.dataset.k==="quiz")setDeviceModeChoice("quiz");
+    };
+  });
 }
 async function goToOverview(e){
+  const link=e.currentTarget,href=link.getAttribute("href")||"/",target=link.closest("#gmBar")?link.textContent.trim():"";
   e.preventDefault();
   const running=S.room?.id&&!["lobby","finished","closed"].includes(S.room.status);
-  if(running&&!(await mbConfirm(`Der Raum bleibt offen. Über ${currentGameName()} kommst du zurück ${S.room.game==="quiz"?"ins Quiz":"ins Match"}.`,{title:"Zur Übersicht?",confirmLabel:"Zur Übersicht",cancelLabel:"Weiterspielen"})))return;
-  location.href="/";
+  if(running&&!(await mbConfirm(`Der Raum bleibt offen. Über ${currentGameName()} kommst du zurück ${S.room.game==="quiz"?"ins Quiz":"ins Match"}.`,{title:target?`Zu ${target}?`:"Zur Übersicht?",confirmLabel:target?"Wechseln":"Zur Übersicht",cancelLabel:"Weiterspielen"})))return;
+  location.href=href;
 }
 
 function roomExitControls(){if(!S.room)return"";return `<div class="exitbar"><button class="btn ghost" id="leaveRoomBtn">Raum verlassen</button>${isHost()?`<button class="btn ghost danger" id="newRoomBtn">Neuer Raum</button>`:""}</div>`}
