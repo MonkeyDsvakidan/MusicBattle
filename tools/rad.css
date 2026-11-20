@@ -8,7 +8,7 @@ html.rad{
   --rad-line:#d9d9d9;
   --rad-err:#b3261e;
   /* Farben der Rad-Punkte (W.7) – nur dort verwendet */
-  --rad-warm:#d9480f;--rad-cold:#1971c2;--rad-pink:#ae3ec9;--rad-dark:#111111;--rad-light:#ececec;
+  --rad-warm:#d9480f;--rad-cold:#1971c2;--rad-dark:#111111;--rad-light:#ececec;
   --rad-top:48px;          /* Platz oben für die Rad-Punkte (gleicher Wert wie RAD_TOP in rad.js) */
   --rad-bottom:76px;       /* Platz unten für den Vorschlag-Knopf (gleicher Wert wie RAD_BOTTOM in rad.js) */
   color-scheme:light;background:var(--rad-bg);overflow:hidden;overscroll-behavior:none;
@@ -83,7 +83,6 @@ html.rad #app{position:fixed;inset:0 0 var(--gmbar-h) 0;height:auto} /* Platz f�
 .rad-dot-all{--dot:var(--rad-bg);--dot-line:var(--rad-ink)}
 .rad-dot-warm{--dot:var(--rad-warm)}
 .rad-dot-cold{--dot:var(--rad-cold)}
-.rad-dot-pink{--dot:var(--rad-pink)}
 .rad-dot-dark{--dot:var(--rad-dark)}
 .rad-dot-light{--dot:var(--rad-light);--dot-line:var(--rad-muted)}
 

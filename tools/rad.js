@@ -8,7 +8,7 @@ const RAD_CLIENT_ID="173f861652ae4b668769c76f0adab3a1";
 const RAD_AUTH="https://accounts.spotify.com/authorize",RAD_TOKEN="https://accounts.spotify.com/api/token",RAD_API="https://api.spotify.com/v1";
 // „zuletzt gehört“ wird erst ab W.9 gebraucht – schon jetzt angefragt, damit später keine zweite Anmeldung nötig ist
 const RAD_SCOPES="user-library-read user-read-recently-played";
-const RAD_KEYS={state:"mb_rad_state",verifier:"mb_rad_pkce",access:"mb_rad_access",expires:"mb_rad_expires",refresh:"mb_rad_refresh",albums:"mb_rad_albums",colors:"mb_rad_colors_v1",sort:"mb_rad_sort"};
+const RAD_KEYS={state:"mb_rad_state",verifier:"mb_rad_pkce",access:"mb_rad_access",expires:"mb_rad_expires",refresh:"mb_rad_refresh",albums:"mb_rad_albums",colors:"mb_rad_colors_v2",sort:"mb_rad_sort"};
 const RAD_CACHE_MS=60*60*1000; // Albumliste höchstens 1 Stunde aus dem Zwischenspeicher
 const RAD_FOCUS_DEG=20;        // vorne = rechts, leicht unten
 const RAD_TOP=48;              // Platz oben für die Rad-Punkte (gleicher Wert wie --rad-top in rad.css)
@@ -542,6 +542,7 @@ function radRender(){
 async function radInit(){
   document.documentElement.classList.add("rad");
   document.title="Albumrad";
+  radDel(localStorage,"mb_rad_colors_v1"); // alte Farben mit der Gruppe Violett/Pink (bis 20.11.2026) werden neu gelesen
   const savedSort=radGet(localStorage,RAD_KEYS.sort);
   if(RAD_SORTS.some(o=>o.key===savedSort))RAD.sort=savedSort;
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content","#ffffff");

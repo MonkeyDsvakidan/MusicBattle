@@ -17,7 +17,7 @@ function out(data: unknown, status = 200) {
 const MAX_PER_HOUR = 300; // Schutz vor Dauerfeuer: so viele Einträge pro Konto und Stunde
 const RECENT = 100;       // so viele letzte Einträge liefert "state" fürs Protokoll
 const MOVES_PER_HOUR = 500; // so viele Verschiebungen pro Konto und Stunde
-const WHEELS = ["auto", "warm", "cold", "pink", "dark", "light"];
+const WHEELS = ["auto", "warm", "cold", "dark", "light"]; // „pink“ seit 20.11.2026 in „cold“ aufgegangen
 
 Deno.serve(async (req) => {
   try {

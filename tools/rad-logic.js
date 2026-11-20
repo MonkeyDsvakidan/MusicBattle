@@ -184,15 +184,15 @@ function radWhen(iso,now=new Date()){
 
 // ---------- Farb-Räder (W.7) ----------
 
-// Die fünf Farbgruppen (Entscheid des Nutzers 16.11.2026); „all“ ist kein Eintrag hier, sondern das Rad mit allen Alben
-const RAD_GROUPS=[{key:"warm",name:"Warm"},{key:"cold",name:"Kalt"},{key:"pink",name:"Violett/Pink"},{key:"dark",name:"Dunkel"},{key:"light",name:"Hell"}];
+// Die vier Farbgruppen (Entscheid des Nutzers 16.11.2026, Violett/Pink am 20.11.2026 mit Kalt zusammengelegt); „all“ ist kein Eintrag hier, sondern das Rad mit allen Alben
+const RAD_GROUPS=[{key:"warm",name:"Warm"},{key:"cold",name:"Kalt"},{key:"dark",name:"Dunkel"},{key:"light",name:"Hell"}];
 function radIsGroup(key){return RAD_GROUPS.some(g=>g.key===key)}
 
 // Farbgruppe eines Covers aus seinen Bildpunkten (RGBA-Werte hintereinander, wie von canvas.getImageData).
-// Bunte Punkte stimmen nach Farbton ab (gewichtet mit der Sättigung): Rot/Orange/Gelb = warm, Grün/Blau = kalt,
-// Violett/Pink = pink. Ist weniger als ein Viertel des Covers bunt, entscheidet die Helligkeit: dunkel oder hell.
+// Bunte Punkte stimmen nach Farbton ab (gewichtet mit der Sättigung): Rot/Orange/Gelb = warm, Grün/Blau/Violett/Pink = kalt.
+// Ist weniger als ein Viertel des Covers bunt, entscheidet die Helligkeit: dunkel oder hell.
 function radColorGroup(px){
-  const votes={warm:0,cold:0,pink:0};
+  const votes={warm:0,cold:0};
   let n=0,colorful=0,lightSum=0;
   for(let i=0;i+3<px.length;i+=4){
     if(px[i+3]<128)continue;
@@ -202,7 +202,7 @@ function radColorGroup(px){
     if(sat<0.25||l<0.12||l>0.92)continue; // grau, fast schwarz oder fast weiss: zählt nicht als bunt
     let h=max===r?((g-b)/d)%6:max===g?(b-r)/d+2:(r-g)/d+4;
     h=(h*60+360)%360;
-    votes[h<70||h>=345?"warm":h<260?"cold":"pink"]+=sat;
+    votes[h<70||h>=345?"warm":"cold"]+=sat; // Grün, Blau, Violett, Pink = kalt
     colorful++;
   }
   if(!n)return "";

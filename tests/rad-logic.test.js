@@ -162,8 +162,8 @@ test("Farbgruppe: klare Farben",()=>{
   assert.equal(radColorGroup(fill([40,160,70,16])),"cold","Grün");
   assert.equal(radColorGroup(fill([30,90,220,16])),"cold","Blau");
   assert.equal(radColorGroup(fill([30,200,200,16])),"cold","Türkis");
-  assert.equal(radColorGroup(fill([150,50,220,16])),"pink","Violett");
-  assert.equal(radColorGroup(fill([240,60,160,16])),"pink","Pink");
+  assert.equal(radColorGroup(fill([150,50,220,16])),"cold","Violett");
+  assert.equal(radColorGroup(fill([240,60,160,16])),"cold","Pink");
 });
 
 test("Farbgruppe: ohne Farbe entscheidet die Helligkeit",()=>{
@@ -186,15 +186,16 @@ test("Farbgruppe: durchsichtige Punkte zählen nicht, leeres Bild hat keine Grup
 });
 
 test("Räder: Alle zuerst, leere Gruppen fehlen, Verschiebung geht vor, auto nimmt die berechnete Farbe",()=>{
-  const w=radWheels(five,{a:"warm",b:"warm",c:"cold",d:"dark"},{b:"pink",c:"auto",d:"quatsch"});
-  assert.deepEqual(w.map(x=>x.key),["all","warm","cold","pink","dark"]);
+  const w=radWheels(five,{a:"warm",b:"warm",c:"cold",d:"dark"},{b:"light",c:"auto",d:"pink"});
+  assert.deepEqual(w.map(x=>x.key),["all","warm","cold","dark","light"]);
   assert.deepEqual(w[0].albums.map(a=>a.id),["a","b","c","d","e"]);
   assert.deepEqual(w.find(x=>x.key==="warm").albums.map(a=>a.id),["a"]);
-  assert.deepEqual(w.find(x=>x.key==="pink").albums.map(a=>a.id),["b"]);
+  assert.deepEqual(w.find(x=>x.key==="light").albums.map(a=>a.id),["b"]);
+  assert.deepEqual(w.find(x=>x.key==="dark").albums.map(a=>a.id),["d"],"alte Verschiebung „pink“ gilt als automatisch");
   assert.deepEqual(w.find(x=>x.key==="cold").albums.map(a=>a.id),["c"]);
-  assert.equal(w.find(x=>x.key==="pink").name,"Violett/Pink");
+  assert.equal(w.find(x=>x.key==="light").name,"Hell");
   assert.deepEqual(radWheels(five).map(x=>x.key),["all"],"ohne Farben nur Alle");
-  assert.equal(RAD_GROUPS.length,5);
+  assert.equal(RAD_GROUPS.length,4);
 });
 
 test("Nachbar-Rad: vor und zurück, am Ende von vorne",()=>{
