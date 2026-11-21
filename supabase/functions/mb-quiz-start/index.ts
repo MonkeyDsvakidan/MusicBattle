@@ -2,7 +2,7 @@
 // erzeugt die Fragen mit der Quiz-Engine und speichert Fragen + Lösungen über mb_quiz_store_game in einem Schritt.
 // Die Fragen sind danach noch „pending“ (unsichtbar); geöffnet werden sie einzeln (7.6).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateQuiz, questionTrackIds, QUIZ_ENGINE_VERSION } from "../_shared/quiz-engine.mjs";
+import { generateQuiz, questionTrackIds, QUIZ_ENGINE_VERSION, QUIZ_KINDS, QUIZ_KINDS_V1 } from "../_shared/quiz-engine.mjs";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -13,7 +13,7 @@ function out(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } });
 }
 
-const POOL_COLUMNS = "spotify_track_id,title,artist,album,spotify_album_id,album_type,release_year,cover_url,duration_ms,member_id";
+const POOL_COLUMNS = "spotify_track_id,title,artist,album,spotify_album_id,album_type,release_date,release_year,cover_url,duration_ms,member_id";
 
 Deno.serve(async (req) => {
   try {
@@ -56,8 +56,13 @@ Deno.serve(async (req) => {
       for (const q of prev ?? []) avoid.push(...questionTrackIds(q.prompt, solById.get(q.id)));
     }
 
+    // Fragetypen, die die App des Hosts kennt (7.12: „intro“ nur, wenn sein Gerät Musik spielt). Ältere Apps schicken
+    // nichts → nur die ersten drei Typen, sonst sähen sie Fragen, die sie nicht anzeigen können.
+    const asked = Array.isArray(body?.kinds) ? QUIZ_KINDS.filter((k) => body.kinds.includes(k)) : [];
+    const kinds = asked.length ? asked : QUIZ_KINDS_V1;
+
     const gameNo = Number(room.quiz_game_no) + 1;
-    const questions = generateQuiz(pool ?? [], { count: room.quiz_length, seed: `${roomId}:${gameNo}`, years, avoid });
+    const questions = generateQuiz(pool ?? [], { count: room.quiz_length, seed: `${roomId}:${gameNo}`, years, avoid, kinds });
     if (questions.length < room.quiz_length) {
       return out({ error: "pool too small", songs: ids.length, questions: questions.length, needed: room.quiz_length }, 409);
     }

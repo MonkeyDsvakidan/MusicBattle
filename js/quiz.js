@@ -90,7 +90,10 @@ function quizStandings(members,answers){
 }
 
 // ── Fragen-Bildschirm (7.6): reine Hilfsfunktionen ──
-const QUIZ_KIND_LABEL={year:"Erscheinungsjahr",older:"Welcher Song ist älter?",cover:"Welches Album?",whose:"Wessen Song?"};
+const QUIZ_KIND_LABEL={year:"Erscheinungsjahr",older:"Welcher Song ist älter?",cover:"Album-Cover",intro:"Intro erraten",album:"Welches Album?",whose:"Wessen Song?"};
+// Fragetypen, die diese App anzeigen kann (7.12); „Intro erraten“ nur, wenn der Host Musik spielt
+function quizKinds(){return["year","older","cover","album",...(hostPlaysMusic()?["intro"]:[])]}
+const quizDate=d=>/^\d{4}-\d{2}-\d{2}$/.test(String(d||""))?d.split("-").reverse().join("."):"";
 
 // Restzeit einer offenen Frage. Uhren der Handys gehen oft falsch: Liegt die eigene Uhr offensichtlich daneben
 // (Frage „in der Zukunft“ oder über 60 s alt), zählt die Zeit ab dem Moment, in dem das Gerät die Frage gesehen hat.
@@ -114,15 +117,18 @@ function quizAnswerText(q,answer){
   if(!answer)return"keine Antwort";
   if(q?.kind==="year")return String(answer.year??"?");
   const o=q?.prompt?.options?.[Number(answer.choice)-1];
-  if(q?.kind==="older")return o?.title||"?";
-  if(q?.kind==="cover")return o?.album||"?";
+  if(q?.kind==="older"||q?.kind==="intro")return o?.title||"?";
+  if(q?.kind==="cover"||q?.kind==="album")return o?.album||"?";
   return"?";
 }
 function quizSolutionText(q,sol){
   if(!sol)return"";
   if(q?.kind==="year")return String(sol.year);
-  if(q?.kind==="older"){const o=q.prompt?.options?.[sol.choice-1],y=sol.years?.[sol.choice-1];return`${o?.title||"?"} (${y}) ist älter als ${q.prompt?.options?.[2-sol.choice]?.title||"?"} (${sol.years?.[2-sol.choice]})`}
+  // im selben Jahr entscheidet das Tagesdatum (7.12) → dann das Datum zeigen
+  if(q?.kind==="older"){const i=sol.choice-1,j=2-sol.choice,o=q.prompt?.options||[],same=sol.years?.[i]===sol.years?.[j],when=k=>same&&quizDate(sol.dates?.[k])||sol.years?.[k];return`${o[i]?.title||"?"} (${when(i)}) ist älter als ${o[j]?.title||"?"} (${when(j)})`}
   if(q?.kind==="cover")return`${sol.album} – ${sol.artist}`;
+  if(q?.kind==="intro")return`${sol.title} – ${sol.artist}`;
+  if(q?.kind==="album")return sol.album;
   return"";
 }
 
@@ -247,7 +253,7 @@ async function startQuiz(){
   if(!isHost()||S.quizStarting)return;
   S.quizStarting=true;S.error="";render();
   try{
-    const r=await sb.functions.invoke("mb-quiz-start",{body:{room_id:S.room.id}});
+    const r=await sb.functions.invoke("mb-quiz-start",{body:{room_id:S.room.id,kinds:quizKinds()}});
     if(r.error){let b={};try{b=await r.error.context.json()}catch{}S.error=quizStartErrorText(b,r.error.message)}
   }finally{S.quizStarting=false;await reloadRoomNow()}
   if(!S.error&&S.room?.status==="quiz"&&isSoloQuiz()&&!quizCurrentQuestion())await openNextQuestion();
@@ -301,8 +307,14 @@ async function openNextQuestion(){
     if(error){S.error=quizErrorText(error.message);return}
     await reloadRoomNow();
     const q=no>0?quizCurrentQuestion():null;
-    if(q?.prompt?.play)playQuizTrack(q.prompt.play);else stopQuizTrack();
+    if(q?.prompt?.play)playQuizTrack(q.prompt.play);else if(q?.kind==="intro")playQuizIntro();else stopQuizTrack();
   }finally{S.quizBusy=false;render()}
+}
+// Intro erraten (7.12): Die Song-ID steht nicht in der Frage – nur der Host bekommt sie vom Server
+async function playQuizIntro(){
+  if(!hostPlaysMusic())return;
+  const {data}=await sb.rpc("mb_quiz_host_play",{p_room_id:S.room.id});
+  await playQuizTrack(data);
 }
 
 async function answerQuiz(answer){
