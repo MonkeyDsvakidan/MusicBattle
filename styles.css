@@ -525,7 +525,7 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 }
 
 /* Quiz (7.7): Endstand mit Podest */
-.quizfinal{overflow-x:clip;overflow-clip-margin:20px}   /* Zahl-Animation im Kopf ragt sonst kurz hinaus (wie 6.3.4) */
+.finalwrap{overflow-x:clip;overflow-clip-margin:20px}   /* Zahl-/Gürtel-Animation im Endstand (Battle und Quiz) ragt sonst kurz hinaus (wie 6.3.4) */
 .podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:var(--s2);margin-top:var(--s4)}
 .podium .step{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s1);justify-items:center;align-content:end;padding:var(--s3) var(--s2);border:1px solid var(--line-strong);border-radius:var(--r-m) var(--r-m) 0 0;background:var(--surface-2);text-align:center;min-width:0}
 .podium .step strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
