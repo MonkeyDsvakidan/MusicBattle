@@ -10,15 +10,15 @@ permissions:
   pages: write
   id-token: write
 
+# Nur ein Deployment gleichzeitig; ein laufendes nicht abbrechen (sonst bleibt die Seite evtl. halb aktualisiert)
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  # Hochladen und Veröffentlichen in getrennten Jobs: im selben Job fand deploy-pages das eben hochgeladene
+  # Paket manchmal noch nicht («No artifacts named github-pages», 20.11. und 22.11.2026)
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,6 +29,14 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           path: .
+
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
