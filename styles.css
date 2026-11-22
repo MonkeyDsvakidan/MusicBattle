@@ -93,6 +93,7 @@ button{font:inherit}
 .brandcopy,.brandcopy .eyebrow{display:block}
 .brandtitle{display:block;font:400 30px/1 var(--f-title);white-space:nowrap}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);padding:var(--s5);box-shadow:var(--sh-card)}
+.card.flat{background:none;border-color:transparent;box-shadow:none}   /* Startseiten: keine Karte um Karten (U.1), Abstände bleiben */
 .card>h2:first-child,.card .sectionhead h2{margin-top:var(--s1)}
 .loading{text-align:center;color:var(--muted)}
 .sectionhead{display:flex;align-items:end;justify-content:space-between;gap:var(--s3);margin-bottom:var(--s4)}
@@ -148,7 +149,7 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .joinrole>div:last-child{display:grid;gap:var(--s2)}
 .playerrole{border-top:4px solid var(--a)}
 .player2role{border-top:4px solid var(--b)}
-.jurorrole{border-top:4px solid var(--gold)}
+.jurorrole{border-top:4px solid var(--line-strong)}   /* Gold nur für Thema/Sieg (Entscheidung E, U.1) */
 .roomcode{font:400 28px var(--f-num);letter-spacing:.12em;color:var(--gold)}
 .member{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);padding:var(--s3);border-radius:var(--r-m);background:var(--surface-2);border:1px solid var(--line)}
 .member strong{display:block}
@@ -475,7 +476,6 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .finalwrap .muted.center{text-align:center}
 
 /* Quiz (7.5): Startseite und Lobby */
-.modecard.quizcard{grid-column:1/-1}
 .quizsettings{margin-top:var(--s4)}
 .quizsettings label{display:block;margin-bottom:var(--s2)}
 .lengthpick{display:flex;gap:var(--s2)}
