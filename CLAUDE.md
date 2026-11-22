@@ -1,6 +1,6 @@
 # CLAUDE.md – Music Battle
 
-Diese Datei wird in jeder Claude-Code-Sitzung geladen. Sie beschreibt das Projekt als Ganzes und die Regeln, nach denen gearbeitet wird. **Lies zu Beginn jeder Sitzung zusätzlich `ROADMAP.md`.** Für Menschen gibt es `README.md` (Spielablauf, Setup, Deployment) – bei Änderungen am Ablauf oder Setup mitpflegen.
+Diese Datei wird in jeder Claude-Code-Sitzung geladen. Sie beschreibt das Projekt als Ganzes und die Regeln, nach denen gearbeitet wird. **Lies zu Beginn jeder Sitzung zusätzlich `ROADMAP.md`** (nur offene Aufgaben; Erledigtes bis 22.11.2026 steht in `ROADMAP-ARCHIV.md` – dort nur gezielt suchen). Für Menschen gibt es `README.md` (Spielablauf, Setup, Deployment) – bei Änderungen am Ablauf oder Setup mitpflegen.
 
 ## Was das Projekt ist
 
@@ -12,7 +12,7 @@ Music Battle ist ein Browser-Spiel für zwei Spieler (plus optionale menschliche
 4. **Abstimmung** (seit 6.3, Entscheidung G) – Abstimmung in fünf Kategorien (Thema, Vibe, Lyrics, Überraschung, Kenner-Wahl): mit Juroren im Raum stimmen nur sie, sonst die Spieler (Pass & Play nacheinander verdeckt); Mehrheit je Kategorie, Gleichstand zählt für keinen; mehr Kategorien = Rundensieg, Gleichstand → Host entscheidet (auch mit Juroren). Option für den Host ohne Juroren: „Die Jury“ (fünf automatische Juroren, 10–10 bei Gleichstand/fehlenden Daten), deren Urteil er überstimmen kann. Alte Juroren-Scorecards (10–8/10–9) werden nur noch für frühere Runden angezeigt.
 5. **Match** – Runde 5 zählt doppelt, bei Gleichstand Sudden Death (Runde 6), danach Endstand mit Statistiken.
 
-Dazu kommt das **Musik-Quiz** (Phase 7, Quiz-Art B „Musikwissen“, für alle sichtbar seit 7.9): Der Host erstellt einen Quiz-Raum, beliebig viele Mitspieler treten per QR/Link bei (Rolle `quizzer`), wer Spotify verbindet, liefert Songs in den Pool. Der Server erzeugt 10/15/20 Fragen (Jahr, Älter, Cover), jede Person antwortet auf dem eigenen Handy in 20 s, Musik läuft nur auf dem Host-Gerät. Aufdecken mit Punkten (richtig + Tempo), Endstand mit Podest und „Nochmal“. Solo: eine Person ohne Lobby, Highscore auf dem Gerät.
+Dazu kommt das **Musik-Quiz** (Phase 7, Quiz-Art B „Musikwissen“, für alle sichtbar seit 7.9): Der Host erstellt einen Quiz-Raum, beliebig viele Mitspieler treten per QR/Link bei (Rolle `quizzer`), wer Spotify verbindet, liefert Songs in den Pool. Der Server erzeugt 10/15/20 Fragen (Jahr, Älter, Cover, Intro, Album – seit 7.12), jede Person antwortet auf dem eigenen Handy in 20 s, Musik läuft nur auf dem Host-Gerät. Aufdecken mit Punkten (richtig + Tempo), Endstand mit Podest und „Nochmal“. Solo: eine Person ohne Lobby, Highscore auf dem Gerät.
 
 UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor allem Handy, auch Desktop.
 
@@ -47,7 +47,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 
 | Datei | Inhalt |
 |---|---|
-| `js/config.js` | Supabase-/Spotify-Konfiguration; `JUDGES` aus der Juror-Datei; `THEMES`, `SUDDEN_THEMES`, `themeProfile()` aus der Themen-Datei |
+| `js/config.js` | Supabase-/Spotify-Konfiguration; `JUDGES` aus der Juror-Datei; `THEMES`, `SUDDEN_THEMES` aus der Themen-Datei (Themen-Profile wertet die Jury-Engine serverseitig aus) |
 | `js/state.js` | Zustand `S`, `$`/`esc`, Raum-/Mitglieder-/Runden-Abfragen, `resetLocalRoomState` |
 | `js/errors.js` | Fehlertexte (Q.1): `errorText()` übersetzt Backend-Meldungen (Tabelle `BACKEND_ERRORS` – **neue `raise exception`-Texte hier ergänzen**, sonst schlägt `tests/errors.test.js` fehl), Spotify-Fehler (Rat je Status + Details) und Verbindungsfehler; eigene deutsche Texte bleiben unverändert. Reine Funktion, auch für `node --test` exportiert |
 | `js/ui-common.js` | `mbConfirm`, `mbConfirmLeave`, `errorNotice()` (Fehlerbox über `errorText`), `render()`-Verteiler (setzt die Fortschrittsanzeige `flowSteps()` darüber), Closed-Screen, gemeinsame Bausteine (`turnBanner`, `isPassAndPlay`, `passPlayTurn`, `cornerName`, `animAttr`, Ausgangsleiste), Kopfzeile GameMaster (8.3: `bindBrandHome` setzt Spielname + Tab-Titel, `goToOverview` → `/` mit Rückfrage im laufenden Spiel), Leiste unten (8.3: `bindGameBar`; Markup `#gmBar` in `index.html`, auf Tools-Seiten setzt `app.js` den aktiven Eintrag) |

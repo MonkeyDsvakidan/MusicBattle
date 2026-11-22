@@ -20,5 +20,3 @@ const JUDGES=Object.fromEntries(MB_JUROR_DATA.jurors.map(j=>[j.key,{name:j.name,
 const THEMES=Object.fromEntries(MB_THEME_DATA.categories.filter(c=>!c.sudden).map(c=>[c.name,c.themes.map(t=>t.theme)]));
 
 const SUDDEN_THEMES=MB_THEME_DATA.categories.filter(c=>c.sudden).flatMap(c=>c.themes.map(t=>t.theme));
-const THEME_PROFILES=new Map(MB_THEME_DATA.categories.flatMap(c=>c.themes.map(t=>[t.theme,{...t,category:c.name}])));
-function themeProfile(theme){return THEME_PROFILES.get(theme)||null}
