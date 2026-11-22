@@ -1,7 +1,7 @@
 // Tests für die Quiz-Engine (Roadmap 7.3). Ausführen im Repo-Root: node --test
 import test from "node:test";
 import assert from "node:assert/strict";
-import { generateQuiz, preparePool, createRng, startMs, QUIZ_KINDS } from "../supabase/functions/_shared/quiz-engine.mjs";
+import { generateQuiz, preparePool, createRng, startMs, olderClose, QUIZ_KINDS } from "../supabase/functions/_shared/quiz-engine.mjs";
 
 let n = 0;
 function song(o = {}) {
@@ -47,17 +47,79 @@ test("Lösung steht nicht im öffentlichen Teil", () => {
       assert.equal(q.prompt.play, null, "Musik erst nach dem Aufdecken");
       assert.equal(q.solution.play.track_id, q.track_ids[0]);
     }
+    if (q.kind === "intro") {
+      assert.ok(!p.includes(q.track_ids[0]), "Song-ID der Intro-Frage verrät die Lösung");
+      assert.ok(!/artist|cover|album/.test(p), "nur Titel zur Wahl");
+      assert.equal(q.prompt.play, null, "Abspiel-Info nur für den Host (mb_quiz_host_play)");
+      assert.deepEqual(q.solution.play, { track_id: q.track_ids[0], start_ms: 0 }, "Intro ab Sekunde 0");
+    }
+    if (q.kind === "album") {
+      assert.ok(!/cover/.test(p), "ohne Cover");
+      assert.ok(q.prompt.title && q.prompt.artist);
+    }
   }
 });
 
-test("älter: richtige Wahl, mindestens 2 Jahre Abstand, verschiedene Künstler", () => {
+test("älter: richtige Wahl, höchstens 3 Jahre Abstand, verschiedene Künstler", () => {
   const qs = generateQuiz(bigPool(), { count: 20, seed: "alt", kinds: ["older"] });
   assert.equal(qs.length, 20);
   for (const q of qs) {
     const [y1, y2] = q.solution.years;
-    assert.ok(Math.abs(y1 - y2) >= 2);
-    assert.equal(q.solution.choice, y1 < y2 ? 1 : 2);
+    assert.ok(Math.abs(y1 - y2) <= 3);
+    if (y1 === y2) assert.ok(q.solution.dates[0] && q.solution.dates[1], "gleiches Jahr nur mit Tagesdatum");
+    else assert.equal(q.solution.choice, y1 < y2 ? 1 : 2);
     assert.notEqual(q.prompt.options[0].artist, q.prompt.options[1].artist);
+  }
+});
+
+test("älter im selben Jahr: nur mit Tagesdatum und mindestens 30 Tagen Abstand", () => {
+  const d = (id, release_date, artist) => ({ ...song({ id, artist, year: 2015 }), release_date });
+  const raw = [d("SameYearA0001", "2015-01-10", "A"), d("SameYearB0001", "2015-03-20", "B"), d("SameYearC0001", "2015-01-25", "C"), d("SameYearE0001", "2015", "E")];
+  const [a, b, c, e] = preparePool(raw);
+  assert.ok(olderClose(a, b), "69 Tage");
+  assert.ok(!olderClose(a, c), "15 Tage – zu knapp");
+  assert.ok(!olderClose(a, e), "ohne Tagesdatum");
+  assert.ok(!olderClose({ year: 2010 }, { year: 2014 }), "4 Jahre – zu weit");
+  const [q] = generateQuiz(raw.slice(0, 2), { count: 1, seed: "tag", kinds: ["older"] });
+  const older = q.prompt.options[q.solution.choice - 1];
+  assert.equal(older.track_id, "SameYearA0001");
+  assert.deepEqual([...q.solution.dates].sort(), ["2015-01-10", "2015-03-20"]);
+  const [p] = preparePool([{ ...song({ id: "ProfYear00001", year: 2015 }), release_date: "2015-05-01" }], { ProfYear00001: 1999 });
+  assert.equal(p.date, null, "früheres Profil-Jahr: Datum passt nicht mehr");
+});
+
+test("Intro: vier verschiedene Titel, Lösung dabei, Ablenker bevorzugt vom selben Künstler", () => {
+  const pool = [
+    song({ artist: "Kendrick Lamar", title: "HUMBLE." }), song({ artist: "Kendrick Lamar", title: "DNA." }),
+    song({ artist: "Kendrick Lamar", title: "Alright" }), song({ artist: "Kendrick Lamar", title: "Money Trees" }),
+    ...bigPool(30),
+  ];
+  const qs = generateQuiz(pool, { count: 20, seed: "intro", kinds: ["intro"] });
+  assert.equal(qs.length, 20);
+  for (const q of qs) {
+    assert.equal(new Set(q.prompt.options.map((o) => o.title.toLowerCase())).size, 4);
+    assert.equal(q.prompt.options[q.solution.choice - 1].title, q.solution.title);
+  }
+  const k = qs.find((q) => q.solution.artist === "Kendrick Lamar");
+  assert.ok(k, "Kendrick-Intro kommt vor");
+  const kendrick = new Set(["HUMBLE.", "DNA.", "Alright", "Money Trees"]);
+  assert.equal(k.prompt.options.filter((o) => kendrick.has(o.title)).length, 4);
+});
+
+test("Welches Album?: nur Künstler mit 4 Alben, Ablenker vom selben Künstler, keine Singles", () => {
+  const pool = [
+    song({ artist: "Kendrick Lamar", album: "DAMN.", title: "DNA." }), song({ artist: "Kendrick Lamar", album: "good kid, m.A.A.d city", title: "m.A.A.d city" }),
+    song({ artist: "Kendrick Lamar", album: "To Pimp a Butterfly", title: "Alright" }), song({ artist: "Kendrick Lamar", album: "GNX", title: "squabble up" }),
+    song({ artist: "Kendrick Lamar", album: "Not Like Us", title: "Not Like Us", type: "single" }),
+    ...Array.from({ length: 30 }, (_, i) => song({ artist: `Solo ${i}` })),
+  ];
+  const qs = generateQuiz(pool, { count: 10, seed: "album", kinds: ["album"] });
+  assert.equal(qs.length, 4, "nur die vier Album-Songs von Kendrick");
+  for (const q of qs) {
+    assert.equal(q.prompt.artist, "Kendrick Lamar");
+    assert.equal(new Set(q.prompt.options.map((o) => o.album)).size, 4);
+    assert.ok(!q.prompt.options.some((o) => o.album === "Not Like Us"), "Single ist kein Album");
+    assert.equal(q.prompt.options[q.solution.choice - 1].album, q.solution.album);
   }
 });
 
@@ -131,14 +193,15 @@ test("Punkte: richtig + Tempo-Bonus", () => {
   assert.equal(scoreAnswer("older", null, { choice: 1 }, 0), 0);
 });
 
-test("Punkte: Jahr je näher, desto mehr", () => {
+test("Punkte: Jahr je näher, desto mehr – streng (7.12: −25 % pro Jahr, ab 4 Jahren 0)", () => {
   const s = (y, ms = 0) => scoreAnswer("year", { year: y }, { year: 2004 }, ms);
   assert.equal(s(2004), 1000);
-  assert.equal(s(2001), 700);
-  assert.equal(s(2007, 10000), 530);
-  assert.equal(s(1994), 0, "10 Jahre daneben");
+  assert.equal(s(2005), 750);
+  assert.equal(s(2001), 250);
+  assert.equal(s(2005, 10000), 560);
+  assert.equal(s(2008), 0, "4 Jahre daneben");
   assert.equal(s(2030), 0);
-  assert.ok(s(2005) > s(2006) && s(2006) > s(2010));
+  assert.ok(s(2005) > s(2006) && s(2006) > s(2007));
   assert.equal(answerAccuracy("year", { year: "x" }, { year: 2004 }), 0);
 });
 
@@ -169,5 +232,7 @@ test("Song-IDs einer Frage", () => {
   assert.deepEqual(questionTrackIds(q.prompt, q.solution), [q.track_ids[0]]);
   const [o] = generateQuiz(bigPool(40), { count: 1, seed: "ids", kinds: ["older"] });
   assert.deepEqual(questionTrackIds(o.prompt, o.solution).sort(), [...o.track_ids].sort());
+  const [i] = generateQuiz(bigPool(40), { count: 1, seed: "ids", kinds: ["intro"] });
+  assert.deepEqual(questionTrackIds(i.prompt, i.solution), [i.track_ids[0]], "Intro-Song wird beim nächsten Quiz gemieden");
   assert.deepEqual(questionTrackIds(null, null), []);
 });

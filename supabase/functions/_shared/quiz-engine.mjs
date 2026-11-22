@@ -1,10 +1,15 @@
 // Quiz-Engine (Roadmap 7.3): erzeugt aus dem Song-Pool eines Quiz-Raums die Fragen für „Musikwissen“ (Quiz-Art B).
 // Reine Funktion ohne Datenbank/Netz, deterministisch über den Startwert (gleicher Pool + Startwert = gleiches Quiz).
-// Fragetypen: year (Erscheinungsjahr schätzen), older (welcher Song ist älter?), cover (Album zum Cover erraten).
+// Fragetypen: year (Erscheinungsjahr schätzen), older (welcher Song ist älter?), cover (Album zum Cover erraten),
+// seit 7.12: intro (Song am Intro erkennen), album (auf welchem Album ist der Song?).
 // Jede Frage hat einen öffentlichen Teil (prompt) und die Lösung (solution, erst nach dem Aufdecken lesbar).
 
-export const QUIZ_ENGINE_VERSION = 1;
-export const QUIZ_KINDS = ["year", "older", "cover"];
+export const QUIZ_ENGINE_VERSION = 2;
+export const QUIZ_KINDS = ["year", "older", "cover", "intro", "album"];
+// Ältere Apps kennen nur diese Typen (mb-quiz-start ohne „kinds“ im Aufruf)
+export const QUIZ_KINDS_V1 = ["year", "older", "cover"];
+// 7.12 „knapper vergleichen“: höchstens 3 Jahre auseinander; im selben Jahr nur mit Tagesdatum und ≥ 30 Tagen Abstand
+const OLDER_MAX_YEARS = 3, OLDER_MIN_DAYS = 30;
 
 // Alben, deren Datum oft nicht das Original-Erscheinungsjahr ist
 const UNRELIABLE_ALBUM = /\b(remaster(ed)?|deluxe|anniversary|greatest hits|best of|the best|collection|essentials|hits|edition|reissue|anthology|gold|platinum|jubil[äa]um|live)\b/i;
@@ -42,7 +47,9 @@ export function preparePool(pool, years = {}) {
     const spotifyYear = Number(t.release_year) || null;
     const year = [spotifyYear, profileYear].filter((y) => y && y >= 1900 && y <= 2100).sort((a, b) => a - b)[0] || null;
     const yearReliable = Boolean(year) && (Boolean(profileYear) || (t.album_type !== "compilation" && !UNRELIABLE_ALBUM.test(String(t.album || ""))));
-    seen.set(t.spotify_track_id, { ...t, year, yearReliable, suppliers: [t.member_id].filter(Boolean) });
+    // Tagesdatum nur, wenn es zum verwendeten Jahr passt (ein früheres Profil-Jahr hat kein Datum)
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(String(t.release_date || "")) && Number(t.release_date.slice(0, 4)) === year ? t.release_date : null;
+    seen.set(t.spotify_track_id, { ...t, year, date, yearReliable, suppliers: [t.member_id].filter(Boolean) });
   }
   for (const t of pool || []) {
     const e = seen.get(t?.spotify_track_id);
@@ -73,8 +80,55 @@ function olderQuestion(a, b, rng) {
   return {
     kind: "older",
     prompt: { options: [first, second].map((t) => ({ ...songInfo(t), cover_url: t.cover_url || null })), play: null },
-    solution: { choice: first.year < second.year ? 1 : 2, years: [first.year, second.year] },
+    solution: { choice: olderFirst(first, second) ? 1 : 2, years: [first.year, second.year], dates: [first.date, second.date] },
     track_ids: [first.spotify_track_id, second.spotify_track_id],
+  };
+}
+
+const olderFirst = (a, b) => (a.year !== b.year ? a.year < b.year : a.date < b.date);
+// Paar für „Welcher Song ist älter?“: nah beieinander, aber eindeutig
+export function olderClose(a, b) {
+  const dy = Math.abs(a.year - b.year);
+  if (dy > OLDER_MAX_YEARS) return false;
+  if (dy > 0) return true;
+  return Boolean(a.date && b.date) && Math.abs(Date.parse(a.date) - Date.parse(b.date)) >= OLDER_MIN_DAYS * 864e5;
+}
+
+const titleLabel = (o) => String(o.title || "").trim().toLowerCase();
+const albumLabel = (o) => String(o.album || "").trim().toLowerCase();
+// „Welches Album?“ nur mit echten Alben – eine Single heisst meist wie der Song
+const isAlbumTrack = (o) => o.album_type === "album" && Boolean(o.album) && albumLabel(o) !== titleLabel(o);
+
+// Intro erraten (7.12): Song läuft beim Host ab Sekunde 0, Titel und Cover verdeckt, 4 Titel zur Wahl, möglichst
+// vom selben Künstler. Die Song-ID steht nur in der Lösung – der Host holt sie über mb_quiz_host_play.
+function introQuestion(t, all, rng) {
+  const artist = primaryArtist(t);
+  const titles = new Map();
+  for (const o of all) { const k = titleLabel(o); if (k && k !== titleLabel(t) && !titles.has(k)) titles.set(k, o); }
+  const distractors = shuffle([...titles.values()], rng).sort((x, y) => (primaryArtist(x) === artist ? 0 : 1) - (primaryArtist(y) === artist ? 0 : 1)).slice(0, 3);
+  if (distractors.length < 3) return null;
+  const options = shuffle([t, ...distractors], rng);
+  return {
+    kind: "intro",
+    prompt: { options: options.map((o) => ({ title: o.title })), play: null },
+    solution: { choice: options.indexOf(t) + 1, ...songInfo(t), album: t.album, cover_url: t.cover_url || null, play: { track_id: t.spotify_track_id, start_ms: 0 } },
+    track_ids: [t.spotify_track_id],
+  };
+}
+
+// Welches Album? (7.12): Songtitel und Künstler sichtbar, 4 Alben desselben Künstlers zur Wahl (ohne Cover)
+function albumQuestion(t, all, rng) {
+  const artist = primaryArtist(t);
+  const albums = new Map();
+  for (const o of all) { const k = albumLabel(o); if (primaryArtist(o) === artist && isAlbumTrack(o) && k !== albumLabel(t) && !albums.has(k)) albums.set(k, o); }
+  const distractors = shuffle([...albums.values()], rng).slice(0, 3);
+  if (distractors.length < 3) return null;
+  const options = shuffle([t, ...distractors], rng);
+  return {
+    kind: "album",
+    prompt: { ...songInfo(t), options: options.map((o) => ({ album: o.album })), play: { track_id: t.spotify_track_id, start_ms: startMs(t) } },
+    solution: { choice: options.indexOf(t) + 1, album: t.album, cover_url: t.cover_url || null },
+    track_ids: [t.spotify_track_id],
   };
 }
 
@@ -86,7 +140,7 @@ function coverQuestion(t, all, rng) {
   const albums = new Map();
   for (const o of all) { const k = label(o); if (k !== label(t) && albumKey(o) !== albumKey(t) && o.album && !albums.has(k)) albums.set(k, o); }
   const candidates = shuffle([...albums.values()], rng);
-  const score = (o) => (primaryArtist(o) === artist ? 0 : t.year && o.year && Math.abs(o.year - t.year) <= 5 ? 1 : 2);
+  const score = (o) => (primaryArtist(o) === artist ? 0 : t.year && o.year && Math.abs(o.year - t.year) <= 2 ? 1 : 2);
   const distractors = candidates.sort((x, y) => score(x) - score(y)).slice(0, 3);
   if (distractors.length < 3) return null;
   const options = shuffle([t, ...distractors], rng);
@@ -120,21 +174,51 @@ export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = 
   for (let i = 0; queues.some((q) => i < q.length); i++) for (const q of queues) if (i < q.length) order.push(q[i]);
 
   let lastArtist = "";
+  // erster freier passender Song, möglichst nicht vom Künstler der letzten Frage (prüft ok() nur so weit wie nötig)
   const pick = (ok) => {
-    const free = order.filter((t) => !used.has(t.spotify_track_id) && ok(t));
-    const t = free.find((x) => primaryArtist(x) !== lastArtist) || free[0];
-    if (t) used.add(t.spotify_track_id);
-    return t || null;
+    let fallback = null;
+    for (const t of order) {
+      if (used.has(t.spotify_track_id) || (fallback && primaryArtist(t) === lastArtist) || !ok(t)) continue;
+      if (primaryArtist(t) !== lastArtist) { used.add(t.spotify_track_id); return t; }
+      fallback = t;
+    }
+    if (fallback) used.add(fallback.spotify_track_id);
+    return fallback;
   };
+  // Songs mit verlässlichem Jahr nach Jahr (Partnersuche für „älter“ nur in den Nachbarjahren)
+  const byYear = new Map(), yearArtists = new Map(), yearDates = new Map();
+  for (const t of order) if (t.yearReliable) {
+    if (!byYear.has(t.year)) { byYear.set(t.year, []); yearArtists.set(t.year, new Set()); yearDates.set(t.year, [Infinity, -Infinity]); }
+    byYear.get(t.year).push(t); yearArtists.get(t.year).add(primaryArtist(t));
+    if (t.date) { const d = Date.parse(t.date), r = yearDates.get(t.year); r[0] = Math.min(r[0], d); r[1] = Math.max(r[1], d); }
+  }
+  // gibt es im selben Jahr überhaupt ein Datum mit genug Abstand?
+  const sameYearPossible = (a) => { const d = Date.parse(a.date), [lo, hi] = yearDates.get(a.year); return d - lo >= OLDER_MIN_DAYS * 864e5 || hi - d >= OLDER_MIN_DAYS * 864e5; };
+  let olderDone = false;   // kein Paar mehr → bleibt so (es werden nur Songs verbraucht)
+  const olderPartner = (a) => {
+    for (let y = a.year - OLDER_MAX_YEARS; y <= a.year + OLDER_MAX_YEARS; y++) {
+      const artists = yearArtists.get(y);
+      if (!artists || (artists.size === 1 && artists.has(primaryArtist(a))) || (y === a.year && !(a.date && sameYearPossible(a)))) continue;   // schnell überspringen (grosse Pools)
+      const b = byYear.get(y).find((x) => !used.has(x.spotify_track_id) && primaryArtist(x) !== primaryArtist(a) && olderClose(a, x));
+      if (b) return b;
+    }
+    return null;
+  };
+  // Künstler mit mindestens 4 verschiedenen Alben im Pool (Voraussetzung für „Welches Album?“)
+  const artistAlbums = new Map();
+  for (const t of all) if (isAlbumTrack(t)) { const k = primaryArtist(t); if (!artistAlbums.has(k)) artistAlbums.set(k, new Set()); artistAlbums.get(k).add(albumLabel(t)); }
+  const withRetry = (t, q) => { if (t && !q) used.delete(t.spotify_track_id); return q; };
   const build = {
     year: () => { const t = pick((x) => x.yearReliable); return t ? yearQuestion(t) : null; },
     older: () => {
-      const a = pick((x) => x.yearReliable); if (!a) return null;
-      const b = pick((x) => x.yearReliable && Math.abs(x.year - a.year) >= 2 && primaryArtist(x) !== primaryArtist(a));
-      if (!b) { used.delete(a.spotify_track_id); return null; }
+      if (olderDone) return null;
+      const a = pick((x) => x.yearReliable && Boolean(olderPartner(x))); if (!a) { olderDone = true; return null; }
+      const b = olderPartner(a); used.add(b.spotify_track_id);
       return olderQuestion(a, b, rng);
     },
-    cover: () => { const t = pick((x) => Boolean(x.cover_url) && Boolean(x.album)); if (!t) return null; const q = coverQuestion(t, all, rng); if (!q) used.delete(t.spotify_track_id); return q; },
+    cover: () => { const t = pick((x) => Boolean(x.cover_url) && Boolean(x.album)); return t ? withRetry(t, coverQuestion(t, all, rng)) : null; },
+    intro: () => { const t = pick(() => true); return t ? withRetry(t, introQuestion(t, all, rng)) : null; },
+    album: () => { const t = pick((x) => isAlbumTrack(x) && artistAlbums.get(primaryArtist(x)).size >= 4); return t ? withRetry(t, albumQuestion(t, all, rng)) : null; },
   };
 
   const questions = [];
@@ -160,9 +244,9 @@ export function questionTrackIds(prompt, solution) {
 
 // Punkte (Roadmap 7.4, Entscheidung I: richtig + Tempo-Bonus, beim Jahr „je näher, desto mehr“).
 // Punkte = Treffer × (500 + 500 × Tempo), auf 10 gerundet. Tempo = 1 bei sofortiger Antwort, 0 bei Ablauf der Zeit.
-// Treffer: Auswahl-Fragen 1 (richtig) oder 0; Jahr 1 bei exakt, −0,1 pro Jahr daneben, ab 10 Jahren 0.
-// → richtig und sofort 1000, richtig in letzter Sekunde 500, Jahr 3 daneben nach halber Zeit 530.
-export const QUIZ_SCORING = { base: 500, speedBonus: 500, yearStep: 0.1, limitMs: 20000 };
+// Treffer: Auswahl-Fragen 1 (richtig) oder 0; Jahr 1 bei exakt, −0,25 pro Jahr daneben, ab 4 Jahren 0 (7.12, Entscheidung L).
+// → richtig und sofort 1000, richtig in letzter Sekunde 500, Jahr 1 daneben nach halber Zeit 560.
+export const QUIZ_SCORING = { base: 500, speedBonus: 500, yearStep: 0.25, limitMs: 20000 };
 
 export function answerAccuracy(kind, answer, solution) {
   if (!answer || !solution) return 0;

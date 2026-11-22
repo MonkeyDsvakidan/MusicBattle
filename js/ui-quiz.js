@@ -96,6 +96,9 @@ function quizQuestionView(q){
     ask=`<p class="quizask">Welcher Song ist älter?</p>${mine?waiting:`<div class="quizoptions two">${(p.options||[]).map((o,i)=>`<button class="quizoption" data-quiz-choice="${i+1}"${S.quizAnswering?" disabled":""}>${quizSongLine(o)}</button>`).join("")}</div>`}`;
   }else if(q.kind==="cover"){
     ask=`<div class="quizcoverwrap"><canvas id="quizCover" class="quizcover" width="256" height="256" role="img" aria-label="Verpixeltes Album-Cover"></canvas></div><p class="quizask">Zu welchem Album gehört das Cover?</p>${mine?waiting:`<div class="quizoptions">${(p.options||[]).map((o,i)=>`<button class="quizoption" data-quiz-choice="${i+1}"${S.quizAnswering?" disabled":""}><strong>${esc(o.album)}</strong><small>${esc(o.artist)}</small></button>`).join("")}</div>`}`;
+  }else if(q.kind==="intro"||q.kind==="album"){
+    const intro=q.kind==="intro";
+    ask=`${intro?"":quizSongLine(p)}<p class="quizask">${intro?"Welcher Song läuft gerade?":"Auf welchem Album ist dieser Song?"}</p>${mine?waiting:`<div class="quizoptions">${(p.options||[]).map((o,i)=>`<button class="quizoption" data-quiz-choice="${i+1}"${S.quizAnswering?" disabled":""}><strong>${esc(intro?o.title:o.album)}</strong></button>`).join("")}</div>`}`;
   }
   return`${quizTimer()}${ask}${quizMusicHint()}`;
 }
@@ -114,7 +117,8 @@ function quizRevealView(q,last){
   const answers=quizzers.map(m=>{const a=S.quizAnswers.find(x=>x.question_id===q.id&&x.member_id===m.id);return{m,a}}).sort((x,y)=>(Number(y.a?.points)||0)-(Number(x.a?.points)||0));
   const scored=S.quizAnswers.filter(a=>a.points!==null&&a.points!==undefined);
   const table=quizStandings(S.members,scored).slice(0,5);
-  const cover=q.kind==="cover"&&q.prompt?.cover_url?`<img class="quizcover" src="${esc(q.prompt.cover_url)}" alt="">`:"";
+  const coverUrl=q.kind==="cover"?q.prompt?.cover_url:q.kind==="intro"||q.kind==="album"?sol?.cover_url:null;
+  const cover=coverUrl?`<img class="quizcover" src="${esc(coverUrl)}" alt="">`:"";
   const myLine=!mine?`<span class="chip">keine Antwort</span>`:Number(mine.points)>0?`<span class="chip gold">+${pts(mine.points)} Punkte</span>`:`<span class="chip">0 Punkte</span>`;
   return`<div class="quizsolution"${animAttr(`quizreveal:${q.id}`,900)}>${cover}<small>LÖSUNG</small><strong${q.kind==="year"?' class="num"':""}>${esc(quizSolutionText(q,sol)||"…")}</strong>${quizMyAnswer(q)||quizMembership()?myLine:""}</div>
     <div class="stack quizanswers">${answers.map(({m,a})=>`<div class="member"><div><strong>${esc(m.display_name)}</strong><small>${esc(quizAnswerText(q,a?.answer))}</small></div><span class="chip${Number(a?.points)>0?" ok":""}">${a?pts(a.points):"–"}</span></div>`).join("")}</div>
