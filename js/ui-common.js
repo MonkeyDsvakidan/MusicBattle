@@ -43,12 +43,12 @@ function bindBrandHome(){
   bindGameBar(name==="Musik-Quiz"?"quiz":"mb");
 }
 // Leiste unten (8.3): 1v1 ↔ Quiz wechselt wie «Modus ändern» (Raum verlassen, im laufenden Spiel mit Rückfrage);
-// TotalGuesser und Tools sind andere Seiten → wie «Alle Spiele» (Raum bleibt offen)
+// TotalGuesser, Poker und Tools sind andere Seiten → wie «Alle Spiele» (Raum bleibt offen)
 function bindGameBar(active){
   document.querySelectorAll("#gmBar a").forEach(a=>{
     if(a.dataset.k===active)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");
     a.onclick=async e=>{
-      if(a.dataset.k==="tg"||a.dataset.k==="tools")return goToOverview(e);
+      if(["tg","poker","tools"].includes(a.dataset.k))return goToOverview(e);
       e.preventDefault();
       if(a.dataset.k===active)return;
       if(await openModeSelection()&&a.dataset.k==="quiz")setDeviceModeChoice("quiz");

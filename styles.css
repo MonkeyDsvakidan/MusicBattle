@@ -28,7 +28,7 @@
 
   /* GameMaster-Leiste unten (8.3, Entscheidung M): neutral in allen Apps, aktiver Eintrag in der Farbe seiner App */
   --bar-bg:#151419; --bar-line:rgb(255 255 255 / .08); --bar-idle:#8f8a99;
-  --gm-mb:#ff3fa4; --gm-quiz:#ffd166; --gm-tg:#ff8a3d; --gm-tools:#c9c4d3;
+  --gm-mb:#ff3fa4; --gm-quiz:#ffd166; --gm-tg:#ff8a3d; --gm-poker:#3ddc97; --gm-tools:#c9c4d3;
   --gmbar-h:calc(58px + env(safe-area-inset-bottom));
 
   /* Schriften */
@@ -554,14 +554,14 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 
 /* ---------- GameMaster-Leiste unten (8.3) ----------
    Liegt über dem Inhalt (z-index unter den Dialogen und den Blättern des Albumrads). */
-.gmbar{position:fixed;left:0;right:0;bottom:0;z-index:350;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+.gmbar{position:fixed;left:0;right:0;bottom:0;z-index:350;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
   background:var(--bar-bg);border-top:1px solid var(--bar-line);
   padding:var(--s1) max(var(--s1),env(safe-area-inset-right)) env(safe-area-inset-bottom) max(var(--s1),env(safe-area-inset-left))}
 .gmbar a{position:relative;display:grid;justify-items:center;align-content:center;gap:2px;min-height:52px;padding:0 2px;
   color:var(--bar-idle);text-decoration:none;font:600 11px/1.2 var(--f-text);text-align:center}
 .gmbar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 .gmbar [data-k="mb"]{--act:var(--gm-mb)} .gmbar [data-k="quiz"]{--act:var(--gm-quiz)}
-.gmbar [data-k="tg"]{--act:var(--gm-tg)} .gmbar [data-k="tools"]{--act:var(--gm-tools)}
+.gmbar [data-k="tg"]{--act:var(--gm-tg)} .gmbar [data-k="poker"]{--act:var(--gm-poker)} .gmbar [data-k="tools"]{--act:var(--gm-tools)}
 .gmbar a:hover{color:var(--text)}
 .gmbar a[aria-current]{color:var(--act)}
 .gmbar a[aria-current]::before{content:"";position:absolute;top:calc(-1 * var(--s1) - 1px);left:50%;width:28px;height:3px;margin-left:-14px;border-radius:0 0 3px 3px;background:var(--act)}
