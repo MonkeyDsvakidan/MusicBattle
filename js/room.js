@@ -113,7 +113,7 @@ async function followRematch(){
     const {data}=await sb.from("mb_rooms").select("id,code").eq("id",next).maybeSingle();
     if(!data)return false;
     saveRoom({room_id:data.id,code:data.code});
-    S.currentArtist=null;S.currentArtistSlot=null;S.ballot={};S.voteHandover="";S.voteEditing="";S.aiReveal=0;S.notice="";S.error="";S.searchResults={1:[],2:[]};S.searchQuery={1:"",2:""};
+    S.currentArtist=null;S.currentArtistSlot=null;S.ballot={};S.voteHandover="";S.voteEditing="";S.notice="";S.error="";S.searchResults={1:[],2:[]};S.searchQuery={1:"",2:""};
     await loadRoom(data.id);
     subscribeRoom();
     return true;

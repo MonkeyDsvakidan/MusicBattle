@@ -1,6 +1,6 @@
 # Music Battle
 
-Browser-Spiel für zwei Spieler: Künstler aus dem eigenen Spotify draften, pro Runde einen Song zum Thema wählen, und eine Jury entscheidet. Läuft auf dem Handy und am Desktop, auf einem Gerät (Pass & Play) oder auf zwei Geräten in Echtzeit. Dazu gibt es ein **Musik-Quiz** aus den eigenen Spotify-Songs – alleine oder mit beliebig vielen.
+Browser-Spiel für zwei Spieler: Künstler aus dem eigenen Spotify draften, pro Runde einen Song zum Thema wählen, und dann wird abgestimmt. Läuft auf dem Handy und am Desktop, auf einem Gerät (Pass & Play) oder auf zwei Geräten in Echtzeit. Dazu gibt es ein **Musik-Quiz** aus den eigenen Spotify-Songs – alleine oder mit beliebig vielen.
 
 **Live:** https://monkeydsvakidan.github.io/MusicBattle/
 
@@ -19,8 +19,7 @@ Browser-Spiel für zwei Spieler: Künstler aus dem eigenen Spotify draften, pro 
 5. **Abstimmung** – nach dem Anhören wird in fünf Kategorien abgestimmt: **Thema, Vibe, Lyrics, Überraschung, Kenner-Wahl** („Welcher Song gewinnt?“ – Pinke oder Cyan Ecke).
    - Sind **Juroren** im Raum, stimmen nur sie ab (jeder auf seinem Gerät). Ohne Juroren stimmen die **Spieler** ab; bei Pass & Play nacheinander und verdeckt („Gerät an Mia geben“).
    - Pro Kategorie gewinnt die Mehrheit, Gleichstand zählt für keinen. Wer mehr Kategorien gewinnt, gewinnt die Runde – die Kategorien werden nacheinander aufgedeckt, danach der Gürtel „Runde an …“. Steht es gleich, wählt der Host den Rundensieger.
-   - Option für den Host (ohne Juroren, solange noch niemand abgestimmt hat): **„Stattdessen Die Jury urteilen lassen“** – fünf automatische Juroren bewerten die Songs anhand gesammelter Songdaten (siehe unten); ihr Urteil kann der Host überstimmen.
-6. **Match** – Fünf Runden, Runde 5 zählt doppelt. Steht es danach unentschieden, folgt **Sudden Death** mit neuen Künstlern. Am Ende zeigt der Endstand Sieger, Statistiken, die Bilanz je Kategorie und – falls benutzt – die Bilanz der Jury. Mit **Rematch** startet der Host direkt ein neues Match mit denselben Leuten (alle wechseln automatisch, Spotify bleibt verbunden, es geht gleich mit dem Draft los).
+6. **Match** – Fünf Runden, Runde 5 zählt doppelt. Steht es danach unentschieden, folgt **Sudden Death** mit neuen Künstlern. Am Ende zeigt der Endstand Sieger, Statistiken, und die Bilanz je Kategorie. Mit **Rematch** startet der Host direkt ein neues Match mit denselben Leuten (alle wechseln automatisch, Spotify bleibt verbunden, es geht gleich mit dem Draft los).
 
 ## Musik-Quiz
 
@@ -28,17 +27,7 @@ Auf der Startseite **„Quiz“** wählen (direkt: `…/MusicBattle/?mode=quiz`,
 
 Verlässt der Host das Quiz, ist der Raum für alle geschlossen. Auf dem iPhone als Host läuft die Musik über die Spotify-App (wie im Battle).
 
-### Die Jury (Option)
-
-| Juror | Figur | Achtet auf |
-|---|---|---|
-| Themenschnüffler | Einsiedlerkrebs mit Lupe | Themen-Motive im Titel, im Text, in den Tags; bei Zeitreise-Themen das Jahr |
-| Vibejunkie | Qualle mit Kopfhörern | Stimmungs-Tags und Energie |
-| Kollegah der Lyricboss | Oktopus mit Krone | Motive und Inhalt der Lyrics |
-| Snoop Underdogg | Kugelfisch mit Boxhandschuhen | den weniger bekannten Song – solange er thematisch mithält |
-| Dr. Körnli | Schildkröte mit Schallplatte | Albumtracks, ältere Perlen, Genre-Vielfalt |
-
-Jeder Juror vergibt 10–9 oder 10–8. Fehlen die nötigen Daten oder liegen beide Songs gleichauf, gibt er offen 10–10 („zu wenig Daten“ / „Gleichstand“). Endet die ganze Jury unentschieden, entscheidet der Host. Die Jury nutzt **keine KI**: Die Bewertung ist eine feste, getestete Regel (`supabase/functions/_shared/jury-engine.mjs`), die Begründungen kommen aus Textbausteinen mit echten Werten (z. B. „3 passende Motive im Text, bei „Roller“ keines“).
+**Abend-Rangliste (GameMaster):** Jedes beendete Match und Quiz mit mindestens zwei Personen zählt auf dem Host-Gerät für «Heute Abend» auf der GameMaster-Startseite (1. Platz 3 Punkte, 2. Platz 2, 3. Platz 1; zu zweit 3/1). Nach 6 Stunden ohne Spiel beginnt ein neuer Abend. Die Namen des Abends werden im nächsten Spiel vorgeschlagen.
 
 ## Werkzeug: Alben-Fix (kein Teil des Spiels)
 
@@ -50,11 +39,11 @@ Unter `…/MusicBattle/?tool=rad` erscheinen die gespeicherten Spotify-Alben als
 
 ## Technik
 
-- **Frontend:** statisches HTML, CSS und Vanilla-JavaScript ohne Build-Step und ohne Framework. `index.html` lädt `app.js`, das die Daten (`themes.json`, `jurors.json`) und danach die Skripte in `js/` lädt.
+- **Frontend:** statisches HTML, CSS und Vanilla-JavaScript ohne Build-Step und ohne Framework. `index.html` lädt `app.js`, das die Daten (`themes.json`) und danach die Skripte in `js/` lädt.
 - **Backend:** [Supabase](https://supabase.com) – Postgres mit Row Level Security, RPC-Funktionen `mb_*`, Realtime auf allen `mb_*`-Tabellen, anonyme Anmeldung.
 - **Edge Functions** (Deno):
-  - `mb-track-profile` sammelt nach dem Einreichen einmal pro Song Daten aus [LRCLIB](https://lrclib.net) (Lyrics – nur ausgewertet, nie gespeichert), [MusicBrainz](https://musicbrainz.org) (Erscheinungsjahr), [ListenBrainz](https://listenbrainz.org) und [Last.fm](https://www.last.fm/api) (Tags, Hörerzahlen) und speichert das Song-Profil in `mb_track_profiles`.
-  - `mb-jury` bewertet eine Runde aus diesen Profilen und speichert fünf Scorecards.
+  - `mb-track-profile` sammelt nach dem Einreichen einmal pro Song Daten aus [LRCLIB](https://lrclib.net) (Lyrics – nur ausgewertet, nie gespeichert), [MusicBrainz](https://musicbrainz.org) (Erscheinungsjahr), [ListenBrainz](https://listenbrainz.org) und [Last.fm](https://www.last.fm/api) (Tags, Hörerzahlen) und speichert das Song-Profil in `mb_track_profiles` (das Quiz nutzt daraus das Erscheinungsjahr).
+  - `mb-quiz-start` und `mb-quiz-reveal` erzeugen die Quiz-Fragen bzw. decken sie auf und rechnen die Punkte.
 - **Spotify:** Login mit OAuth PKCE im Browser, Web API für Top-Künstler und Suche, Web Playback SDK zum Abspielen (Spotify Premium und ein Browser mit DRM nötig).
 
 ### Projektstruktur
@@ -63,19 +52,18 @@ Unter `…/MusicBattle/?tool=rad` erscheinen die gespeicherten Spotify-Alben als
 index.html, app.js          Einstieg und Lader (BUILD-Version für Cache-Busting)
 styles.css                  Design „Titelkampf bei Nacht“ – Tokens oben in der Datei
 js/                         config, state, ui-common, spotify, room, draft, battle, jury, ui-screens, main
-assets/jury/                Juror-Avatare (eigene SVG-Figuren)
 design/mockup-4.1.html      Design-Vorlage
 supabase/migrations/        Datenbankschema als Migrationen
 supabase/functions/         Edge Functions und gemeinsamer Code in _shared/
-tests/                      Tests für Themen, Juroren, Song-Merkmale und Jury-Engine
+tests/                      Tests für Themen, Song-Merkmale, Abstimmung, Quiz und Werkzeuge
 ROADMAP.md, CLAUDE.md       Arbeitsstand, Entscheidungen und Regeln für die Weiterentwicklung
 ```
 
 ## Eigene Instanz aufsetzen
 
 1. **Supabase-Projekt** anlegen und die Migrationen aus `supabase/migrations/` der Reihe nach ausführen (z. B. mit `supabase db push`). Anonyme Anmeldung unter *Authentication → Providers* aktivieren.
-2. **Edge Functions** deployen: `supabase functions deploy mb-track-profile` und `supabase functions deploy mb-jury` (beide mit JWT-Prüfung). Der Ordner `_shared/` wird dabei mitgenommen.
-3. **Secret** setzen: `supabase secrets set LASTFM_API_KEY=…` (kostenloser Key von Last.fm). Ohne Key fehlen Tags und Hörerzahlen; die Jury vergibt dann öfter 10–10.
+2. **Edge Functions** deployen: alle Ordner unter `supabase/functions/` (z. B. `supabase functions deploy mb-track-profile`; JWT-Prüfung laut `supabase/config.toml`). Der Ordner `_shared/` wird dabei mitgenommen.
+3. **Secret** setzen: `supabase secrets set LASTFM_API_KEY=…` (kostenloser Key von Last.fm). Ohne Key fehlen Tags und Hörerzahlen in den Song-Profilen.
 4. **Spotify-App** im [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) anlegen. Als Redirect-URI genau die Adresse der Seite eintragen (z. B. `https://<user>.github.io/MusicBattle/`). Solange die App im Entwicklungsmodus ist, müssen die Spotify-Konten der Spieler dort als Nutzer eingetragen sein.
 5. In `js/config.js` die Supabase-URL, den Publishable Key und die Spotify Client-ID eintragen. Alle drei sind öffentlich und gehören ins Frontend; geheime Keys nur als Supabase-Secrets.
 
@@ -85,7 +73,7 @@ Jeder Push auf `main` veröffentlicht die Seite über GitHub Pages (`.github/wor
 
 ## Tests
 
-Die reine Logik (Themen, Juror-Profile, Song-Merkmale, Jury-Engine) ist mit Node getestet. Im Repo-Ordner ausführen:
+Die reine Logik (Themen, Song-Merkmale, Abstimmung, Quiz) ist mit Node getestet. Im Repo-Ordner ausführen:
 
 ```bash
 node --test
@@ -95,4 +83,4 @@ Die Oberfläche wird mit dem Smoke-Test aus `CLAUDE.md` geprüft – auch ohne H
 
 ## Weiterentwickeln
 
-`CLAUDE.md` beschreibt Aufbau, Datenmodell und Arbeitsregeln, `ROADMAP.md` den Stand, offene Aufgaben und alle Entscheidungen. Themen und Juroren werden nur in `supabase/functions/_shared/themes.json` und `jurors.json` gepflegt – Frontend und Jury lesen beide daraus.
+`CLAUDE.md` beschreibt Aufbau, Datenmodell und Arbeitsregeln, `ROADMAP.md` den Stand, offene Aufgaben und alle Entscheidungen. Themen werden nur in `supabase/functions/_shared/themes.json` gepflegt – Frontend und Edge Functions lesen daraus.

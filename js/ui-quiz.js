@@ -146,6 +146,7 @@ function renderQuizFinished(){
     ${table.length>1?`<div class="podium">${order.map(step).join("")}</div>`:""}
     <div class="statsgrid">${me?`<div class="statcard"><span>Dein Platz</span><b>${me.place} von ${table.length}</b></div><div class="statcard"><span>Deine Treffer</span><b>${me.scored} / ${total-me.sat}</b></div>`:""}<div class="statcard"><span>Schnellste Antwort</span><b>${fastest?`${quizSeconds(fastest.fastestMs)}`:"–"}</b>${fastest?`<small>${esc(fastest.name)}</small>`:""}</div></div>
     <div class="quizstand"><div class="eyebrow">RANGLISTE</div><ol>${table.map(r=>`<li><span>${r.place}. ${esc(r.name)}<small>${r.scored} / ${total-r.sat} Treffer${r.sat?` · ${r.sat}× ausgesetzt`:""}${r.fastestMs!==null?` · schnellste ${quizSeconds(r.fastestMs)}`:""}</small></span><b>${pts(r.points)}</b></li>`).join("")}</ol></div>
+    ${abendRecord(`mbq:${S.room.id}:${S.room.quiz_game_no||1}`,"quiz",table.map(r=>({name:r.name,place:r.place})))}
     ${errorNotice()}
     ${isHost()?`<div class="actions rematch"><button class="btn primary" id="quizAgain"${S.quizStarting?" disabled":""}>${S.quizStarting?"Neue Fragen werden erstellt …":"Nochmal"}</button></div><p class="muted center">Gleiche Runde, neue Fragen – schon gespielte Songs kommen möglichst nicht nochmals.</p>`:`<p class="muted center">Der Host kann nochmal starten – mit neuen Fragen.</p>`}
     ${roomExitControls()}</section>`;
