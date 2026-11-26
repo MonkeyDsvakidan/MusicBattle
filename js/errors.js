@@ -16,6 +16,7 @@ const BACKEND_ERRORS={
   "artist required":"Bitte zuerst einen Künstler wählen.",
   "authentication required":"Die Anmeldung fehlt. Lade die Seite neu.",
   "draft skip unavailable":"Dein Skip ist schon verbraucht oder gerade nicht möglich.",
+  "sitting out":"Diese Frage ist zu einem deiner Songs – du schaust diesmal zu.",
   "shared skip unavailable":"Gemeinsamer Skip ist gerade nicht möglich. Lade die Seite neu.",
   "shared skip pending":"Es ist schon ein Skip-Vorschlag offen.",
   "no shared skip pending":"Der Skip-Vorschlag ist schon erledigt.",

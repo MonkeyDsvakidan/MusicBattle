@@ -1,7 +1,7 @@
 // Tests für die Quiz-Engine (Roadmap 7.3). Ausführen im Repo-Root: node --test
 import test from "node:test";
 import assert from "node:assert/strict";
-import { generateQuiz, preparePool, createRng, startMs, olderClose, QUIZ_KINDS } from "../supabase/functions/_shared/quiz-engine.mjs";
+import { generateQuiz, preparePool, createRng, startMs, olderClose, sittingOut, QUIZ_KINDS } from "../supabase/functions/_shared/quiz-engine.mjs";
 
 let n = 0;
 function song(o = {}) {
@@ -235,4 +235,37 @@ test("Song-IDs einer Frage", () => {
   const [i] = generateQuiz(bigPool(40), { count: 1, seed: "ids", kinds: ["intro"] });
   assert.deepEqual(questionTrackIds(i.prompt, i.solution), [i.track_ids[0]], "Intro-Song wird beim nächsten Quiz gemieden");
   assert.deepEqual(questionTrackIds(null, null), []);
+});
+
+test("7.11: wer einen Song der Frage geliefert hat, ist ausgesetzt; Solo nie", () => {
+  const a = { suppliers: ["m1"] }, b = { suppliers: ["m2", "m3"] };
+  assert.deepEqual(sittingOut([a], ["m1", "m2"]), ["m1"]);
+  assert.deepEqual(sittingOut([a, b], ["m1", "m2", "m3", "m4"]), ["m1", "m2", "m3"]);
+  assert.deepEqual(sittingOut([a], ["m1"]), []);   // Solo
+  assert.deepEqual(sittingOut([a], []), []);
+  // Solo-Quiz: keine Frage hat Ausgesetzte
+  for (const q of generateQuiz(bigPool(), { count: 10, seed: "solo", players: ["m1"] })) assert.deepEqual(q.sitting_out, []);
+});
+
+test("7.11: jede Frage trägt die Lieferanten ihrer Songs; nie alle ausgesetzt", () => {
+  const pool = [...bigPool(60, "m1"), ...bigPool(60, "m2")];
+  for (const seed of ["x1", "x2", "x3"]) {
+    const qs = generateQuiz(pool, { count: 20, seed, players: ["m1", "m2", "m3"] });
+    assert.equal(qs.length, 20);
+    const all = preparePool(pool), by = new Map(all.map((t) => [t.spotify_track_id, t]));
+    for (const q of qs) {
+      const owners = [...new Set(q.track_ids.flatMap((id) => by.get(id).suppliers))].sort();
+      assert.deepEqual([...q.sitting_out].sort(), owners);
+    }
+  }
+  // zwei Personen, beide liefern: «älter» nie mit je einem Song von beiden (dann könnte niemand antworten)
+  const qs = generateQuiz(pool, { count: 20, seed: "zwei", players: ["m1", "m2"] });
+  assert.equal(qs.length, 20);
+  for (const q of qs) assert.ok(q.sitting_out.length < 2, `${q.kind}: alle ausgesetzt`);
+  // ein Song, den beide haben, wird keine Frage
+  const shared = song({ id: "SharedSong0001", member: "m1" });
+  const both = [...bigPool(40, "m1"), ...bigPool(40, "m2"), shared, { ...shared, member_id: "m2" }];
+  for (const seed of ["s1", "s2", "s3", "s4"]) {
+    assert.ok(!generateQuiz(both, { count: 20, seed, players: ["m1", "m2"] }).some((q) => q.track_ids.includes("SharedSong0001")));
+  }
 });
