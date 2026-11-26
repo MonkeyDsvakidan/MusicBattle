@@ -97,6 +97,7 @@ Regeln:
 - Jede neue Tabelle bekommt RLS. Clients dürfen keine `source = 'ai'`-Scores schreiben; das passiert nur serverseitig.
 - **Rechte explizit setzen:** Supabase vergibt per Default-Privileges `ALL` auf neue Tabellen und `EXECUTE` auf neue Funktionen an `anon` und `authenticated`. Jede Migration, die eine Tabelle oder Funktion anlegt, entzieht diese Rechte (`revoke all … from anon, authenticated` bzw. `revoke execute … from public, anon`) und vergibt nur, was die App braucht (Muster: `…_harden_table_grants.sql`).
 - Migrationen über den Supabase-MCP mit `apply_migration` anwenden; die dabei vergebene Version danach als Dateinamen in `supabase/migrations/` übernehmen, damit Repo und Remote-Historie deckungsgleich bleiben.
+- **Was ohne Rückfrage geht (Entscheid Aladin, 26.11.2026):** nur Lesendes – Projekt-Status, Tabellen, Migrationsliste, Functions ansehen, Logs, Sicherheits-/Performance-Prüfung, Doku (in `.claude/settings.json` freigegeben). Vor Migrationen und Deploys prüft Claude lesend den Live-Stand. Alles, was die Live-Datenbank oder Functions ändert (`apply_migration`, `deploy_edge_function`, Secrets, Branches, Pausieren/Wiederherstellen), braucht weiterhin Aladins ausdrückliches OK. `execute_sql` fragt weiterhin über das Bestätigungsfenster nach, weil es auch schreiben kann; für reine `select`-Abfragen genügt dieses Fenster, ein OK im Chat braucht es dafür nicht.
 - Secrets (API-Keys) nur als Supabase-Secrets, nie im Frontend-Code. Der Publishable Key und die Spotify Client-ID im Frontend sind öffentlich und erlaubt.
 
 ### Frontend
