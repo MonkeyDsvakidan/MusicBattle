@@ -28,6 +28,8 @@ Auf der Startseite **„Quiz“** wählen (direkt: `…/MusicBattle/?mode=quiz`,
 
 Verlässt der Host das Quiz, ist der Raum für alle geschlossen. Auf dem iPhone als Host läuft die Musik über die Spotify-App (wie im Battle).
 
+**Abend-Rangliste (GameMaster):** Jedes beendete Match und Quiz mit mindestens zwei Personen zählt auf dem Host-Gerät für «Heute Abend» auf der GameMaster-Startseite (1. Platz 3 Punkte, 2. Platz 2, 3. Platz 1; zu zweit 3/1). Nach 6 Stunden ohne Spiel beginnt ein neuer Abend. Die Namen des Abends werden im nächsten Spiel vorgeschlagen.
+
 ### Die Jury (Option)
 
 | Juror | Figur | Achtet auf |
