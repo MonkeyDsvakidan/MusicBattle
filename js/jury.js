@@ -1,8 +1,6 @@
-/* jury.js – Jury: Scorecards, eigener Entscheid, Auto-Jury, Rundenwertung (roundDecision)
-   Die Begründungen werden so angezeigt, wie die Jury sie liefert (MutationObserver-Überschreibung in Roadmap 2.4 entfernt).
-   Konsolidiert aus app-1 … app-6d (Roadmap 2.2). Klassisches Skript, globale Namen. */
-
-async function submitHumanScore(winner,close){const r=currentRound(),subs=currentSubs();if(!r||!subs[0]||!subs[1])return;const a=winner===1?10:(close?9:8),b=winner===2?10:(close?9:8),{error}=await sb.from("mb_jury_scores").insert({round_id:r.id,room_id:S.room.id,source:"human",juror_user_id:S.user.id,juror_name:jurorMembership()?.display_name||"Juror",score_a:a,score_b:b,reason:close?"Knapper Entscheid":"Klarer Entscheid",details:{kind:"human"}});if(error)S.error=error.message;await reloadRoomNow()}
+/* jury.js – Rundenwertung: Kategorie-Abstimmung speichern, eigener Entscheid des Hosts bei Gleichstand,
+   roundDecision, finalizeRound. «Die Jury» (automatische Juroren) wurde in J.R (26.11.2026) entfernt.
+   Klassisches Skript, globale Namen. */
 
 // Kategorie-Abstimmung (Roadmap 6.3.3): Stimmzettel eines Mitglieds über die RPC speichern
 let castVotesRunning=false;
@@ -25,10 +23,10 @@ let selfDecisionRunning=false;
 
 async function submitSelfDecision(winner){
   if(!isHost()||selfDecisionRunning)return;
-  const r=currentRound(),subs=currentSubs(),jurors=S.members.filter(m=>m.role==="juror");
+  const r=currentRound(),subs=currentSubs();
   if(!r||!subs[0]||!subs[1])return;
-  const tie=roundVoteResult(r.id,true),tieBreak=Boolean(tie?.complete&&!tie.winner);
-  if(jurors.length&&!tieBreak){S.error="Selber entscheiden ist nur möglich, wenn keine menschlichen Juroren im Spiel sind.";render();return}
+  const tie=roundVoteResult(r.id,true);
+  if(!(tie?.complete&&!tie.winner)){S.error="Selber entscheiden geht nur bei Gleichstand der Abstimmung.";render();return}
   const chosen=subs[winner-1];
   if(!(await mbConfirm(`„${chosen.song_name}“ als Rundensieger wählen? Die Runde wird sofort gewertet.`,{title:"Selber entscheiden",confirmLabel:"Ja, Sieger festlegen"})))return;
   selfDecisionRunning=true;S.error="";
@@ -49,37 +47,7 @@ async function submitSelfDecision(winner){
   finally{selfDecisionRunning=false}
 }
 
-let aiJuryRunning=false;
-
-async function runAIJury(){
-  const r=currentRound();if(!r||aiJuryRunning)return;
-  aiJuryRunning=true;S.error="";S.notice="Die Jury bewertet die Songs …";render();
-  let timer=null;
-  try{
-    const invoke=sb.functions.invoke("mb-jury",{body:{room_id:S.room.id,round_id:r.id}});
-    const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error("Die Jury hat nach 40 Sekunden nicht geantwortet. Bitte erneut starten.")),40000)});
-    const {data,error}=await Promise.race([invoke,timeout]);
-    if(error){
-      let detail=error.message||"Unbekannter Edge-Function-Fehler";
-      try{if(error.context){const body=await error.context.json();detail=[body?.error,body?.detail,body?.provider_detail].filter(Boolean).join(": ")||detail}}catch{}
-      throw new Error(detail);
-    }
-    if(data?.error)throw new Error([data.error,data.detail,data.provider_detail].filter(Boolean).join(": "));
-    S.notice="Die Jury ist bereit.";S.aiReveal=0;await reloadRoomNow();
-  }catch(e){
-    S.notice="";S.error=`Die Jury konnte nicht ausgeführt werden: ${e?.message||String(e)}`;render();
-  }finally{
-    if(timer)clearTimeout(timer);
-    aiJuryRunning=false;
-  }
-}
-
-function scoreSummary(scores){let a=0,b=0;for(const s of scores){a+=s.score_a;b+=s.score_b}return{a,b,winner:a===b?null:(a>b?1:2)}}
-
-/* jury-ui */
-// Rangfolge pro Runde (Entscheid 1.1): mit Juror im Raum zählt nur die menschliche Jury;
-// ohne Juror schlägt ein eigener Entscheid des Hosts die Auto-Jury. Nie gemischt.
-// Nur ein Eintrag des Hosts zählt als eigener Entscheid (6.3.4; die Datenbank verbietet ihn Juroren zusätzlich)
+// Eigener Entscheid des Hosts (bei Gleichstand der Abstimmung, Entscheidung G); die Datenbank verbietet ihn Juroren
 function isSelfDecision(s){return s?.source==="human"&&s?.details?.kind==="self_decision"&&(!S.room?.host_user_id||s.juror_user_id===S.room.host_user_id)}
 
 // Abstimmung einer Runde auswerten (6.3.4). live: Juroren aus dem aktuellen Raum, sonst aus den Stimmen selbst
@@ -92,23 +60,21 @@ function roundVoteResult(roundId,live=false){
   return{...result,hasJurors,complete:progress.complete};
 }
 
+// Wertung einer Runde: Sieger der Abstimmung, sonst (Gleichstand) der eigene Entscheid des Hosts
 function roundDecision(roundId,live=false){
-  const sc=S.scores.filter(s=>s.round_id===roundId);
-  // Abstimmung in fünf Kategorien (Entscheidung G) hat Vorrang, sobald sie einen Sieger hat
   const vote=roundVoteResult(roundId,live);
-  if(vote?.complete&&vote.winner)return{kind:"vote",scores:[],winner:vote.winner,vote};
-  // Gleichstand der Abstimmung: der eigene Entscheid des Hosts gilt – auch mit Juroren im Raum (Entscheidung G)
-  if(vote?.complete&&!vote.winner){const self=sc.filter(isSelfDecision);if(self.length)return{kind:"self",scores:self.slice(-1)}}
-  const juror=sc.filter(s=>s.source==="human"&&!isSelfDecision(s));
-  if(juror.length||(live&&S.members.some(m=>m.role==="juror")))return{kind:"juror",scores:juror};
-  const self=sc.filter(isSelfDecision);
-  if(self.length)return{kind:"self",scores:self.slice(-1)};
-  const ai=sc.filter(s=>s.source==="ai");
-  return ai.length?{kind:"ai",scores:ai}:{kind:"none",scores:[]};
+  if(vote?.complete&&vote.winner)return{kind:"vote",winner:vote.winner,vote};
+  const self=S.scores.filter(s=>s.round_id===roundId&&isSelfDecision(s)).slice(-1)[0];
+  if(self)return{kind:"self",winner:Number(self.score_a)>Number(self.score_b)?1:2,self};
+  return{kind:vote&&!vote.complete?"pending":"none",winner:null};
 }
 
-async function finalizeRound(){const r=currentRound();if(!r)return;const d=roundDecision(r.id,true),use=d.scores;
-  if(d.kind==="vote"){const {error}=await sb.rpc("mb_advance_round",{p_room_id:S.room.id,p_round_number:r.round_number,p_winner_slot:d.winner});if(error)S.error=error.message;S.aiReveal=0;await reloadRoomNow();return}
-  const pendingVote=roundVoteResult(r.id,true);if(pendingVote&&!pendingVote.complete&&!use.length){S.error="Noch haben nicht alle abgestimmt.";render();return}if(!use.length){S.error=d.kind==="juror"?"Noch keine Scorecard der Juroren vorhanden.":"Noch keine Jury-Wertung vorhanden.";render();return}const x=scoreSummary(use);if(!x.winner){S.error=d.kind==="juror"?"Score ist unentschieden. Bitte eine weitere menschliche Jurorin/einen weiteren Juror abstimmen lassen.":"Score ist unentschieden. Bitte den Rundensieger selber wählen.";render();return}const {error}=await sb.rpc("mb_advance_round",{p_room_id:S.room.id,p_round_number:r.round_number,p_winner_slot:x.winner});if(error)S.error=error.message;S.aiReveal=0;await reloadRoomNow()}
+async function finalizeRound(){
+  const r=currentRound();if(!r)return;const d=roundDecision(r.id,true);
+  if(!d.winner){S.error=d.kind==="pending"?"Noch haben nicht alle abgestimmt.":"Unentschieden – bitte den Rundensieger selber wählen.";render();return}
+  const {error}=await sb.rpc("mb_advance_round",{p_room_id:S.room.id,p_round_number:r.round_number,p_winner_slot:d.winner});
+  if(error)S.error=error.message;await reloadRoomNow();
+}
 
-function roundJuryMargin(roundId){const d=roundDecision(roundId),sc=d.scores;if(d.kind==="vote")return{margin:Math.abs(d.vote.won.a-d.vote.won.b),a:d.vote.won.a,b:d.vote.won.b,unit:"Kategorien"};if(d.kind==="self"||!sc.length)return null;const x=scoreSummary(sc);return{margin:Math.abs(x.a-x.b),a:x.a,b:x.b}}
+// Abstand im Endstand (gewonnene Kategorien); nur für Abstimmungs-Runden
+function roundJuryMargin(roundId){const d=roundDecision(roundId);return d.kind==="vote"?{margin:Math.abs(d.vote.won.a-d.vote.won.b),a:d.vote.won.a,b:d.vote.won.b}:null}
