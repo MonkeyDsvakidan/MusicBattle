@@ -29,7 +29,8 @@
   /* GameMaster-Leiste unten (8.3, Entscheidung M): neutral in allen Apps, aktiver Eintrag in der Farbe seiner App */
   --bar-bg:#151419; --bar-line:rgb(255 255 255 / .08); --bar-idle:#8f8a99;
   --gm-mb:#ff3fa4; --gm-quiz:#ffd166; --gm-tg:#ff8a3d; --gm-poker:#3ddc97; --gm-tools:#c9c4d3;
-  --gmbar-h:calc(58px + env(safe-area-inset-bottom));
+  --gmbar-h:calc(58px + env(safe-area-inset-bottom)); /* Platz unten (Handy) */
+  --gmbar-top:0px;         /* Platz oben – ab 820 px sitzt die Leiste oben (U.3) */
 
   /* Schriften */
   --f-title:"Sedgwick Ave Display","Permanent Marker","Comic Sans MS",cursive;
@@ -566,6 +567,17 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .gmbar a[aria-current]{color:var(--act)}
 .gmbar a[aria-current]::before{content:"";position:absolute;top:calc(-1 * var(--s1) - 1px);left:50%;width:28px;height:3px;margin-left:-14px;border-radius:0 0 3px 3px;background:var(--act)}
 .gmbar a:focus-visible{outline:2px solid var(--act);outline-offset:-4px;border-radius:var(--r-s)}
+/* Am Computer (ab 820 px, U.3): Leiste oben als kompakte Reihe – gleich in Music Battle, TotalGuesser und Poker */
+@media(min-width:820px){
+  :root{--gmbar-h:0px;--gmbar-top:52px}
+  body{padding-top:calc(var(--gmbar-top) + env(safe-area-inset-top))}
+  .gmbar{top:0;bottom:auto;display:flex;justify-content:center;align-items:center;gap:var(--s1);height:calc(var(--gmbar-top) + env(safe-area-inset-top));
+    padding:env(safe-area-inset-top) var(--s4) 0;border-top:0;border-bottom:1px solid var(--bar-line)}
+  .gmbar a{display:flex;align-items:center;gap:var(--s2);min-height:40px;padding:0 var(--s3);border-radius:var(--r-pill);font-size:14px}
+  .gmbar svg{width:18px;height:18px}
+  .gmbar a[aria-current]{background:color-mix(in srgb,var(--act) 14%,transparent)}
+  .gmbar a[aria-current]::before{display:none}
+}
 
 /* ---------- Musik-Quiz: eigener Look «Quizshow-Studio» (8.6, Entscheidung O) ----------
    Gilt, solange die Kopfzeile «Musik-Quiz» zeigt (Klasse html.quiz aus bindBrandHome). Tintenblau statt Violett,
