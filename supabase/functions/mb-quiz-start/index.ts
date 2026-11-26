@@ -61,13 +61,17 @@ Deno.serve(async (req) => {
     const asked = Array.isArray(body?.kinds) ? QUIZ_KINDS.filter((k) => body.kinds.includes(k)) : [];
     const kinds = asked.length ? asked : QUIZ_KINDS_V1;
 
+    // 7.11: Wer einen Song einer Frage geliefert hat, ist bei ihr ausgesetzt (Solo: nie)
+    const { data: quizzers } = await admin.from("mb_members").select("id").eq("room_id", roomId).eq("role", "quizzer");
+    const players = (quizzers ?? []).map((m: any) => m.id);
+
     const gameNo = Number(room.quiz_game_no) + 1;
-    const questions = generateQuiz(pool ?? [], { count: room.quiz_length, seed: `${roomId}:${gameNo}`, years, avoid, kinds });
+    const questions = generateQuiz(pool ?? [], { count: room.quiz_length, seed: `${roomId}:${gameNo}`, years, avoid, kinds, players });
     if (questions.length < room.quiz_length) {
       return out({ error: "pool too small", songs: ids.length, questions: questions.length, needed: room.quiz_length }, 409);
     }
 
-    const payload = questions.map((q: any) => ({ question_no: q.question_no, kind: q.kind, prompt: q.prompt, solution: { ...q.solution, engine_version: QUIZ_ENGINE_VERSION } }));
+    const payload = questions.map((q: any) => ({ question_no: q.question_no, kind: q.kind, prompt: q.prompt, sitting_out: q.sitting_out, solution: { ...q.solution, engine_version: QUIZ_ENGINE_VERSION } }));
     const { data: stored, error } = await admin.rpc("mb_quiz_store_game", { p_room_id: roomId, p_game_no: gameNo, p_questions: payload });
     if (error) {
       if (/already started/i.test(error.message)) return out({ ok: true, duplicate: true, game_no: gameNo });

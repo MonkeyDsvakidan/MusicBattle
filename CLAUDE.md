@@ -39,6 +39,7 @@ UI-Sprache ist **Deutsch (Schweiz, „ss“ statt „ß“)**. Zielgeräte: vor 
 | `mb_quiz_questions` / `mb_quiz_solutions` | Quiz-Fragen (`year`, `older`, `cover`, `intro`, `album`, `whose`; Abspiel-Info der Intro-Frage nur für den Host über `mb_quiz_host_play`) mit `started_at`/`deadline_at`/`answer_count`, sichtbar ab `open`; Lösung getrennt, sichtbar erst nach `revealed`; nur serverseitig beschreibbar |
 | `mb_rad_events` | Albumrad (W.5): Protokoll je Spotify-Konto und Album (`kind` `listen`/`reject`/`keep`, `source` `tap`/`auto`); RLS ohne Policies, keine Rechte für Clients – nur über die Edge Function `mb-rad` (Service-Rolle); Zähler über `mb_rad_stats(p_user)` inkl. `rejects_since` (W.8) |
 | `mb_rad_moves` | Albumrad (W.7): von Hand gewähltes Farb-Rad je Spotify-Konto und Album (`wheel`: `auto`, `warm`, `cold`, `dark`, `light`; `pink` seit W.12 nicht mehr vergeben); Zugriff wie `mb_rad_events` nur über `mb-rad` |
+| `mb_quiz_sitouts` | Quiz (7.11): wer bei welcher Frage ausgesetzt ist (eigener Song; 7.10: Frage über die Person), aus `sitting_out` der Quiz-Engine über `mb_quiz_store_game`; eigene Zeile ab `open`, alle ab `revealed`; Anzahl öffentlich als `mb_quiz_questions.sitout_count` |
 | `mb_quiz_answers` | Quiz-Antworten (eine pro Person und Frage, `answer_ms` per Serveruhr, `points`); eigene sofort, fremde nach dem Aufdecken lesbar; schreiben nur über `mb_quiz_answer` |
 
 ## Code-Aufbau (seit Roadmap 2.2)
