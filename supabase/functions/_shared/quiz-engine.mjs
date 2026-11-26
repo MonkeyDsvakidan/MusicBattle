@@ -58,6 +58,14 @@ export function preparePool(pool, years = {}) {
   return [...seen.values()];
 }
 
+// 7.11 (Entscheid J): Wer einen Song der Frage geliefert hat, ist bei dieser Frage ausgesetzt («Deine Frage – schau
+// zu», keine Punkte). Erst ab zwei Mitspielern – im Solo sind alle Songs die eigenen. Auch für 7.10 gedacht:
+// eine Frage trägt in sitting_out die Mitglieder, die sie nicht beantworten (mb_quiz_store_game legt sie ab).
+export function sittingOut(tracks, players) {
+  if ((players || []).length < 2) return [];
+  return players.filter((p) => (tracks || []).some((t) => (t?.suppliers || []).includes(p)));
+}
+
 // Startpunkt beim Abspielen: nach dem Intro, aber nie über die Mitte hinaus
 export function startMs(track) {
   const d = Number(track?.duration_ms) || 0;
@@ -157,15 +165,19 @@ function coverQuestion(t, all, rng) {
 // derselbe Künstler nicht zweimal hintereinander. Fehlen Daten für einen Typ, springt ein anderer ein.
 // avoid (7.7, „Nochmal“): Song-IDs aus früheren Quiz desselben Raums. Sie werden gemieden, solange daraus genug
 // Fragen entstehen; sonst wird der ganze Pool verwendet.
-export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = QUIZ_KINDS, avoid = [] } = {}) {
+// players (7.11): Mitglieds-IDs aller Mitspielenden. Jede Frage bekommt sitting_out (siehe sittingOut); Fragen, bei
+// denen alle ausgesetzt wären, entstehen nicht.
+export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = QUIZ_KINDS, avoid = [], players = [] } = {}) {
   const skip = new Set(avoid || []);
   if (skip.size) {
-    const fresh = generateQuiz((pool || []).filter((t) => !skip.has(t?.spotify_track_id)), { count, seed, years, kinds });
+    const fresh = generateQuiz((pool || []).filter((t) => !skip.has(t?.spotify_track_id)), { count, seed, years, kinds, players });
     if (fresh.length >= count) return fresh;
   }
   const rng = createRng(seed);
   const all = preparePool(pool, years);
   const used = new Set();
+  const byId = new Map(all.map((t) => [t.spotify_track_id, t]));
+  const nobodyLeft = (tracks) => players.length >= 2 && sittingOut(tracks, players).length === players.length;
   // Songs je Person gemischt, Personen reihum → gleichmässige Mischung
   const bySupplier = new Map();
   for (const t of shuffle(all, rng)) { const k = t.suppliers[0] || "?"; if (!bySupplier.has(k)) bySupplier.set(k, []); bySupplier.get(k).push(t); }
@@ -178,7 +190,7 @@ export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = 
   const pick = (ok) => {
     let fallback = null;
     for (const t of order) {
-      if (used.has(t.spotify_track_id) || (fallback && primaryArtist(t) === lastArtist) || !ok(t)) continue;
+      if (used.has(t.spotify_track_id) || (fallback && primaryArtist(t) === lastArtist) || nobodyLeft([t]) || !ok(t)) continue;
       if (primaryArtist(t) !== lastArtist) { used.add(t.spotify_track_id); return t; }
       fallback = t;
     }
@@ -199,7 +211,7 @@ export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = 
     for (let y = a.year - OLDER_MAX_YEARS; y <= a.year + OLDER_MAX_YEARS; y++) {
       const artists = yearArtists.get(y);
       if (!artists || (artists.size === 1 && artists.has(primaryArtist(a))) || (y === a.year && !(a.date && sameYearPossible(a)))) continue;   // schnell überspringen (grosse Pools)
-      const b = byYear.get(y).find((x) => !used.has(x.spotify_track_id) && primaryArtist(x) !== primaryArtist(a) && olderClose(a, x));
+      const b = byYear.get(y).find((x) => !used.has(x.spotify_track_id) && primaryArtist(x) !== primaryArtist(a) && olderClose(a, x) && !nobodyLeft([a, x]));
       if (b) return b;
     }
     return null;
@@ -231,7 +243,7 @@ export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = 
     for (const k of [preferred, ...shuffle(kinds.filter((x) => x !== preferred && build[x]), rng)]) { q = build[k](); if (q) break; }
     if (!q) break;   // Pool erschöpft
     lastArtist = primaryArtist(order.find((t) => t.spotify_track_id === q.track_ids[q.track_ids.length - 1]) || {});
-    questions.push({ question_no: questions.length + 1, ...q });
+    questions.push({ question_no: questions.length + 1, ...q, sitting_out: sittingOut(q.track_ids.map((id) => byId.get(id)), players) });
   }
   return questions;
 }

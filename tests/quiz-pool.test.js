@@ -142,3 +142,11 @@ test("Solo-Highscore je Fragenzahl, wiederholbar ohne Doppelzählung",()=>{
   assert.equal(soloHighscore({},20,0,"raum:5").isNew,false,"0 Punkte ist kein Highscore");
   assert.equal(soloHighscore(null,10,100,"x").isNew,true);
 });
+
+test("Rangliste 7.11: ausgesetzte Fragen werden gezählt",()=>{
+  const members=[{id:"a",role:"quizzer",display_name:"Ana"},{id:"b",role:"quizzer",display_name:"Ben"}];
+  const r=quizStandings(members,[{member_id:"b",points:500,answer_ms:1000}],[{member_id:"a",question_id:"q1"},{member_id:"a",question_id:"q2"},{member_id:"x",question_id:"q1"}]);
+  assert.equal(r.find(x=>x.member_id==="a").sat,2);
+  assert.equal(r.find(x=>x.member_id==="b").sat,0);
+  assert.equal(quizStandings(members,[]).find(x=>x.member_id==="a").sat,0);
+});

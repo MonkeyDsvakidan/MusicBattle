@@ -80,9 +80,11 @@ function quizPoolSummary(members){
 // Rangliste (7.4): Punkte je Mitspieler aus den aufgedeckten Antworten; gleiche Punkte = gleicher Platz.
 // fastestMs (7.7): schnellste Antwort, die Punkte gebracht hat (null, wenn keine).
 // answers: Zeilen aus mb_quiz_answers (points erst nach dem Aufdecken gesetzt); nur Antworten des laufenden Quiz übergeben.
-function quizStandings(members,answers){
-  const rows=(members||[]).filter(m=>m.role==="quizzer").map(m=>({member_id:m.id,name:m.display_name,points:0,scored:0,answered:0,fastestMs:null}));
+// sitouts (7.11): Zeilen aus mb_quiz_sitouts → sat = Anzahl Fragen, bei denen die Person ausgesetzt war.
+function quizStandings(members,answers,sitouts=[]){
+  const rows=(members||[]).filter(m=>m.role==="quizzer").map(m=>({member_id:m.id,name:m.display_name,points:0,scored:0,answered:0,sat:0,fastestMs:null}));
   const by=new Map(rows.map(r=>[r.member_id,r]));
+  for(const s of sitouts||[]){const r=by.get(s.member_id);if(r)r.sat++}
   for(const a of answers||[]){const r=by.get(a.member_id);if(!r)continue;r.answered++;if(Number(a.points)>0){r.points+=Number(a.points);r.scored++;const ms=Number(a.answer_ms);if(Number.isFinite(ms)&&(r.fastestMs===null||ms<r.fastestMs))r.fastestMs=ms}}
   rows.sort((a,b)=>b.points-a.points||String(a.name).localeCompare(String(b.name),"de"));
   rows.forEach((r,i)=>{r.place=i&&r.points===rows[i-1].points?rows[i-1].place:i+1});
@@ -268,18 +270,24 @@ function quizStartErrorText(b,fallback){
 // ── Fragen-Bildschirm (7.6): Daten, Aktionen, Zeitanzeige ──
 // Fragen des laufenden Quiz (sichtbar ab „open“), Antworten (eigene sofort, fremde nach dem Aufdecken), Lösungen (nach dem Aufdecken)
 async function loadQuizData(room){
-  const [q,a,s]=await Promise.all([
+  const [q,a,s,o]=await Promise.all([
     sb.from("mb_quiz_questions").select("*").eq("room_id",room.id).eq("game_no",room.quiz_game_no).order("question_no"),
     sb.from("mb_quiz_answers").select("*").eq("room_id",room.id),
-    sb.from("mb_quiz_solutions").select("*").eq("room_id",room.id)
+    sb.from("mb_quiz_solutions").select("*").eq("room_id",room.id),
+    sb.from("mb_quiz_sitouts").select("*").eq("room_id",room.id)
   ]);
   const ids=new Set((q.data||[]).map(x=>x.id));
+  S.quizSitouts=(o.data||[]).filter(x=>ids.has(x.question_id));
   S.quizQuestions=q.data||[];
   S.quizAnswers=(a.data||[]).filter(x=>ids.has(x.question_id));
   S.quizSolutions=(s.data||[]).filter(x=>ids.has(x.question_id));
 }
 function quizCurrentQuestion(){return S.quizQuestions.find(q=>q.question_no===Number(S.room?.quiz_question_no))||null}
 function quizSolution(q){return S.quizSolutions.find(s=>s.question_id===q?.id)?.solution||null}
+// 7.11: bei dieser Frage ausgesetzt (eigener Song)? Ohne memberId: man selbst
+function quizSitsOut(q,memberId=quizMembership()?.id){return Boolean(q&&memberId)&&(S.quizSitouts||[]).some(s=>s.question_id===q.id&&s.member_id===memberId)}
+// Wie viele antworten bei dieser Frage (alle Mitspielenden ohne Ausgesetzte)
+function quizAnswerersCount(q){return Math.max(0,S.members.filter(m=>m.role==="quizzer").length-(Number(q?.sitout_count)||0))}
 function quizMyAnswer(q){const m=quizMembership();return S.quizAnswers.find(a=>a.question_id===q?.id&&a.member_id===m?.id)||null}
 function quizSeenAt(q){S.quizSeen=S.quizSeen||{};if(q?.id&&!S.quizSeen[q.id])S.quizSeen[q.id]=Date.now();return S.quizSeen[q?.id]}
 function quizLimitMs(q){return (Date.parse(q?.deadline_at)-Date.parse(q?.started_at))||20000}
@@ -319,7 +327,7 @@ async function playQuizIntro(){
 
 async function answerQuiz(answer){
   const q=quizCurrentQuestion(),m=quizMembership();
-  if(!q||!m||q.status!=="open"||quizMyAnswer(q)||S.quizAnswering)return;
+  if(!q||!m||q.status!=="open"||quizMyAnswer(q)||quizSitsOut(q)||S.quizAnswering)return;
   S.quizAnswering=true;S.error="";render();
   const {error}=await sb.rpc("mb_quiz_answer",{p_question_id:q.id,p_member_id:m.id,p_answer:answer});
   S.quizAnswering=false;
@@ -364,11 +372,10 @@ function quizTick(){
   if(!isHost())return;
   S.quizZeroAt=S.quizZeroAt||{};
   if(rem<=0&&!S.quizZeroAt[q.id])S.quizZeroAt[q.id]=Date.now();
-  const players=S.members.filter(m=>m.role==="quizzer").length;
-  if(Number(q.answer_count)>=players||(S.quizZeroAt[q.id]&&Date.now()-S.quizZeroAt[q.id]>1300))revealQuestion();
+  if(Number(q.answer_count)>=quizAnswerersCount(q)||(S.quizZeroAt[q.id]&&Date.now()-S.quizZeroAt[q.id]>1300))revealQuestion();
 }
 if(typeof window!=="undefined")setInterval(quizTick,250);   // nur im Browser (node --test lädt die Datei auch)
 
-function quizErrorText(msg){const m=String(msg||"");if(/answer closed/i.test(m))return"Zu spät – die Zeit ist abgelaufen.";if(/already answered/i.test(m))return"Du hast schon geantwortet.";if(/question still open/i.test(m))return"Die Frage läuft noch.";if(/quiz full/i.test(m))return"Das Quiz ist voll (höchstens 20 Personen).";if(/quiz running/i.test(m))return"Das Quiz läuft schon – Songs kannst du erst vor dem nächsten Quiz ändern.";if(/not a room member/i.test(m))return"Du bist nicht (mehr) in diesem Quiz-Raum.";if(/too many tracks/i.test(m))return"Zu viele Songs auf einmal.";return m}
+function quizErrorText(msg){const m=String(msg||"");if(/answer closed/i.test(m))return"Zu spät – die Zeit ist abgelaufen.";if(/already answered/i.test(m))return"Du hast schon geantwortet.";if(/sitting out/i.test(m))return"Diese Frage ist zu einem deiner Songs – du schaust diesmal zu.";if(/question still open/i.test(m))return"Die Frage läuft noch.";if(/quiz full/i.test(m))return"Das Quiz ist voll (höchstens 20 Personen).";if(/quiz running/i.test(m))return"Das Quiz läuft schon – Songs kannst du erst vor dem nächsten Quiz ändern.";if(/not a room member/i.test(m))return"Du bist nicht (mehr) in diesem Quiz-Raum.";if(/too many tracks/i.test(m))return"Zu viele Songs auf einmal.";return m}
 
 if(typeof module!=="undefined")module.exports={QUIZ_POOL_MAX,QUIZ_POOL_MIN,quizSongKey,quizCoverUrl,quizReleaseYear,buildQuizPool,quizPoolSummary,quizStandings,quizRemainingMs,coverPixelSize,quizAnswerText,quizSolutionText,quizRevealPlay,soloHighscore};
