@@ -63,6 +63,15 @@ async function goToOverview(e){
   location.href=href;
 }
 
+// Abend-Rangliste über alle GameMaster-Spiele (gemeinsamer Raum, 26.11.2026): /abend.js von der Startseite (gleiche Domain).
+// Nur das Host-Gerät trägt ein (dort liegt das ganze Ergebnis); fehlt /abend.js (z. B. lokal), passiert nichts.
+function abendNames(){try{return window.GMAbend?.names()||[]}catch{return[]}}
+function abendNameList(){return `<datalist id="gmNames">${abendNames().map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist>`}
+function abendRecord(id,game,places){
+  const A=window.GMAbend;if(!A||!isHost()||places.length<2)return"";
+  try{A.record({id,game,places})}catch{return""}
+  return `<p class="muted center abendline">Heute Abend: ${esc(A.summary(places))} · <a href="/">Rangliste</a></p>`;
+}
 function roomExitControls(){if(!S.room)return"";return `<div class="exitbar"><button class="btn ghost" id="leaveRoomBtn">Raum verlassen</button>${isHost()?`<button class="btn ghost danger" id="newRoomBtn">Neuer Raum</button>`:""}</div>`}
 
 // Momente mit Wirkung (Roadmap 4.6): Startzeit je Moment merken. Solange die Animation läuft, bekommt das

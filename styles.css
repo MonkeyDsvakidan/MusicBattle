@@ -451,6 +451,8 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .actions.rematch{justify-content:center}
 .actions.rematch .btn{min-width:min(100%,260px)}
 .finalwrap .muted.center{text-align:center}
+/* Abend-Rangliste (gemeinsamer Raum): Link zur Startseite */
+.abendline a{color:var(--text);text-underline-offset:3px}
 
 /* Quiz (7.5): Startseite und Lobby */
 .quizsettings{margin-top:var(--s4)}

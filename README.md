@@ -27,6 +27,8 @@ Auf der Startseite **„Quiz“** wählen (direkt: `…/MusicBattle/?mode=quiz`,
 
 Verlässt der Host das Quiz, ist der Raum für alle geschlossen. Auf dem iPhone als Host läuft die Musik über die Spotify-App (wie im Battle).
 
+**Abend-Rangliste (GameMaster):** Jedes beendete Match und Quiz mit mindestens zwei Personen zählt auf dem Host-Gerät für «Heute Abend» auf der GameMaster-Startseite (1. Platz 3 Punkte, 2. Platz 2, 3. Platz 1; zu zweit 3/1). Nach 6 Stunden ohne Spiel beginnt ein neuer Abend. Die Namen des Abends werden im nächsten Spiel vorgeschlagen.
+
 ## Werkzeug: Alben-Fix (kein Teil des Spiels)
 
 Unter `…/MusicBattle/?tool=alben` ersetzt der Alben-Fix Singles in den eigenen Spotify-Playlists und gelikten Songs durch die Version aus einem gespeicherten Album bzw. einer gespeicherten EP (Album hat Vorrang; Albumversion liken, Single entliken). Zuerst läuft ein Testlauf, geändert wird erst nach Bestätigung; optional nur für ein Album. Zweiter Knopf **Doppelte entfernen**: findet Songs, die mehrfach in einer Playlist oder in verschiedenen Versionen (Single/Album/Deluxe) über Playlists und Likes verteilt sind; pro Song wählt man, welche Version bleibt. Nutzt die Spotify-App des Spiels mit eigener Anmeldung, Code in `tools/`.
