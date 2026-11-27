@@ -105,6 +105,11 @@ label{display:block;font:700 11px var(--f-text);color:var(--muted);text-transfor
 input,select{width:100%;min-height:48px;border:1px solid var(--line-strong);background:var(--field);color:var(--text);border-radius:var(--r-m);padding:12px 14px;outline:none;font:400 16px var(--f-text)}
 input::placeholder{color:#8a7aa8}
 input:hover,select:hover{border-color:var(--muted)}
+/* Schalter «Verdeckter Draft» (4.7): ganze Zeile tippbar, min. 44 px */
+.checkline{display:flex;align-items:center;gap:var(--s2);min-height:44px;cursor:pointer}
+.checkline input{width:22px;min-height:22px;height:22px;flex:none;margin:0;padding:0;accent-color:var(--a)}
+.checkline small{display:block;color:var(--muted);font:400 13px var(--f-text);text-transform:none;letter-spacing:0}
+.pick.veiled{color:var(--muted)}
 input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,164,.18)}
 .range{width:100%;accent-color:var(--a);margin:var(--s2) 0}
 

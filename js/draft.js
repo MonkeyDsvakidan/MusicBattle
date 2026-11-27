@@ -11,6 +11,9 @@ function balancedRounds(){const cats=Object.keys(THEMES).sort(()=>Math.random()-
 
 async function initializeRounds(){if(!isHost())return;if((S.rounds||[]).length>=5||S.room?.status==="battle")return;const payload=balancedRounds();const {error}=await sb.rpc("mb_start_battle",{p_room_id:S.room.id,p_rounds:payload});if(error){await reloadRoomNow();if((S.rounds||[]).length>=5||S.room?.status==="battle"){S.error="";render();return}S.error=error.message;render();return}await reloadRoomNow()}
 
+// Verdeckter Draft (4.7): Gegner-Picks sind per RLS unlesbar; belegte Runden kommen ohne Künstler aus mb_draft_board.
+async function addHiddenPicks(){const {data,error}=await sb.rpc("mb_draft_board",{p_room_id:S.room.id});if(error){S.error=error.message;return}for(const b of data||[])if(!S.picks.some(p=>p.round_number===b.round_number&&p.player_slot===b.player_slot))S.picks.push({...b,hidden:true})}
+
 function allSkippedArtistIds(){return new Set([...S.members.map(m=>m.draft_skipped_artist_id).filter(Boolean),...(S.room?.draft_shared_skips||[])])}
 
 // Ziehen gewichtet nach Hörverhalten und Genre (Hip-Hop bevorzugt, 6.5); Hörbuch-Autoren werden vor dem Anzeigen
@@ -19,8 +22,9 @@ async function drawArtist(slotNo){
   if(S.drawing)return;S.drawing=true;
   try{
     restorePool(slotNo);
+    const taken=new Set(); // verdeckt: beim Server als vergeben gemeldet
     for(let attempt=0;attempt<5;attempt++){
-      const used=new Set(S.picks.map(p=>p.spotify_artist_id));
+      const used=new Set([...S.picks.map(p=>p.spotify_artist_id),...taken]);
       for(const id of allSkippedArtistIds())used.add(id);
       const avail=(S.artistPools[slotNo]||[]).filter(a=>!used.has(a.id));
       if(!avail.length){S.error=`Keine eindeutigen Künstler für Spieler ${slotNo} verfügbar.`;render();return}
@@ -28,6 +32,12 @@ async function drawArtist(slotNo){
       const total=weights.reduce((a,b)=>a+b,0);
       let roll=Math.random()*total,chosen=avail[avail.length-1];
       for(let i=0;i<avail.length;i++){roll-=weights[i];if(roll<=0){chosen=avail[i];break}}
+      // Keine Doppelten auch verdeckt: Pass & Play sieht alle Picks selbst, sonst fragt der Server.
+      if(S.room?.draft_hidden&&!isPassAndPlay()){
+        const {data:isTaken,error}=await sb.rpc("mb_draft_artist_taken",{p_room_id:S.room.id,p_artist_id:chosen.id});
+        if(error){S.error=error.message;render();return}
+        if(isTaken){taken.add(chosen.id);attempt--;continue}
+      }
       if(!chosen.checked){
         if(await isAudiobookArtist(slotNo,chosen)){dropFromPool(slotNo,chosen.id);continue}
         chosen.checked=true;savePool(slotNo);
