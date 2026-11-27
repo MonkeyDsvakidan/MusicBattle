@@ -57,4 +57,10 @@ function songChooser(members,pick,corner){
   return team.find(m=>pick&&m.user_id===pick.player_user_id)||team[0]||null;
 }
 
-if(typeof module!=="undefined")module.exports={GROUP_MIN_PLAYERS,GROUP_MAX_PLAYERS,GROUP_MAX_TEAMS,groupLobbyStatus,shuffledTeams,draftTurnCorner,cornerMembers,draftCaptain,cornerLabel,cornersInPlay,songChooser};
+// ---------- Entscheidung (M.6) ----------
+// Wer zieht im Entscheidungs-Draft (wie mb_draft_turn_slot): die Punktgleichen der Reihe nach, null wenn alle haben
+function suddenTurnCorner(room,picks){
+  return cornersInPlay(room,6).find(c=>!(picks||[]).some(p=>p.round_number===6&&p.player_slot===c))??null;
+}
+
+if(typeof module!=="undefined")module.exports={GROUP_MIN_PLAYERS,GROUP_MAX_PLAYERS,GROUP_MAX_TEAMS,groupLobbyStatus,shuffledTeams,draftTurnCorner,cornerMembers,draftCaptain,cornerLabel,cornersInPlay,songChooser,suddenTurnCorner};

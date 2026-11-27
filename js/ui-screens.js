@@ -252,10 +252,49 @@ function renderGroupVoting(r,corners){
   return`<div class="juryarea">${head(status)}<div class="votewait"><div class="avatars">${eligible.map(m=>{const d=!progress.missing.some(x=>x.id===m.id);return`<span class="voter${d?" done":""}">${d?"✓":"…"} ${esc(m.display_name)}</span>`}).join("")}</div><p class="muted">Warte auf: ${progress.missing.map(m=>esc(m.display_name)).join(", ")}</p></div>${mineDone?`<div class="actions centered"><button class="btn ghost" id="voteEdit" data-member="${mine.id}">Stimmen ändern</button></div>`:""}</div>`;
 }
 
-// Gruppe nach der letzten Runde: Endstand und Entscheidung folgen in M.6
-function renderGroupInProgress(){
-  $("app").innerHTML=`<section class="card"><div class="eyebrow">GRUPPE · RAUM ${esc(S.room.code)}</div><h2>Dieser Teil ist für Gruppen noch im Bau</h2><p class="muted">Lobby, Draft, Battle und Abstimmung funktionieren schon. Endstand und Entscheidung bei Gleichstand für 3–6 Personen kommen als Nächstes.</p>${roomExitControls()}</section>`;
-  bindRoomExitControls();
+// ---------- Gruppe (M.6): Gleichstand, Entscheidung der Gleichen, Endstand ----------
+function groupPts(n){return`${n} Punkt${n===1?"":"e"}`}
+function groupRankList(table,mark=()=>""){return`<ol class="ranklist">${table.map(t=>`<li class="rankrow c${t.corner}${ownsCorner(t.corner)?" own":""}"><span class="rk">${t.rank}.</span><span class="rn"><b>${esc(cornerLabel(S.members,t.corner,Boolean(S.room?.team_mode)))}</b>${mark(t)?`<small>${mark(t)}</small>`:""}</span><span class="rp">${t.total}</span></li>`).join("")}</ol>`}
+
+function renderGroupTiebreak(){
+  const tied=cornersInPlay(S.room,6),table=groupStandings(S.rounds,cornerCount(),roundCount()),name=c=>esc(cornerLabel(S.members,c,Boolean(S.room?.team_mode)));
+  const top=table.find(t=>t.corner===tied[0])?.total||0,others=S.members.some(m=>m.role==="juror")?"Die Juroren stimmen ab.":tied.length<cornerCount()?"Abstimmen dürfen nur die anderen.":"Alle stimmen ab, für den eigenen Song nicht.";
+  $("app").innerHTML=`<section class="card suddenintro"><div class="eyebrow">NACH ${roundCount()} RUNDEN · GLEICHSTAND AN DER SPITZE</div><h2>Entscheidung.</h2><p>${tied.slice(0,-1).map(name).join(", ")} und ${name(tied[tied.length-1])} ${tied.length===2?"haben beide":"haben alle"} ${groupPts(top)}. Jetzt zieht jede${S.room?.team_mode?"s Team":" Person"} davon einen neuen, bisher unbenutzten Künstler – eine Runde entscheidet. ${others}</p>${groupRankList(table,t=>tied.includes(t.corner)?"in der Entscheidung":"")}${errorNotice()}<div class="mainaction">${isHost()?`<button class="btn primary" id="startSudden">Entscheidung starten</button>`:`<div class="notice">Der Host startet die Entscheidungsrunde.</div>`}</div>${roomExitControls()}</section>`;
+  if($("startSudden"))$("startSudden").onclick=startSuddenDeath;bindRoomExitControls();
+}
+
+function renderGroupSuddenDraft(){
+  const tied=cornersInPlay(S.room,6),picks=S.picks.filter(p=>p.round_number===6),turn=suddenTurnCorner(S.room,S.picks),r=S.rounds.find(x=>x.round_number===6),prop=S.room.draft_skip_proposal||null,teams=Boolean(S.room.team_mode);
+  const captain=turn&&draftCaptain(S.members,S.picks,turn),myTurn=captain?.user_id===S.user?.id,holding=myTurn&&S.currentArtist&&S.currentArtistSlot===turn;
+  const banner=turn?`<div class="turnbanner c${turn}" role="status"><small>WER IST DRAN?</small><strong>${esc(cornerLabel(S.members,turn,teams))}</strong><span>${myTurn?(teams?"Du ziehst für dein Team.":"Du bist dran."):teams&&captain?`${esc(captain.display_name)} zieht.`:""}</span></div>`:"";
+  const card=c=>{const p=picks.find(x=>x.player_slot===c);let body;
+    if(p)body=`<h3>${p.hidden?"verdeckt":esc(p.artist_name)}</h3><span class="chip">Künstler fixiert</span>`;
+    else if(c===turn&&myTurn&&!prop)body=holding?`<div class="artistdraw">${S.currentArtist.image?`<img src="${esc(S.currentArtist.image)}" alt="">`:""}<h2>${esc(S.currentArtist.name)}</h2><div class="actions centered"><button class="btn primary" id="lockSudden">Künstler übernehmen</button><button class="btn ghost" id="sharedSkip">Gemeinsam überspringen</button></div></div>`:`<button class="btn primary" id="drawSudden">Neuen Künstler ziehen</button>`;
+    else body=`<p class="muted">${c===turn?(ownsCorner(c)?`${esc(captain?.display_name||"")} zieht für euer Team.`:"Zieht gerade…"):"Wartet…"}</p>`;
+    return`<div class="cornercard c${c}"><div class="eyebrow">${esc(groupCornerLabel(c))}</div>${body}</div>`};
+  $("app").innerHTML=`<section class="card"><div class="battle-title"><div class="eyebrow">ENTSCHEIDUNG · NEUE KÜNSTLER</div><h2>${esc(r?.theme||"Alles oder nichts")}</h2><span class="chip">${picks.length} von ${tied.length} Künstlern</span></div>${banner}${errorNotice()}${prop?groupSkipPanel(prop):""}<div class="cornerlist">${tied.map(card).join("")}</div>${roomExitControls()}</section>`;
+  if($("drawSudden"))$("drawSudden").onclick=()=>drawArtist(turn);
+  if($("lockSudden"))$("lockSudden").onclick=placeSuddenArtist;
+  if($("sharedSkip"))$("sharedSkip").onclick=()=>proposeSharedSkip(turn);
+  bindGroupSkip();bindRoomExitControls();
+  if(isHost()&&picks.length===tied.length&&!S.suddenBegin){S.suddenBegin=true;sb.rpc("mb_begin_sudden_battle",{p_room_id:S.room.id}).then(({error})=>{if(error)S.error=error.message;return reloadRoomNow()}).finally(()=>{S.suddenBegin=false})}
+}
+
+function renderGroupFinished(){
+  const table=groupFinalStandings(S.rounds,cornerCount(),roundCount()),teams=Boolean(S.room.team_mode),name=c=>cornerLabel(S.members,c,teams);
+  const top=table.filter(t=>t.rank===1),single=top.length===1,sudden=S.rounds.find(r=>r.round_number===6&&r.status==="complete");
+  const podium=table.slice(0,3),order=[podium[1],podium[0],podium[2]];
+  const step=t=>`<div class="step place${Math.min(t.rank,3)} c${t.corner}"><b class="pl">${t.rank}.</b><strong>${esc(name(t.corner))}</strong><span>${t.total}</span></div>`;
+  const rounds=S.rounds.filter(r=>r.status==="complete").sort((a,b)=>a.round_number-b.round_number);
+  // Abend-Rangliste: ein Team zählt als ein Eintrag (Team-Name)
+  const places=table.map(t=>({name:name(t.corner),place:t.rank}));
+  $("app").innerHTML=`<section class="card finalwrap"${animAttr(`final:${S.room.id}`,3500)}><div class="finalscore"><div class="eyebrow">MATCH BEENDET · ${cornerCount()} ${teams?"TEAMS":"SPIELER"}</div><h2>${single?`${esc(name(top[0].corner))} gewinnt`:"Gleichstand an der Spitze"}</h2><div class="big">${groupPts(top[0]?.total||0)}</div>${single?beltBanner(null,`Champion${top[0].decided?" · nach der Entscheidung":""}`):""}<p class="muted">Stimmen = Punkte · Runde ${roundCount()} zählte doppelt${sudden?" · Gleichstand per Entscheidung gelöst":""}</p></div>
+    ${table.length>2?`<div class="podium">${order.map(step).join("")}</div>`:""}
+    ${abendRecord(`mb:${S.room.id}`,"1v1",places)}${rematchControls()}
+    <div class="eyebrow standhead">ENDSTAND</div>${groupRankList(table,t=>t.decided?"Entscheidung gewonnen":"")}
+    <div class="divider"></div><div class="eyebrow">RUNDEN</div><div class="roundsummary">${rounds.map(r=>`<div class="member"><div><strong>${r.round_number===6?"Entscheidung":`Runde ${r.round_number}${r.round_number===roundCount()?" · ×2":""}`}</strong><small>${esc(r.theme)}</small></div><span class="chip${r.winner_slot?` c${r.winner_slot}`:""}">${r.winner_slot?`${esc(name(r.winner_slot))} · ${groupPts(Number(r.points?.[r.winner_slot])||0)}`:"Gleichstand"}</span></div>`).join("")}</div>
+    ${roomExitControls()}</section>`;
+  bindRoomExitControls();if($("rematchBtn"))$("rematchBtn").onclick=startRematch;
 }
 
 // Gemeinsamer Skip (6.7): offener Vorschlag – der andere Spieler bestätigt oder lehnt ab, der Vorschlagende kann zurückziehen.

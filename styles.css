@@ -197,6 +197,11 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .standhead{max-width:760px;margin:var(--s5) auto 0}
 .groupresult>.belt,.groupresult>.mainaction,.groupresult>.tiechoice{max-width:760px;margin-left:auto;margin-right:auto}
 @media (prefers-reduced-motion:no-preference){.groupresult[data-anim] .rankrow{animation:mbRowIn .4s ease-out both;animation-delay:var(--elapsed,0ms)}}
+/* Gruppe Endstand (M.6): Podest und Runden-Chips in der Eckenfarbe; Gold bleibt für Platz 1 */
+.podium .step:is(.c1,.c2,.c3,.c4,.c5,.c6) strong{color:var(--corner)}
+.podium .step:is(.c1,.c2,.c3,.c4,.c5,.c6):not(.place1){border-top:3px solid var(--corner)}
+.chip:is(.c1,.c2,.c3,.c4,.c5,.c6){border-color:var(--corner);color:var(--corner)}
+.suddenintro .ranklist{text-align:left}
 .grouppick.empty b,.grouppick.veiled b{color:var(--muted);font-weight:400;font-style:italic}
 .modeicon{width:44px;height:44px;border-radius:var(--r-m);display:grid;place-items:center;font:400 20px var(--f-num);background:var(--surface-3);border:1px solid var(--line-strong);color:var(--gold)}
 .joinrole{display:grid;grid-template-columns:1fr minmax(220px,.8fr);gap:var(--s4);padding:var(--s4);border:1px solid var(--line);border-radius:var(--r-l);background:var(--surface-2)}
