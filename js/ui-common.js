@@ -130,6 +130,7 @@ function render(){
   if(S.room.game==="quiz"){if(S.room.status==="closed"){renderClosed();return}$("roomBadge").innerHTML=`<span class="chip">${esc(S.room.code)} · QUIZ</span>`;renderQuiz();$("app").insertAdjacentHTML("afterbegin",flowSteps());return}
   const localSlots=ownedMemberships().filter(m=>m.role==="player").map(m=>m.player_slot).sort();
   $("roomBadge").innerHTML=`<span class="chip">${esc(S.room.code)} · ${role()==="player"?(localSlots.length===2?"SPIELER 1 + 2":`SPIELER ${localSlots[0]}`):"JURY"}</span>`;
+  if(isGroupRoom()&&!["lobby","closed"].includes(S.room.status)){renderGroupInProgress();$("app").insertAdjacentHTML("afterbegin",flowSteps());return}
   if(S.room.status==="lobby")renderLobby();else if(S.room.status==="draft")renderDraft();else if(S.room.status==="battle")renderBattle();else if(S.room.status==="tiebreak")renderTiebreak();else if(S.room.status==="sudden_draft")renderSuddenDraft();else if(S.room.status==="finished")renderFinished();else if(S.room.status==="closed"){renderClosed();return}else renderLobby();
   renderMissingPlayerNotice();
   $("app").insertAdjacentHTML("afterbegin",flowSteps());
@@ -144,7 +145,7 @@ function renderClosed(){
 
 // 2 Geräte: Spieler 2 hat den Raum mitten im Match verlassen → Platz wartet auf Wiederbeitritt
 function renderMissingPlayerNotice(){
-  if(S.room.device_mode!=="two"||!["draft","battle","tiebreak","sudden_draft"].includes(S.room.status))return;
+  if(isGroupRoom()||S.room.device_mode!=="two"||!["draft","battle","tiebreak","sudden_draft"].includes(S.room.status))return;
   if(S.members.some(m=>m.role==="player"&&m.player_slot===2))return;
   $("app").insertAdjacentHTML("afterbegin",`<div class="notice" role="status" style="margin-bottom:14px"><strong>Spieler 2 hat das Match verlassen.</strong> Das Match wartet: Mit dem Raumcode <strong>${esc(S.room.code)}</strong> kann Spieler 2 über „Als Spieler 2 beitreten“ auf seinen Platz zurück.</div>`);
 }

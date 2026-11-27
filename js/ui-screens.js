@@ -7,14 +7,15 @@ function renderLanding(){
   const mode=window.MB_DEVICE_MODE_CHOICE,err=errorNotice(),saved=savedSpotify();
   const spotifyLine=saved?`<div class="spotifyline"><span class="chip ok">Spotify verbunden${saved.name?` · ${esc(saved.name)}`:""}</span><button class="btn ghost" id="spotifyLogout">Abmelden</button></div>`:"";
   if(!mode){
-    $("app").innerHTML=`<section class="card flat hero"><div><div class="eyebrow">MUSIC 1V1</div><h2>Wie wollt ihr spielen?</h2>${installHint()}${spotifyLine}${err}<div class="modegrid"><button class="card modecard" id="modeSingle"><div class="modeicon">1</div><div><div class="eyebrow">PASS & PLAY</div><h3>Ein Gerät</h3><p class="muted">Ihr gebt ein Gerät hin und her. Ein Spotify-Konto reicht.</p></div></button><button class="card modecard" id="modeTwo"><div class="modeicon">2</div><div><div class="eyebrow">REALTIME</div><h3>Zwei Geräte</h3><p class="muted">Jeder Spieler meldet sich auf seinem eigenen Gerät an.</p></div></button></div><div class="divider"></div><div class="joinrole jurorrole"><div><div class="eyebrow">ICH BIN JUROR</div><h3>Nur bewerten</h3><p class="muted">Du spielst nicht mit und brauchst kein Spotify.</p></div><div><input id="juryCode" maxlength="6" placeholder="Raumcode"><input id="juryName" placeholder="Dein Name"><button class="btn" id="juryJoinDirect">Als Juror beitreten</button></div></div></div></section>`;
+    $("app").innerHTML=`<section class="card flat hero"><div><div class="eyebrow">MUSIC 1V1</div><h2>Wie wollt ihr spielen?</h2>${installHint()}${spotifyLine}${err}<div class="modegrid"><button class="card modecard" id="modeSingle"><div class="modeicon">1</div><div><div class="eyebrow">PASS & PLAY</div><h3>Ein Gerät</h3><p class="muted">Ihr gebt ein Gerät hin und her. Ein Spotify-Konto reicht.</p></div></button><button class="card modecard" id="modeTwo"><div class="modeicon">2</div><div><div class="eyebrow">REALTIME</div><h3>Zwei Geräte</h3><p class="muted">Jeder Spieler meldet sich auf seinem eigenen Gerät an.</p></div></button>${groupEnabled()?`<button class="card modecard wide" id="modeGroup"><div class="modeicon">3+</div><div><div class="eyebrow">GRUPPE · BETA</div><h3>3–6 Personen</h3><p class="muted">Alle spielen gleichzeitig auf dem eigenen Gerät, auf Wunsch in Teams.</p></div></button>`:""}</div><div class="divider"></div><div class="joinrole jurorrole"><div><div class="eyebrow">ICH BIN JUROR</div><h3>Nur bewerten</h3><p class="muted">Du spielst nicht mit und brauchst kein Spotify.</p></div><div><input id="juryCode" maxlength="6" placeholder="Raumcode"><input id="juryName" placeholder="Dein Name"><button class="btn" id="juryJoinDirect">Als Juror beitreten</button></div></div></div></section>`;
     if($("spotifyLogout"))$("spotifyLogout").onclick=()=>{forgetSavedSpotify();renderLanding()};
     bindInstallHint();
-    $("modeSingle").onclick=()=>setDeviceModeChoice("single");$("modeTwo").onclick=()=>setDeviceModeChoice("two");
+    $("modeSingle").onclick=()=>setDeviceModeChoice("single");$("modeTwo").onclick=()=>setDeviceModeChoice("two");if($("modeGroup"))$("modeGroup").onclick=()=>setDeviceModeChoice("group");
     $("juryJoinDirect").onclick=async()=>{const code=$("juryCode").value.trim().toUpperCase(),name=$("juryName").value.trim();if(!code||!name){S.error="Raumcode und Name fehlen.";renderLanding();return}const {data,error}=await sb.rpc("mb_join_room",{p_room_code:code,p_display_name:name,p_role:"juror"});if(error){S.error=joinErrorText(error.message);renderLanding();return}const row=data[0];saveRoom({room_id:row.room_id,code});await loadRoom(row.room_id);subscribeRoom();render()};
     return;
   }
   if(mode==="quiz"){renderQuizLanding(err);return}
+  if(mode==="group"){renderGroupLanding(err);return}
   const single=mode==="single";
   $("app").innerHTML=`<section class="card"><div class="sectionhead"><div><div class="eyebrow">${single?"1 GERÄT · PASS & PLAY":"2 GERÄTE · REALTIME"}</div><h2>${single?"Gemeinsam auf einem Gerät":"Jeder auf dem eigenen Gerät"}</h2></div><button class="btn ghost" id="changeMode">Modus ändern</button></div>${err}<div class="joincolumns"><div class="joinrole playerrole"><div><div class="eyebrow">SPIELER 1 · HOST</div><h3>Neues Match erstellen</h3><p class="muted">${single?"Du meldest danach auch Spieler 2 auf diesem Gerät an.":"Du erhältst einen Raumcode für Spieler 2."}</p></div><div><input id="createName" placeholder="Name Spieler 1" value="${esc(lastName())}" autocomplete="nickname" list="gmNames">${abendNameList()}<label class="checkline"><input type="checkbox" id="createHidden"><span>Verdeckter Draft<small>${single?"Wer dran ist, sieht nur die eigenen Künstler. Aufgedeckt wird Runde für Runde.":"Die Künstler des Gegners siehst du erst, wenn ihre Runde beginnt."}</small></span></label><button class="btn primary" id="createBtn">Raum erstellen</button></div></div>${single?`<div class="joinrole jurorrole"><div><div class="eyebrow">JUROR</div><h3>Bestehendem Raum beitreten</h3><p class="muted">Im Pass-&-Play-Modus kann Spieler 2 nicht von einem anderen Gerät beitreten.</p></div><div><input id="joinCode" maxlength="6" placeholder="Raumcode"><input id="joinName" placeholder="Dein Name"><button class="btn" id="joinJuror">Als Juror beitreten</button></div></div>`:`<div class="joinrole player2role"><div><div class="eyebrow">SPIELER 2</div><h3>Auf deinem Gerät beitreten</h3><p class="muted">Nimm den Raumcode von Spieler 1 und verbinde danach dein eigenes Spotify.</p></div><div><input id="joinCode" maxlength="6" placeholder="Raumcode"><input id="joinName" placeholder="Name Spieler 2"><button class="btn primary" id="joinPlayer">Als Spieler 2 beitreten</button><button class="btn" id="joinJuror">Stattdessen als Juror</button></div></div>`}</div></section>`;
   $("changeMode").onclick=resetDeviceModeChoice;$("createBtn").onclick=createRoom;
@@ -22,10 +23,10 @@ function renderLanding(){
 }
 
 // Einladung (Roadmap 6.2, Entscheidung H): ein QR-Code für alle, Rollenwahl nach dem Scannen
-function inviteLink(){return `${location.origin}${location.pathname}?join=${encodeURIComponent(S.room.code)}&m=${S.room.game==="quiz"?"quiz":S.room.device_mode==="two"?"two":"single"}`}
+function inviteLink(){return `${location.origin}${location.pathname}?join=${encodeURIComponent(S.room.code)}&m=${S.room.game==="quiz"?"quiz":isGroupRoom()?"group":S.room.device_mode==="two"?"two":"single"}`}
 function inviteBlock(isSingle){
   const svg=S.qrCache?.link===inviteLink()?S.qrCache.svg:"";
-  return`<div class="invite"><div class="qr" id="inviteQr" role="img" aria-label="QR-Code zum Beitreten">${svg}</div><div class="invitetext"><b>${S.room.game==="quiz"?"Mitspieler einladen":isSingle?"Juroren einladen":"Spieler 2 und Juroren einladen"}</b><p class="muted">QR-Code scannen oder Link teilen – direkt in den Raum, ohne Code abtippen.</p><button class="btn" id="shareInvite">Link teilen</button></div></div>`;
+  return`<div class="invite"><div class="qr" id="inviteQr" role="img" aria-label="QR-Code zum Beitreten">${svg}</div><div class="invitetext"><b>${S.room.game==="quiz"||isGroupRoom()?"Mitspieler einladen":isSingle?"Juroren einladen":"Spieler 2 und Juroren einladen"}</b><p class="muted">QR-Code scannen oder Link teilen – direkt in den Raum, ohne Code abtippen.</p><button class="btn" id="shareInvite">Link teilen</button></div></div>`;
 }
 function loadQrLib(){return window.qrcode?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js";s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
 async function bindInvite(){
@@ -43,6 +44,7 @@ function renderInvite(){
   bindBrandHome();$("roomBadge").innerHTML="";
   const j=S.pendingJoin,single=j.mode==="single";
   if(j.mode==="quiz"){renderQuizInvite(j);return}
+  if(j.mode==="group"){renderGroupInvite(j);return}
   $("app").innerHTML=`<section class="card invitecard"><div class="eyebrow">EINLADUNG</div><h2>Raum <span class="roomcode">${esc(j.code)}</span></h2><p class="muted">${single?"Dieses Match läuft auf einem Gerät – du kannst als Juror bewerten.":"Spiel als Spieler 2 mit oder bewerte als Juror."}</p>${errorNotice()}<input type="hidden" id="joinCode" value="${esc(j.code)}"><label for="joinName">Dein Name</label><input id="joinName" value="${esc(lastName())}" placeholder="Dein Name" autocomplete="nickname" maxlength="30"><div class="mainaction invitebtns">${single?"":`<button class="btn primary" id="inviteP2">Als Spieler 2 beitreten</button>`}<button class="btn ${single?"primary":""}" id="inviteJuror">Als Juror beitreten</button></div><div class="actions centered"><button class="btn ghost" id="inviteCancel">Nicht beitreten</button></div></section>`;
   if($("inviteP2"))$("inviteP2").onclick=()=>joinRoom("player");
   $("inviteJuror").onclick=()=>joinRoom("juror");
@@ -50,6 +52,7 @@ function renderInvite(){
 }
 
 function renderLobby(){
+  if(isGroupRoom()){renderGroupLobby();return}
   bindBrandHome();
   $("roomBadge").innerHTML=`<span class="chip">RAUM <b style="margin-left:6px">${esc(S.room.code)}</b></span>`;
   const players=S.members.filter(m=>m.role==="player"),jurors=S.members.filter(m=>m.role==="juror"),p1=players.find(p=>p.player_slot===1),p2=players.find(p=>p.player_slot===2);
@@ -81,6 +84,57 @@ function renderLobby(){
   document.querySelectorAll("[data-connect-slot]").forEach(b=>b.onclick=()=>connectSpotify(Number(b.dataset.connectSlot)));
   if($("startDraftBtn"))$("startDraftBtn").onclick=startDraft;
   if($("changeModeLobby"))$("changeModeLobby").onclick=openModeSelection;
+  bindRoomExitControls();
+}
+
+// ---------- Gruppe (M.2): Einrichten, Einladung, Lobby ----------
+function renderGroupLanding(err){
+  $("app").innerHTML=`<section class="card"><div class="sectionhead"><div><div class="eyebrow">GRUPPE · 3–6 PERSONEN · BETA</div><h2>Alle auf dem eigenen Gerät</h2></div><button class="btn ghost" id="changeMode">Modus ändern</button></div>${err}<div class="joincolumns"><div class="joinrole playerrole"><div><div class="eyebrow">HOST</div><h3>Neue Gruppe erstellen</h3><p class="muted">Du erhältst einen Raumcode und einen QR-Code für die anderen.</p></div><div><input id="createName" placeholder="Dein Name" value="${esc(lastName())}" autocomplete="nickname" list="gmNames">${abendNameList()}<fieldset class="roundpick"><legend>Runden</legend><label class="checkline"><input type="radio" name="groupRounds" value="3"><span>3 Runden</span></label><label class="checkline"><input type="radio" name="groupRounds" value="5" checked><span>5 Runden</span></label></fieldset><label class="checkline"><input type="checkbox" id="createTeams"><span>In Teams spielen<small>Im Team ist pro Runde abwechselnd eine Person dran: Sie zieht den Künstler und wählt den Song.</small></span></label><label class="checkline"><input type="checkbox" id="createHidden"><span>Verdeckter Draft<small>Die Künstler der anderen siehst du erst, wenn ihre Runde beginnt.</small></span></label><button class="btn primary" id="createBtn">Gruppe erstellen</button></div></div><div class="joinrole player2role"><div><div class="eyebrow">MITSPIELEN</div><h3>Mit Code beitreten</h3><p class="muted">Nimm den Raumcode vom Host und verbinde danach Spotify. Ihr dürft auch dasselbe Spotify-Konto nutzen.</p></div><div><input id="joinCode" maxlength="6" placeholder="Raumcode"><input id="joinName" placeholder="Dein Name" value="${esc(lastName())}" autocomplete="nickname"><button class="btn primary" id="joinPlayer">Als Spieler beitreten</button><button class="btn" id="joinJuror">Stattdessen als Juror</button></div></div></div></section>`;
+  $("changeMode").onclick=resetDeviceModeChoice;$("createBtn").onclick=createGroupRoom;
+  $("joinPlayer").onclick=()=>joinRoom("player");$("joinJuror").onclick=()=>joinRoom("juror");
+}
+
+function renderGroupInvite(j){
+  $("app").innerHTML=`<section class="card invitecard"><div class="eyebrow">EINLADUNG · GRUPPE</div><h2>Raum <span class="roomcode">${esc(j.code)}</span></h2><p class="muted">Spiel in der Gruppe mit oder bewerte als Juror.</p>${errorNotice()}<input type="hidden" id="joinCode" value="${esc(j.code)}"><label for="joinName">Dein Name</label><input id="joinName" value="${esc(lastName())}" placeholder="Dein Name" autocomplete="nickname" maxlength="30"><div class="mainaction invitebtns"><button class="btn primary" id="invitePlayer">Als Spieler beitreten</button><button class="btn" id="inviteJuror">Als Juror beitreten</button></div><div class="actions centered"><button class="btn ghost" id="inviteCancel">Nicht beitreten</button></div></section>`;
+  $("invitePlayer").onclick=()=>joinRoom("player");
+  $("inviteJuror").onclick=()=>joinRoom("juror");
+  $("inviteCancel").onclick=()=>{S.pendingJoin=null;S.error="";render()};
+}
+
+function renderGroupLobby(){
+  bindBrandHome();
+  $("roomBadge").innerHTML=`<span class="chip">RAUM <b style="margin-left:6px">${esc(S.room.code)}</b></span>`;
+  const teams=Boolean(S.room.team_mode),st=groupLobbyStatus(S.members,teams),jurors=S.members.filter(m=>m.role==="juror"),host=isHost();
+  const mySeat=ownGroupSeat(),me=st.players.find(p=>p.player_slot===mySeat);
+  const open=[];
+  if(st.missingPlayers)open.push(teams?"Es braucht mindestens 2 Spieler":`Es fehlen noch ${st.missingPlayers} Spieler (mindestens ${GROUP_MIN_PLAYERS})`);
+  if(st.needTeams)open.push("Mindestens 2 Teams einteilen");
+  if(st.waitingSpotify.length)open.push(`Spotify von ${st.waitingSpotify.map(esc).join(", ")}`);
+  const teamPick=p=>host?`<div class="teampick" role="group" aria-label="Team von ${esc(p.display_name)}">${Array.from({length:GROUP_MAX_TEAMS},(_,i)=>i+1).map(t=>`<button class="btn" data-team-member="${esc(p.id)}" data-team="${t}" aria-pressed="${p.corner===t}">Team ${t}</button>`).join("")}</div>`:`<span class="chip">Team ${p.corner}</span>`;
+  const row=p=>{const mine=p.player_slot===mySeat;
+    const status=p.spotify_ready?`<span class="chip ok">Spotify bereit</span>`:mine?`<button class="btn primary" data-connect-slot="1">Spotify verbinden</button>`:`<span class="chip">verbindet auf eigenem Gerät</span>`;
+    return`<div class="member groupmember"><div><strong>${esc(p.display_name)}${mine?" (du)":""}</strong><small>Platz ${p.player_slot}${p.user_id===S.room.host_user_id?" · Host":""}</small></div>${teams?teamPick(p):""}${status}</div>`};
+  const byTeam=teams?st.teams.map(t=>`<div class="teamblock"><div class="eyebrow">TEAM ${t}</div><div class="stack">${st.players.filter(p=>p.corner===t).map(row).join("")}</div></div>`).join(""):`<div class="stack">${st.players.map(row).join("")}</div>`;
+  const settings=[`${S.room.round_count} RUNDEN`,teams?"TEAMS":"",S.room.draft_hidden?"VERDECKTER DRAFT":""].filter(Boolean).join(" · ");
+  $("app").innerHTML=`<section class="card lobby"><div class="eyebrow">LOBBY · GRUPPE · ${settings}</div><h2 class="roomcode">${esc(S.room.code)}</h2>${inviteBlock(false)}${errorNotice()}${S.notice?`<div class="notice">${esc(S.notice)}</div>`:""}
+    <p class="muted groupcount">${st.players.length} von ${GROUP_MAX_PLAYERS} Spielern${st.full?" – die Gruppe ist voll":""}. Ihr dürft dasselbe Spotify-Konto nutzen.</p>
+    <div class="stack" style="margin-top:14px">${byTeam}</div>
+    ${teams&&host&&st.players.length>=2?`<div class="actions"><button class="btn" id="shuffleTeams">Teams mischen</button></div>`:""}
+    <p class="muted jurorline">Juroren: ${jurors.length?`${jurors.map(j=>esc(j.display_name)).join(", ")} – sie stimmen ab, die Spieler nicht`:"keine – alle Spieler stimmen ab"}</p>
+    ${host?`<div class="mainaction">${st.ready?`<button class="btn primary" id="startDraftBtn">Draft starten</button>`:`<p class="muted">Noch offen: ${open.join(" · ")}</p>`}</div><div class="actions"><button class="btn ghost" id="changeModeLobby">Spielmodus ändern</button></div>`:`<p class="muted">${st.ready?"Der Host startet gleich den Draft.":`Noch offen: ${open.join(" · ")}`}</p>`}
+    ${roomExitControls()}</section>`;
+  bindInvite();
+  document.querySelectorAll("[data-connect-slot]").forEach(b=>b.onclick=()=>connectSpotify(Number(b.dataset.connectSlot)));
+  document.querySelectorAll("[data-team-member]").forEach(b=>b.onclick=()=>setMemberTeam(b.dataset.teamMember,Number(b.dataset.team)));
+  if($("shuffleTeams"))$("shuffleTeams").onclick=shuffleTeams;
+  if($("startDraftBtn"))$("startDraftBtn").onclick=startDraft;
+  if($("changeModeLobby"))$("changeModeLobby").onclick=openModeSelection;
+  bindRoomExitControls();
+}
+
+// Gruppe nach der Lobby: Draft, Battle und Wertung folgen in M.3–M.7
+function renderGroupInProgress(){
+  $("app").innerHTML=`<section class="card"><div class="eyebrow">GRUPPE · RAUM ${esc(S.room.code)}</div><h2>Der Draft für Gruppen ist noch im Bau</h2><p class="muted">Die Lobby funktioniert schon. Ziehen, Songs und Abstimmung für 3–6 Personen kommen als Nächstes.</p>${roomExitControls()}</section>`;
   bindRoomExitControls();
 }
 

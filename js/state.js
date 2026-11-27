@@ -27,6 +27,11 @@ function roomStorage(){return JSON.parse(localStorage.getItem("mb_online_room")|
 
  function isHost(){return S.room?.host_user_id===S.user?.id}
 
+// Gruppenmodus (M.2): 3–6 Personen, jede auf dem eigenen Gerät mit genau einem Platz
+ function isGroupRoom(){return S.room?.game_mode==="group"}
+
+ function ownGroupSeat(){return ownedMemberships().find(m=>m.role==="player")?.player_slot||null}
+
  function memberName(slotNo){return S.members.find(m=>m.player_slot===slotNo)?.display_name||`Spieler ${slotNo}`}
 
  function currentRound(){return S.rounds.find(r=>r.round_number===Number(S.room?.current_round||1))}

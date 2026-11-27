@@ -1,7 +1,8 @@
 /* draft.js – Draft inkl. Skip und Sudden-Death-Draft
    Konsolidiert aus app-1 … app-6d (Roadmap 2.2). Klassisches Skript, globale Namen. */
 
-async function startDraft(){if(!isHost())return;const players=S.members.filter(m=>m.role==="player");if(players.length!==2||players.some(p=>!p.spotify_ready)){S.error="Es müssen zwei Spotify-bereite Spieler im Raum sein.";render();return}const {error}=await sb.from("mb_rooms").update({status:"draft",updated_at:new Date().toISOString()}).eq("id",S.room.id);if(error)S.error=error.message}
+// Draft starten (Host): der Server prüft Spieler und Spotify (mb_start_draft, M.1/M.2) – 1v1 und Gruppe
+async function startDraft(){if(!isHost())return;S.error="";const {error}=await sb.rpc("mb_start_draft",{p_room_id:S.room.id});if(error){S.error=error.message;render();return}await reloadRoomNow()}
 
 function expectedDraftSlot(){return S.picks.length%2===0?1:2}
 
