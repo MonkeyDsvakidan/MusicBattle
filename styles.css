@@ -484,6 +484,10 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .quizoption:hover:not(:disabled){border-color:var(--gold)}
 .quizoption strong{display:block}
 .quizoption small{color:var(--muted)}
+.quizoption.pick[aria-pressed="true"]{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.quizoption.pick[aria-pressed="true"] strong::after{content:" ✓\FE0E";color:var(--gold)}
+.quizsong img.round{border-radius:50%}
+.kindhint{margin:var(--s2) 0 var(--s3)}
 .quizcoverwrap{display:flex;justify-content:center;margin-top:var(--s2)}
 .quizcover{width:min(70vw,256px);height:auto;aspect-ratio:1;border-radius:var(--r-m);image-rendering:pixelated;background:var(--surface-3)}
 .quizcover.blurred{filter:blur(14px)}

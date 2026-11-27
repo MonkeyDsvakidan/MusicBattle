@@ -38,6 +38,8 @@ const BACKEND_ERRORS={
   "invalid role":"Ungültige Rolle.",
   "invalid tracks":"Die Song-Liste ist ungültig.",
   "too many tracks":"Die Song-Liste ist zu lang.",
+  "too many artists":"Die Künstler-Liste ist zu lang.",
+  "invalid artists":"Die Künstler-Liste ist ungültig.",
   "invalid votes":"Die Stimmen sind ungültig. Lade die Seite neu und stimme nochmals ab.",
   "invalid winner":"Ungültiger Sieger.",
   "local player 2 is only available in one-device lobby":"Spieler 2 auf diesem Gerät gibt es nur im Modus «1 Gerät» und nur in der Lobby.",

@@ -150,3 +150,22 @@ test("Rangliste 7.11: ausgesetzte Fragen werden gezählt",()=>{
   assert.equal(r.find(x=>x.member_id==="b").sat,0);
   assert.equal(quizStandings(members,[]).find(x=>x.member_id==="a").sat,0);
 });
+
+// 7.10 «Unter Freunden»: Top-Künstler für mb_quiz_set_artists
+test("7.10: Top-Künstler – Platz = Position bei Spotify, Hörbuch-Autoren und ungültige weg, höchstens 50",()=>{
+  const {buildQuizArtists,quizAnswerText,quizSolutionText}=require("../js/quiz.js");
+  const a=(id,name,o={})=>({id,name,images:o.images||[img(300)],genres:o.genres||[]});
+  const items=[a("ArtistIdAAA01","Eins"),a("bad id","Kaputt"),a("ArtistIdAAA03","Hörbuch Verlag"),a("ArtistIdAAA04","Vier",{images:[{url:"https://evil.example/x.jpg",width:300}]}),a("ArtistIdAAA01","Doppelt"),
+    ...Array.from({length:60},(_,i)=>a(`ArtistIdB${String(i).padStart(4,"0")}`,`B${i}`))];
+  const out=buildQuizArtists(items,{isSpoken:x=>/hörbuch/i.test(x.name)});
+  assert.deepEqual(out.slice(0,2).map(x=>[x.name,x.rank]),[["Eins",1],["Vier",4]]);
+  assert.equal(out[0].image_url,img(300).url);
+  assert.equal(out[1].image_url,null,"nur Spotify-Bilder");
+  assert.ok(out.every(x=>x.rank<=50));
+  assert.equal(out.length,2+45);
+  // Texte ohne Raum (Namen unbekannt) stürzen nicht ab
+  assert.equal(quizAnswerText({kind:"fans"},{member_ids:[]}),"niemand");
+  assert.equal(quizAnswerText({kind:"common",prompt:{options:[{name:"X"},{name:"Y"}]}},{choice:2}),"Y");
+  assert.equal(quizSolutionText({kind:"common"},{name:"Y",ranks:[3,17]}),"Y (Platz 3 und 17)");
+  assert.match(quizSolutionText({kind:"rank",prompt:{artist:{name:"X"},rank:7}},{member_ids:["m"]}),/auf Platz 7$/);
+});

@@ -2,12 +2,20 @@
 // Reine Funktion ohne Datenbank/Netz, deterministisch über den Startwert (gleicher Pool + Startwert = gleiches Quiz).
 // Fragetypen: year (Erscheinungsjahr schätzen), older (welcher Song ist älter?), cover (Album zum Cover erraten),
 // seit 7.12: intro (Song am Intro erkennen), album (auf welchem Album ist der Song?).
+// seit 7.10 («Unter Freunden», nur in Räumen mit quiz_kind = friends, gemischt mit den Typen oben): whose (wessen Song?),
+// rank (wer hat X auf Platz N?), fans (wer hört alles X?), common (welchen Künstler haben A und B beide in den Top 20?).
 // Jede Frage hat einen öffentlichen Teil (prompt) und die Lösung (solution, erst nach dem Aufdecken lesbar).
 
-export const QUIZ_ENGINE_VERSION = 2;
+export const QUIZ_ENGINE_VERSION = 3;
 export const QUIZ_KINDS = ["year", "older", "cover", "intro", "album"];
 // Ältere Apps kennen nur diese Typen (mb-quiz-start ohne „kinds“ im Aufruf)
 export const QUIZ_KINDS_V1 = ["year", "older", "cover"];
+// 7.10 (Entscheid J, Details 27.11.2026): Fragen über die Personen. Antwort ist eine Person (whose, rank), mehrere
+// Personen (fans) oder einer von 4 Künstlern (common). Personen-Fragen erst ab 3 Personen mit Spotify-Daten
+// (zu zweit hätte man oft nur einen Knopf), «Gemeinsamkeit» ab 2 mit Daten und mindestens 3 Mitspielenden.
+// «hört» = Künstler steht in den Top 50 Künstlern der Person (Spotify, ca. letzte 6 Monate) – ein einzelner Song zählt nicht.
+export const FRIEND_KINDS = ["whose", "rank", "fans", "common"];
+export const FRIENDS = { minPeople: 3, rankMax: 20, commonTop: 20 };
 // 7.12 „knapper vergleichen“: höchstens 3 Jahre auseinander; im selben Jahr nur mit Tagesdatum und ≥ 30 Tagen Abstand
 const OLDER_MAX_YEARS = 3, OLDER_MIN_DAYS = 30;
 
@@ -64,6 +72,30 @@ export function preparePool(pool, years = {}) {
 export function sittingOut(tracks, players) {
   if ((players || []).length < 2) return [];
   return players.filter((p) => (tracks || []).some((t) => (t?.suppliers || []).includes(p)));
+}
+
+// Top-Künstler je Person (7.10): member_id → Map(artist_id → {id, name, image_url, rank}); nur Mitspielende
+export function artistsByMember(artists, players = []) {
+  const inRoom = new Set(players || []), by = new Map();
+  for (const a of artists || []) {
+    const rank = Number(a?.rank);
+    if (!a?.member_id || !a.spotify_artist_id || !a.name || !(rank >= 1) || (inRoom.size && !inRoom.has(a.member_id))) continue;
+    if (!by.has(a.member_id)) by.set(a.member_id, new Map());
+    const list = by.get(a.member_id);
+    if (!list.has(a.spotify_artist_id)) list.set(a.spotify_artist_id, { id: a.spotify_artist_id, name: a.name, image_url: a.image_url || null, rank });
+  }
+  return by;
+}
+
+// «Wer hört alles X?» (7.10, Teilpunkte): jede richtig gewählte Person gibt einen Anteil, jede falsche zieht einen ab,
+// nie unter 0. Sich selbst wählt man nicht – man wird nur nach den anderen beurteilt. Hört ausser einem selbst
+// niemand X, ist «niemand gewählt» richtig.
+export function fansAccuracy(chosen, fans, self) {
+  const right = new Set((fans || []).filter((m) => m !== self)), picked = new Set((chosen || []).filter((m) => m !== self));
+  if (!right.size) return picked.size ? 0 : 1;
+  let hits = 0;
+  for (const m of picked) if (right.has(m)) hits++;
+  return Math.max(0, (hits - (picked.size - hits)) / right.size);
 }
 
 // Startpunkt beim Abspielen: nach dem Intro, aber nie über die Mitte hinaus
@@ -167,10 +199,11 @@ function coverQuestion(t, all, rng) {
 // Fragen entstehen; sonst wird der ganze Pool verwendet.
 // players (7.11): Mitglieds-IDs aller Mitspielenden. Jede Frage bekommt sitting_out (siehe sittingOut); Fragen, bei
 // denen alle ausgesetzt wären, entstehen nicht.
-export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = QUIZ_KINDS, avoid = [], players = [] } = {}) {
+// artists (7.10): Top-Künstler der Mitspielenden ({member_id, spotify_artist_id, name, rank, image_url}) für rank/fans/common.
+export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = QUIZ_KINDS, avoid = [], players = [], artists = [] } = {}) {
   const skip = new Set(avoid || []);
   if (skip.size) {
-    const fresh = generateQuiz((pool || []).filter((t) => !skip.has(t?.spotify_track_id)), { count, seed, years, kinds, players });
+    const fresh = generateQuiz((pool || []).filter((t) => !skip.has(t?.spotify_track_id)), { count, seed, years, kinds, players, artists });
     if (fresh.length >= count) return fresh;
   }
   const rng = createRng(seed);
@@ -220,6 +253,79 @@ export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = 
   const artistAlbums = new Map();
   for (const t of all) if (isAlbumTrack(t)) { const k = primaryArtist(t); if (!artistAlbums.has(k)) artistAlbums.set(k, new Set()); artistAlbums.get(k).add(albumLabel(t)); }
   const withRetry = (t, q) => { if (t && !q) used.delete(t.spotify_track_id); return q; };
+
+  // 7.10 «Unter Freunden»: Personen mit Daten (nur Mitspielende), Songs nur einer Person (auch nicht in anderer Fassung)
+  const inRoom = (m) => !players.length || players.includes(m);
+  const songPeople = [...new Set(all.flatMap((t) => t.suppliers))].filter(inRoom);
+  const songOwners = new Map();
+  for (const t of all) { const k = `${primaryArtist(t)}|${titleLabel(t)}`; if (!songOwners.has(k)) songOwners.set(k, new Set()); for (const m of t.suppliers) songOwners.get(k).add(m); }
+  const onlyOwner = (t) => t.suppliers.length === 1 && songOwners.get(`${primaryArtist(t)}|${titleLabel(t)}`).size === 1 && inRoom(t.suppliers[0]);
+  const people = artistsByMember(artists, players), dataPeople = [...people.keys()];
+  const usedArtists = new Set();
+  const personOptions = (ids) => shuffle(ids, rng).map((member_id) => ({ member_id }));
+  const artistInfo = (a) => ({ name: a.name, image_url: a.image_url });
+  const friends = {
+    whose: () => {
+      if (songPeople.length < FRIENDS.minPeople) return null;
+      const t = pick(onlyOwner); if (!t) return null;
+      return {
+        kind: "whose",
+        prompt: { ...songInfo(t), cover_url: t.cover_url || null, options: personOptions(songPeople), play: { track_id: t.spotify_track_id, start_ms: startMs(t) } },
+        solution: { member_ids: [t.suppliers[0]] },
+        track_ids: [t.spotify_track_id],
+      };
+    },
+    rank: () => {
+      if (dataPeople.length < FRIENDS.minPeople) return null;
+      for (const m of shuffle(dataPeople, rng)) {
+        const own = [...people.get(m).values()].filter((a) => a.rank <= FRIENDS.rankMax && !usedArtists.has(a.id)
+          && !dataPeople.some((o) => o !== m && people.get(o).get(a.id)?.rank === a.rank));   // Platz muss eindeutig sein
+        if (!own.length) continue;
+        const a = own[Math.floor(rng() * own.length)];
+        usedArtists.add(a.id);
+        return { kind: "rank", prompt: { artist: artistInfo(a), rank: a.rank, options: personOptions(dataPeople), play: null }, solution: { member_ids: [m] }, track_ids: [], sitting_out: [m] };
+      }
+      return null;
+    },
+    fans: () => {
+      if (dataPeople.length < FRIENDS.minPeople) return null;
+      const fansOf = new Map(), info = new Map();
+      for (const [m, list] of people) for (const a of list.values()) { if (!fansOf.has(a.id)) { fansOf.set(a.id, []); info.set(a.id, a); } fansOf.get(a.id).push(m); }
+      // nicht alle hören X; bevorzugt Künstler, die mehrere hören (spannender als «nur einer»)
+      const open = [...fansOf].filter(([id, f]) => f.length < dataPeople.length && !usedArtists.has(id));
+      const several = open.filter(([, f]) => f.length >= 2), from = several.length ? several : open;
+      if (!from.length) return null;
+      const [id, fans] = from[Math.floor(rng() * from.length)];
+      usedArtists.add(id);
+      return { kind: "fans", prompt: { artist: artistInfo(info.get(id)), options: personOptions(dataPeople), play: null }, solution: { member_ids: fans }, track_ids: [], sitting_out: [] };
+    },
+    common: () => {
+      if (dataPeople.length < 2 || players.length < 3) return null;
+      const top = FRIENDS.commonTop, pairs = [];
+      for (let i = 0; i < dataPeople.length; i++) for (let j = i + 1; j < dataPeople.length; j++) pairs.push([dataPeople[i], dataPeople[j]]);
+      for (const [a, b] of shuffle(pairs, rng)) {
+        const la = people.get(a), lb = people.get(b), inTop = (l, id) => (l.get(id)?.rank ?? Infinity) <= top;
+        const shared = [...la.values()].filter((x) => x.rank <= top && inTop(lb, x.id) && !usedArtists.has(x.id));
+        if (!shared.length) continue;
+        // Ablenker: in den Top 20 von A oder B, beim anderen gar nicht in den Top-Künstlern; abwechselnd aus beiden Listen
+        const onlyA = shuffle([...la.values()].filter((x) => x.rank <= top && !lb.has(x.id)), rng);
+        const onlyB = shuffle([...lb.values()].filter((x) => x.rank <= top && !la.has(x.id)), rng);
+        const distractors = [];
+        while (distractors.length < 3 && (onlyA.length || onlyB.length)) distractors.push(((distractors.length % 2 ? onlyB : onlyA).length ? (distractors.length % 2 ? onlyB : onlyA) : onlyA.length ? onlyA : onlyB).shift());
+        if (distractors.length < 3) continue;
+        const x = shared[Math.floor(rng() * shared.length)];
+        usedArtists.add(x.id);
+        const options = shuffle([x, ...distractors], rng);
+        return {
+          kind: "common",
+          prompt: { members: [a, b], options: options.map(artistInfo), play: null },
+          solution: { choice: options.indexOf(x) + 1, name: x.name, ranks: [la.get(x.id).rank, lb.get(x.id).rank] },
+          track_ids: [], sitting_out: [a, b],
+        };
+      }
+      return null;
+    },
+  };
   const build = {
     year: () => { const t = pick((x) => x.yearReliable); return t ? yearQuestion(t) : null; },
     older: () => {
@@ -231,19 +337,21 @@ export function generateQuiz(pool, { count = 10, seed = "", years = {}, kinds = 
     cover: () => { const t = pick((x) => Boolean(x.cover_url) && Boolean(x.album)); return t ? withRetry(t, coverQuestion(t, all, rng)) : null; },
     intro: () => { const t = pick(() => true); return t ? withRetry(t, introQuestion(t, all, rng)) : null; },
     album: () => { const t = pick((x) => isAlbumTrack(x) && artistAlbums.get(primaryArtist(x)).size >= 4); return t ? withRetry(t, albumQuestion(t, all, rng)) : null; },
+    ...friends,
   };
 
   const questions = [];
   const plan = [];
   if (!kinds.some((k) => build[k]) || count < 1) return questions;
-  while (plan.length < count) plan.push(...shuffle(kinds.filter((k) => build[k]), rng));
+  // «Unter Freunden»: Personen-Fragen doppelt im Plan → etwa zwei Drittel der Fragen sind über die Personen (wo möglich)
+  while (plan.length < count) plan.push(...shuffle([...kinds, ...kinds.filter((k) => FRIEND_KINDS.includes(k))].filter((k) => build[k]), rng));
   for (let i = 0; questions.length < count && i < plan.length + count * kinds.length; i++) {
     const preferred = plan[i % plan.length];
     let q = null;
     for (const k of [preferred, ...shuffle(kinds.filter((x) => x !== preferred && build[x]), rng)]) { q = build[k](); if (q) break; }
     if (!q) break;   // Pool erschöpft
     lastArtist = primaryArtist(order.find((t) => t.spotify_track_id === q.track_ids[q.track_ids.length - 1]) || {});
-    questions.push({ question_no: questions.length + 1, ...q, sitting_out: sittingOut(q.track_ids.map((id) => byId.get(id)), players) });
+    questions.push({ question_no: questions.length + 1, ...q, sitting_out: q.sitting_out ?? sittingOut(q.track_ids.map((id) => byId.get(id)), players) });
   }
   return questions;
 }
@@ -260,18 +368,20 @@ export function questionTrackIds(prompt, solution) {
 // → richtig und sofort 1000, richtig in letzter Sekunde 500, Jahr 1 daneben nach halber Zeit 560.
 export const QUIZ_SCORING = { base: 500, speedBonus: 500, yearStep: 0.25, limitMs: 20000 };
 
-export function answerAccuracy(kind, answer, solution) {
+// memberId: wer geantwortet hat (nur für «Wer hört alles X?» nötig – die eigene Person zählt dort nicht)
+export function answerAccuracy(kind, answer, solution, memberId = null) {
   if (!answer || !solution) return 0;
   if (kind === "year") {
     const diff = Math.abs(Number(answer.year) - Number(solution.year));
     return Number.isFinite(diff) ? Math.max(0, 1 - diff * QUIZ_SCORING.yearStep) : 0;
   }
-  if (kind === "whose") return (solution.member_ids || []).includes(answer.member_id) ? 1 : 0;
+  if (kind === "whose" || kind === "rank") return (solution.member_ids || []).includes(answer.member_id) ? 1 : 0;
+  if (kind === "fans") return Array.isArray(answer.member_ids) ? fansAccuracy(answer.member_ids, solution.member_ids, memberId) : 0;
   return Number(answer.choice) === Number(solution.choice) ? 1 : 0;
 }
 
-export function scoreAnswer(kind, answer, solution, answerMs, limitMs = QUIZ_SCORING.limitMs) {
-  const accuracy = answerAccuracy(kind, answer, solution);
+export function scoreAnswer(kind, answer, solution, answerMs, limitMs = QUIZ_SCORING.limitMs, memberId = null) {
+  const accuracy = answerAccuracy(kind, answer, solution, memberId);
   if (accuracy <= 0) return 0;
   const ms = Math.max(0, Number(answerMs) || 0), limit = Math.max(1, Number(limitMs) || QUIZ_SCORING.limitMs);
   const speed = Math.min(1, Math.max(0, 1 - ms / limit));

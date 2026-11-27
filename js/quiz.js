@@ -69,6 +69,18 @@ function buildQuizPool(sets,opts={}){
   return out;
 }
 
+// «Unter Freunden» (7.10): Spotify-Top-Künstler (ca. 6 Monate, Platz 1–50) → Zeilen für mb_quiz_set_artists.
+// Platz = Position bei Spotify (auch wenn davor ein Hörbuch-Autor entfernt wurde); opts.isSpoken(artist) aus spotify.js.
+function buildQuizArtists(items,opts={}){
+  const isSpoken=opts.isSpoken||(()=>false),seen=new Set(),out=[];
+  (items||[]).slice(0,50).forEach((a,i)=>{
+    if(!a||!SPOTIFY_ID_RE.test(String(a.id||""))||!a.name||seen.has(a.id)||isSpoken(a))return;
+    seen.add(a.id);
+    out.push({spotify_artist_id:a.id,name:String(a.name).slice(0,300),rank:i+1,image_url:quizCoverUrl(a.images)});
+  });
+  return out;
+}
+
 // Lobby: „x Songs von y Personen“ und ob es für ein Quiz reicht
 function quizPoolSummary(members){
   const quizzers=(members||[]).filter(m=>m.role==="quizzer");
@@ -92,9 +104,14 @@ function quizStandings(members,answers,sitouts=[]){
 }
 
 // ── Fragen-Bildschirm (7.6): reine Hilfsfunktionen ──
-const QUIZ_KIND_LABEL={year:"Erscheinungsjahr",older:"Welcher Song ist älter?",cover:"Album-Cover",intro:"Intro erraten",album:"Welches Album?",whose:"Wessen Song?"};
-// Fragetypen, die diese App anzeigen kann (7.12); „Intro erraten“ nur, wenn der Host Musik spielt
-function quizKinds(){return["year","older","cover","album",...(hostPlaysMusic()?["intro"]:[])]}
+const QUIZ_KIND_LABEL={year:"Erscheinungsjahr",older:"Welcher Song ist älter?",cover:"Album-Cover",intro:"Intro erraten",album:"Welches Album?",whose:"Wessen Song?",rank:"Top-Künstler",fans:"Wer hört …?",common:"Gemeinsamkeit"};
+const QUIZ_FRIEND_KINDS=["whose","rank","fans","common"];
+// Fragetypen, die diese App anzeigen kann (7.12); „Intro erraten“ nur, wenn der Host Musik spielt; 7.10: Personen-Fragen
+function quizKinds(){return["year","older","cover","album",...(hostPlaysMusic()?["intro"]:[]),...(S.room?.quiz_kind==="friends"?QUIZ_FRIEND_KINDS:[])]}
+const isFriendsQuiz=()=>typeof S!=="undefined"&&S.room?.quiz_kind==="friends";
+// Name einer Person im Raum (Personen-Fragen speichern nur Mitglieds-IDs)
+function quizName(id){return (typeof S!=="undefined"&&S.members||[]).find(m=>m.id===id)?.display_name||"jemand, der gegangen ist"}
+const quizNames=ids=>(ids||[]).length?(ids||[]).map(quizName).join(", "):"niemand";
 const quizDate=d=>/^\d{4}-\d{2}-\d{2}$/.test(String(d||""))?d.split("-").reverse().join("."):"";
 
 // Restzeit einer offenen Frage. Uhren der Handys gehen oft falsch: Liegt die eigene Uhr offensichtlich daneben
@@ -121,6 +138,9 @@ function quizAnswerText(q,answer){
   const o=q?.prompt?.options?.[Number(answer.choice)-1];
   if(q?.kind==="older"||q?.kind==="intro")return o?.title||"?";
   if(q?.kind==="cover"||q?.kind==="album")return o?.album||"?";
+  if(q?.kind==="whose"||q?.kind==="rank")return quizName(answer.member_id);
+  if(q?.kind==="fans")return quizNames(answer.member_ids);
+  if(q?.kind==="common")return o?.name||"?";
   return"?";
 }
 function quizSolutionText(q,sol){
@@ -131,6 +151,10 @@ function quizSolutionText(q,sol){
   if(q?.kind==="cover")return`${sol.album} – ${sol.artist}`;
   if(q?.kind==="intro")return`${sol.title} – ${sol.artist}`;
   if(q?.kind==="album")return sol.album;
+  if(q?.kind==="whose")return quizName(sol.member_ids?.[0]);
+  if(q?.kind==="rank")return`${quizName(sol.member_ids?.[0])} hat ${q.prompt?.artist?.name||"?"} auf Platz ${q.prompt?.rank}`;
+  if(q?.kind==="fans")return quizNames(sol.member_ids);
+  if(q?.kind==="common")return`${sol.name} (Platz ${sol.ranks?.[0]} und ${sol.ranks?.[1]})`;
   return"";
 }
 
@@ -191,6 +215,16 @@ async function fetchQuizTracks(slotNo){
   return sets;
 }
 
+// 7.10: Top-50-Künstler der letzten ca. 6 Monate hochladen (nur «Unter Freunden»). Gibt die Anzahl zurück.
+async function uploadQuizArtists(slotNo){
+  const member=quizMembership();
+  const d=await sp(slotNo,"/me/top/artists?limit=50&time_range=medium_term");
+  const artists=buildQuizArtists(d.items,{isSpoken:looksLikeSpokenArtist});
+  const {data,error}=await sb.rpc("mb_quiz_set_artists",{p_room_id:S.room.id,p_member_id:member.id,p_artists:artists});
+  if(error)throw Error(quizErrorText(error.message));
+  return Number(data)||0;
+}
+
 // Song-Pool der eigenen Mitgliedschaft im Quiz-Raum setzen (ersetzt einen früheren). Gibt die Anzahl Songs zurück.
 async function uploadQuizPool(slotNo){
   const member=quizMembership();
@@ -207,7 +241,8 @@ async function createQuizRoom(){
   const name=$("createName")?.value.trim()||"";
   if(!name){S.error="Name ist erforderlich.";render();return}
   rememberName(name);
-  const {data,error}=await sb.rpc("mb_create_quiz_room",{p_display_name:name,p_kind:"music",p_length:10});
+  const kind=S.quizKindPick==="friends"?"friends":"music";   // 7.10: Wahl auf der Quiz-Startseite
+  const {data,error}=await sb.rpc("mb_create_quiz_room",{p_display_name:name,p_kind:kind,p_length:10});
   if(error){S.error=quizErrorText(error.message);render();return}
   const row=data[0];
   saveRoom({room_id:row.room_id,code:row.room_code});
@@ -237,8 +272,8 @@ async function syncQuizSpotify(){
   S.quizSyncing=true;S.error="";render();
   try{
     if(!(await token(1))){clearSpotifySlot(1);forgetSavedSpotify();S.notice="Die gespeicherte Spotify-Anmeldung ist abgelaufen. Bitte Spotify neu verbinden.";return}
-    const n=await uploadQuizPool(1);
-    S.notice=`${n} Songs von deinem Spotify sind im Quiz.`;
+    const n=await uploadQuizPool(1),a=isFriendsQuiz()?await uploadQuizArtists(1):0;
+    S.notice=`${n} Songs${isFriendsQuiz()?` und ${a} Top-Künstler`:""} von deinem Spotify sind im Quiz.`;
     rememberDeviceSpotify();
   }catch(e){S.error=e.message}
   finally{S.quizSyncing=false;await reloadRoomNow()}
@@ -376,6 +411,6 @@ function quizTick(){
 }
 if(typeof window!=="undefined")setInterval(quizTick,250);   // nur im Browser (node --test lädt die Datei auch)
 
-function quizErrorText(msg){const m=String(msg||"");if(/answer closed/i.test(m))return"Zu spät – die Zeit ist abgelaufen.";if(/already answered/i.test(m))return"Du hast schon geantwortet.";if(/sitting out/i.test(m))return"Diese Frage ist zu einem deiner Songs – du schaust diesmal zu.";if(/question still open/i.test(m))return"Die Frage läuft noch.";if(/quiz full/i.test(m))return"Das Quiz ist voll (höchstens 20 Personen).";if(/quiz running/i.test(m))return"Das Quiz läuft schon – Songs kannst du erst vor dem nächsten Quiz ändern.";if(/not a room member/i.test(m))return"Du bist nicht (mehr) in diesem Quiz-Raum.";if(/too many tracks/i.test(m))return"Zu viele Songs auf einmal.";return m}
+function quizErrorText(msg){const m=String(msg||"");if(/answer closed/i.test(m))return"Zu spät – die Zeit ist abgelaufen.";if(/already answered/i.test(m))return"Du hast schon geantwortet.";if(/sitting out/i.test(m))return"Diese Frage ist zu einem deiner Songs – du schaust diesmal zu.";if(/question still open/i.test(m))return"Die Frage läuft noch.";if(/quiz full/i.test(m))return"Das Quiz ist voll (höchstens 20 Personen).";if(/quiz running/i.test(m))return"Das Quiz läuft schon – Songs kannst du erst vor dem nächsten Quiz ändern.";if(/not a room member/i.test(m))return"Du bist nicht (mehr) in diesem Quiz-Raum.";if(/too many tracks/i.test(m))return"Zu viele Songs auf einmal.";if(/too many artists/i.test(m))return"Zu viele Künstler auf einmal.";return m}
 
-if(typeof module!=="undefined")module.exports={QUIZ_POOL_MAX,QUIZ_POOL_MIN,quizSongKey,quizCoverUrl,quizReleaseYear,buildQuizPool,quizPoolSummary,quizStandings,quizRemainingMs,coverPixelSize,quizAnswerText,quizSolutionText,quizRevealPlay,soloHighscore};
+if(typeof module!=="undefined")module.exports={QUIZ_POOL_MAX,QUIZ_POOL_MIN,quizSongKey,quizCoverUrl,quizReleaseYear,buildQuizPool,buildQuizArtists,quizPoolSummary,quizStandings,quizRemainingMs,coverPixelSize,quizAnswerText,quizSolutionText,quizRevealPlay,soloHighscore};

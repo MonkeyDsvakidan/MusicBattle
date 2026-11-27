@@ -3,11 +3,19 @@
 
 // Startseite → „Quiz“: Quiz erstellen oder mit Code mitspielen
 function renderQuizLanding(err){
-  $("app").innerHTML=`<section class="card flat"><div class="sectionhead"><div><div class="eyebrow">MUSIK-QUIZ</div><h2>Wer kennt seine Musik?</h2></div></div>${err}<p class="muted">Fragen aus den Spotify-Songs der Mitspieler: Erscheinungsjahr schätzen, den älteren Song finden, das Album am Cover oder am Songtitel erkennen und – wenn beim Host Musik läuft – Songs am Intro erraten. Wer schneller richtig liegt, bekommt mehr Punkte.</p><div class="joincolumns"><div class="joinrole playerrole"><div><div class="eyebrow">HOST</div><h3>Quiz erstellen</h3><p class="muted">Du lädst die anderen per QR-Code ein. Auf deinem Gerät läuft die Musik.</p></div><div><input id="createName" placeholder="Dein Name" value="${esc(lastName())}" autocomplete="nickname"><button class="btn primary" id="createQuizBtn">Quiz erstellen</button></div></div><div class="joinrole solorole"><div><div class="eyebrow">SOLO</div><h3>Alleine spielen</h3><p class="muted">Fragen aus deinen eigenen Spotify-Songs, ohne Warten. Dein bester Punktestand bleibt auf diesem Gerät.</p>${quizBestLine()}</div><div><div class="lengthpick" role="group" aria-label="Anzahl Fragen">${[10,15,20].map(n=>`<button class="btn${n===(Number(S.soloLength)||10)?" on":""}" data-solo-length="${n}" aria-pressed="${n===(Number(S.soloLength)||10)}">${n} Fragen</button>`).join("")}</div><button class="btn primary" id="soloQuizBtn">Alleine spielen</button></div></div><div class="joinrole player2role"><div><div class="eyebrow">MITSPIELEN</div><h3>Mit Code beitreten</h3><p class="muted">Am einfachsten scannst du den QR-Code des Hosts.</p></div><div><input id="joinCode" maxlength="6" placeholder="Raumcode"><input id="joinName" placeholder="Dein Name" value="${esc(lastName())}"><button class="btn" id="joinQuizBtn">Mitspielen</button></div></div></div></section>`;
+  $("app").innerHTML=`<section class="card flat"><div class="sectionhead"><div><div class="eyebrow">MUSIK-QUIZ</div><h2>Wer kennt seine Musik?</h2></div></div>${err}<p class="muted">Fragen aus den Spotify-Songs der Mitspieler: Erscheinungsjahr schätzen, den älteren Song finden, das Album am Cover oder am Songtitel erkennen und – wenn beim Host Musik läuft – Songs am Intro erraten. «Unter Freunden» fragt zusätzlich nach euch: Wessen Song ist das? Wer hört diesen Künstler? Wer schneller richtig liegt, bekommt mehr Punkte.</p><div class="joincolumns"><div class="joinrole playerrole"><div><div class="eyebrow">HOST</div><h3>Quiz erstellen</h3><p class="muted">Du lädst die anderen per QR-Code ein. Auf deinem Gerät läuft die Musik.</p></div><div>${quizKindPick()}<input id="createName" placeholder="Dein Name" value="${esc(lastName())}" autocomplete="nickname"><button class="btn primary" id="createQuizBtn">Quiz erstellen</button></div></div><div class="joinrole solorole"><div><div class="eyebrow">SOLO</div><h3>Alleine spielen</h3><p class="muted">Fragen aus deinen eigenen Spotify-Songs, ohne Warten. Dein bester Punktestand bleibt auf diesem Gerät.</p>${quizBestLine()}</div><div><div class="lengthpick" role="group" aria-label="Anzahl Fragen">${[10,15,20].map(n=>`<button class="btn${n===(Number(S.soloLength)||10)?" on":""}" data-solo-length="${n}" aria-pressed="${n===(Number(S.soloLength)||10)}">${n} Fragen</button>`).join("")}</div><button class="btn primary" id="soloQuizBtn">Alleine spielen</button></div></div><div class="joinrole player2role"><div><div class="eyebrow">MITSPIELEN</div><h3>Mit Code beitreten</h3><p class="muted">Am einfachsten scannst du den QR-Code des Hosts.</p></div><div><input id="joinCode" maxlength="6" placeholder="Raumcode"><input id="joinName" placeholder="Dein Name" value="${esc(lastName())}"><button class="btn" id="joinQuizBtn">Mitspielen</button></div></div></div></section>`;
   $("createQuizBtn").onclick=createQuizRoom;
   $("joinQuizBtn").onclick=()=>joinRoom("quizzer");
   $("soloQuizBtn").onclick=startSoloQuiz;
   document.querySelectorAll("[data-solo-length]").forEach(b=>b.onclick=()=>{S.soloLength=Number(b.dataset.soloLength);renderQuizLanding(err)});
+  document.querySelectorAll("[data-quiz-kind]").forEach(b=>b.onclick=()=>{S.quizKindPick=b.dataset.quizKind;renderQuizLanding(err)});
+}
+
+// 7.10: Quiz-Art beim Erstellen (Standard Musikwissen)
+function quizKindPick(){
+  const k=S.quizKindPick==="friends"?"friends":"music";
+  const opt=(v,label)=>`<button class="btn${k===v?" on":""}" data-quiz-kind="${v}" aria-pressed="${k===v}">${label}</button>`;
+  return`<div class="lengthpick" role="group" aria-label="Quiz-Art">${opt("music","Musikwissen")}${opt("friends","Unter Freunden")}</div><p class="muted kindhint">${k==="friends"?"Fragen über euch und eure Musik – am besten, wenn mindestens drei Spotify verbinden.":"Fragen zu den Songs aus euren Spotify-Konten."}</p>`;
 }
 
 // Highscores des Geräts (Solo) als eine Zeile
@@ -43,9 +51,10 @@ function renderQuizLobby(){
     return`<div class="member"><div><strong>${esc(m.display_name)}${mine?" (du)":""}</strong><small>${host?"Host":"Mitspieler"}</small></div>${status}</div>`;
   };
   const poolLine=sum.tracks?`${sum.tracks} Songs von ${sum.people} ${sum.people===1?"Person":"Personen"}`:"Noch keine Songs";
-  const hint=sum.enough?"":`<p class="muted">Für ein Quiz braucht es mindestens ${QUIZ_POOL_MIN} Songs – mindestens eine Person muss Spotify verbinden.</p>`;
+  const friendsHint=isFriendsQuiz()?`<p class="muted">${sum.people>=3?"Fragen über euch sind dabei, gemischt mit Musikwissen.":`Fragen über euch gibt es ab drei Personen mit Spotify (jetzt ${sum.people}) – bis dahin nur Musikwissen.`} Ohne Spotify kannst du mitraten, es gibt dann einfach keine Fragen über dich.</p>`:"";
+  const hint=(sum.enough?"":`<p class="muted">Für ein Quiz braucht es mindestens ${QUIZ_POOL_MIN} Songs – mindestens eine Person muss Spotify verbinden.</p>`)+friendsHint;
   const lengthPick=`<div class="lengthpick" role="group" aria-label="Anzahl Fragen">${[10,15,20].map(n=>`<button class="btn${n===len?" on":""}" data-quiz-length="${n}" aria-pressed="${n===len}">${n} Fragen</button>`).join("")}</div>`;
-  $("app").innerHTML=`<section class="card lobby quizlobby"><div class="eyebrow">QUIZ · MUSIKWISSEN</div><h2 class="roomcode">${esc(S.room.code)}</h2>${inviteBlock(false)}${errorNotice()}${S.notice?`<div class="notice">${esc(S.notice)}</div>`:""}
+  $("app").innerHTML=`<section class="card lobby quizlobby"><div class="eyebrow">QUIZ · ${isFriendsQuiz()?"UNTER FREUNDEN":"MUSIKWISSEN"}</div><h2 class="roomcode">${esc(S.room.code)}</h2>${inviteBlock(false)}${errorNotice()}${S.notice?`<div class="notice">${esc(S.notice)}</div>`:""}
     <div class="sectionhead" style="margin-top:14px"><h3>Mitspieler · ${quizzers.length}</h3><span class="chip">${esc(poolLine)}</span></div>
     <div class="stack">${quizzers.map(row).join("")}</div>
     ${mineHasSongs&&!S.quizSyncing?`<div class="actions"><button class="btn ghost" id="quizSpotify">Meine Songs neu laden</button></div>`:""}
@@ -68,6 +77,9 @@ function renderQuizRunning(){
   bindRoomExitControls();
   if($("quizNext"))$("quizNext").onclick=openNextQuestion;
   document.querySelectorAll("[data-quiz-choice]").forEach(b=>b.onclick=()=>answerQuiz({choice:Number(b.dataset.quizChoice)}));
+  document.querySelectorAll("[data-quiz-person]").forEach(b=>b.onclick=()=>answerQuiz({member_id:b.dataset.quizPerson}));
+  document.querySelectorAll("[data-quiz-fan]").forEach(b=>b.onclick=()=>{const set=new Set(S.quizFans?.[q.id]||[]),id=b.dataset.quizFan;set.has(id)?set.delete(id):set.add(id);S.quizFans={...(S.quizFans||{}),[q.id]:[...set]};renderQuizRunning()});
+  if($("quizSendFans"))$("quizSendFans").onclick=()=>answerQuiz({member_ids:(S.quizFans?.[q.id]||[]).filter(id=>(q.prompt?.options||[]).some(o=>o.member_id===id))});
   bindQuizYear(q);
   quizTick();
 }
@@ -78,17 +90,27 @@ function quizMusicHint(){
 }
 
 function quizReadyView(){
-  return`<h2>Bereit?</h2><p class="muted">${S.members.filter(m=>m.role==="quizzer").length} Personen spielen mit. Pro Frage habt ihr 20 Sekunden – wer schneller richtig liegt, bekommt mehr Punkte.${isSoloQuiz()?"":" Kommt ein Song aus deinem Spotify, schaust du bei dieser Frage zu."}</p>${quizMusicHint()}${isHost()?`<div class="mainaction"><button class="btn primary" id="quizNext"${S.quizBusy?" disabled":""}>Erste Frage</button></div>`:`<p class="muted">Gleich geht's los – der Host startet die erste Frage.</p>`}`;
+  return`<h2>Bereit?</h2><p class="muted">${S.members.filter(m=>m.role==="quizzer").length} Personen spielen mit. Pro Frage habt ihr 20 Sekunden – wer schneller richtig liegt, bekommt mehr Punkte.${isSoloQuiz()?"":isFriendsQuiz()?" Ist eine Frage über dich oder kommt der Song aus deinem Spotify, schaust du bei dieser Frage zu.":" Kommt ein Song aus deinem Spotify, schaust du bei dieser Frage zu."}</p>${quizMusicHint()}${isHost()?`<div class="mainaction"><button class="btn primary" id="quizNext"${S.quizBusy?" disabled":""}>Erste Frage</button></div>`:`<p class="muted">Gleich geht's los – der Host startet die erste Frage.</p>`}`;
 }
 
 function quizTimer(){return`<div class="quiztimer" role="timer"><div class="quizbar"><span id="quizBar"></span></div><b id="quizTime"></b></div>`}
 function quizSongLine(o){return`<div class="quizsong">${o?.cover_url?`<img src="${esc(o.cover_url)}" alt="" loading="lazy">`:""}<div><strong>${esc(o?.title||"")}</strong><small>${esc(o?.artist||"")}</small></div></div>`}
 
+// 7.10: Künstler mit rundem Bild; Personen-Knöpfe ohne die eigene Person (man wählt sich nie selbst)
+function quizArtistLine(a){return`<div class="quizsong">${a?.image_url?`<img class="round" src="${esc(a.image_url)}" alt="" loading="lazy">`:""}<div><strong>${esc(a?.name||"")}</strong></div></div>`}
+function quizPersonOptions(q){const me=quizMembership()?.id;return (q.prompt?.options||[]).filter(o=>o.member_id!==me)}
+// Warum man bei dieser Frage zuschaut (7.11 eigener Song, 7.10 Frage über einen selbst)
+function quizSitOutText(q){
+  if(q.kind==="rank")return"Die Frage ist über dich.";
+  if(q.kind==="common"){const other=(q.prompt?.members||[]).find(id=>id!==quizMembership()?.id);return`Die Frage ist über dich und ${esc(quizName(other))}.`}
+  return"Der Song kommt aus deinem Spotify.";
+}
+
 function quizQuestionView(q){
   const mine=quizMyAnswer(q),out=quizSitsOut(q),players=quizAnswerersCount(q),p=q.prompt||{},done=mine||out;
   const count=`<small>${Number(q.answer_count)||0} von ${players} haben geantwortet</small>`;
   // 7.11: eigener Song → zuschauen statt antworten
-  const waiting=out?`<div class="notice quizwait" role="status"><strong>Deine Frage – schau zu</strong><br>Der Song kommt aus deinem Spotify. Diesmal raten die anderen.<br>${count}</div>`
+  const waiting=out?`<div class="notice quizwait" role="status"><strong>Deine Frage – schau zu</strong><br>${quizSitOutText(q)} Diesmal raten die anderen.<br>${count}</div>`
     :`<div class="notice quizwait" role="status">Deine Antwort: <strong>${esc(quizAnswerText(q,mine?.answer))}</strong><br>${count}</div>`;
   let ask="";
   if(q.kind==="year"){
@@ -101,6 +123,16 @@ function quizQuestionView(q){
   }else if(q.kind==="intro"||q.kind==="album"){
     const intro=q.kind==="intro";
     ask=`${intro?"":quizSongLine(p)}<p class="quizask">${intro?"Welcher Song läuft gerade?":"Auf welchem Album ist dieser Song?"}</p>${done?waiting:`<div class="quizoptions">${(p.options||[]).map((o,i)=>`<button class="quizoption" data-quiz-choice="${i+1}"${S.quizAnswering?" disabled":""}><strong>${esc(intro?o.title:o.album)}</strong></button>`).join("")}</div>`}`;
+  }else if(q.kind==="whose"||q.kind==="rank"){
+    const persons=`<div class="quizoptions">${quizPersonOptions(q).map(o=>`<button class="quizoption" data-quiz-person="${esc(o.member_id)}"${S.quizAnswering?" disabled":""}><strong>${esc(quizName(o.member_id))}</strong></button>`).join("")}</div>`;
+    ask=q.kind==="whose"?`${quizSongLine(p)}<p class="quizask">Wessen Song ist das?</p>${done?waiting:persons}`
+      :`${quizArtistLine(p.artist)}<p class="quizask">Wer hat ${esc(p.artist?.name||"")} auf Platz ${Number(p.rank)} der Top-Künstler?</p>${done?waiting:persons}`;
+  }else if(q.kind==="fans"){
+    const picked=new Set(S.quizFans?.[q.id]||[]);
+    ask=`${quizArtistLine(p.artist)}<p class="quizask">Wer von den anderen hört ${esc(p.artist?.name||"")}?</p>${done?waiting:`<p class="muted">Tippe alle an, die ${esc(p.artist?.name||"")} in ihren Top 50 Künstlern haben. Auch niemand ist möglich.</p><div class="quizoptions">${quizPersonOptions(q).map(o=>`<button class="quizoption pick" data-quiz-fan="${esc(o.member_id)}" aria-pressed="${picked.has(o.member_id)}"${S.quizAnswering?" disabled":""}><strong>${esc(quizName(o.member_id))}</strong></button>`).join("")}</div><div class="mainaction"><button class="btn primary" id="quizSendFans"${S.quizAnswering?" disabled":""}>${picked.size?`Fertig · ${picked.size} gewählt`:"Fertig · niemand"}</button></div>`}`;
+  }else if(q.kind==="common"){
+    const [a,b]=(p.members||[]).map(quizName);
+    ask=`<p class="quizask">Welchen Künstler haben ${esc(a)} und ${esc(b)} beide in ihren Top 20?</p>${done?waiting:`<div class="quizoptions">${(p.options||[]).map((o,i)=>`<button class="quizoption" data-quiz-choice="${i+1}"${S.quizAnswering?" disabled":""}><strong>${esc(o.name)}</strong></button>`).join("")}</div>`}`;
   }
   return`${quizTimer()}${ask}${quizMusicHint()}`;
 }
@@ -119,11 +151,12 @@ function quizRevealView(q,last){
   const answers=quizzers.map(m=>{const a=S.quizAnswers.find(x=>x.question_id===q.id&&x.member_id===m.id);return{m,a}}).sort((x,y)=>(Number(y.a?.points)||0)-(Number(x.a?.points)||0));
   const scored=S.quizAnswers.filter(a=>a.points!==null&&a.points!==undefined);
   const table=quizStandings(S.members,scored,S.quizSitouts).slice(0,5);
-  const coverUrl=q.kind==="cover"?q.prompt?.cover_url:q.kind==="intro"||q.kind==="album"?sol?.cover_url:null;
+  const coverUrl=q.kind==="cover"||q.kind==="whose"?q.prompt?.cover_url:q.kind==="intro"||q.kind==="album"?sol?.cover_url:q.kind==="rank"||q.kind==="fans"?q.prompt?.artist?.image_url:null;
   const cover=coverUrl?`<img class="quizcover" src="${esc(coverUrl)}" alt="">`:"";
-  const myLine=quizSitsOut(q)?`<span class="chip">ausgesetzt – dein Song</span>`:!mine?`<span class="chip">keine Antwort</span>`:Number(mine.points)>0?`<span class="chip gold">+${pts(mine.points)} Punkte</span>`:`<span class="chip">0 Punkte</span>`;
+  const aboutPerson=q.kind==="rank"||q.kind==="common";
+  const myLine=quizSitsOut(q)?`<span class="chip">ausgesetzt – ${aboutPerson?"deine Frage":"dein Song"}</span>`:!mine?`<span class="chip">keine Antwort</span>`:Number(mine.points)>0?`<span class="chip gold">+${pts(mine.points)} Punkte</span>`:`<span class="chip">0 Punkte</span>`;
   return`<div class="quizsolution"${animAttr(`quizreveal:${q.id}`,900)}>${cover}<small>LÖSUNG</small><strong${q.kind==="year"?' class="num"':""}>${esc(quizSolutionText(q,sol)||"…")}</strong>${quizMyAnswer(q)||quizMembership()?myLine:""}</div>
-    <div class="stack quizanswers">${answers.map(({m,a})=>`<div class="member"><div><strong>${esc(m.display_name)}</strong><small>${quizSitsOut(q,m.id)?"ausgesetzt – eigener Song":esc(quizAnswerText(q,a?.answer))}</small></div><span class="chip${Number(a?.points)>0?" ok":""}">${a?pts(a.points):"–"}</span></div>`).join("")}</div>
+    <div class="stack quizanswers">${answers.map(({m,a})=>`<div class="member"><div><strong>${esc(m.display_name)}</strong><small>${quizSitsOut(q,m.id)?`ausgesetzt – ${aboutPerson?"eigene Frage":"eigener Song"}`:esc(quizAnswerText(q,a?.answer))}</small></div><span class="chip${Number(a?.points)>0?" ok":""}">${a?pts(a.points):"–"}</span></div>`).join("")}</div>
     <div class="quizstand"><div class="eyebrow">ZWISCHENSTAND</div><ol>${table.map(r=>`<li><span>${r.place}. ${esc(r.name)}</span><b>${pts(r.points)}</b></li>`).join("")}</ol></div>
     ${isHost()?`<div class="mainaction"><button class="btn primary" id="quizNext"${S.quizBusy?" disabled":""}>${last?"Zur Rangliste":"Nächste Frage"}</button></div>`:`<p class="muted">${last?"Gleich kommt die Rangliste.":"Der Host startet gleich die nächste Frage."}</p>`}`;
 }
