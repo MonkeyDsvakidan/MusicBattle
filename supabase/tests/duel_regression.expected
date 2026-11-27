@@ -1,0 +1,146 @@
+A01 create|rows=1
+A02 code|rows=1
+A03 join p2|2/player
+A04 rejoin p2|2/player
+A05 join p3|ERR: player slots full
+A06 join quizzer|ERR: this room is a battle
+A07 local p2 by guest|ERR: local player 2 is only available in one-device lobby
+A08 sp wrong slot|ERR: player slot not owned by user
+A09 sp slot 3|ERR: invalid player slot
+A10 sp p2|rows=1
+A11 guest status|rows=0
+A12 sp p1|rows=1
+A13 start draft|rows=1
+A14 turn|1
+A15 pick r1 s1|rows=1
+A16 pick as slot2|ERR: new row violates row-level security policy for table "mb_draft_picks"
+A17 turn|2
+A18 skip p1|rows=1
+A19 skip p1 again|ERR: draft skip unavailable
+A20 skip slot 2 by p1|ERR: draft skip unavailable
+A21 skip slot 7|ERR: invalid slot
+A22 propose off turn|ERR: shared skip unavailable
+A23 p2 sees picks|0
+A24 p2 board|1:1
+A25 taken|true
+A26 propose|rows=1
+A27 proposal|{"slot": 2, "artist_id": "z1", "artist_name": "Z1", "artist_image": null}
+A28 propose again|ERR: shared skip pending
+A29 accept|rows=1
+A30 skips|- {z1}
+A31 propose 2|rows=1
+A32 reject|rows=1
+A33 propose 3|rows=1
+A34 withdraw|rows=1
+A35 skips|- {z1}
+A36 answer none|ERR: no shared skip pending
+A37 propose taken|ERR: shared skip unavailable
+A38 dup artist|ERR: duplicate key value violates unique constraint "mb_draft_picks_room_id_spotify_artist_id_key"
+A39 pick r1 s2|rows=1
+A40 pick r1 s2 again|ERR: duplicate key value violates unique constraint "mb_draft_picks_room_id_player_slot_round_number_key"
+A41 pick r7|ERR: new row for relation "mb_draft_picks" violates check constraint "mb_draft_picks_round_number_check"
+A42 picks p1|rows=4
+A43 picks p2|rows=4
+A44 turn after 10|1
+A45 p2 sees (draft done, round 0)|5
+A46 start battle guest|ERR: host only
+A47 start battle 4|ERR: five rounds required
+A48 start battle|rows=1
+A49 start battle again|rows=1
+A50 room|battle r1
+A51 rounds|1:song_selection,2:pending,3:pending,4:pending,5:pending
+A52 p2 sees|1:1,1:2,2:2,3:2,4:2,5:2
+A53 vote before songs|ERR: songs not revealed
+A54 sub p1 r1|rows=1
+A55 sub as slot2|ERR: new row violates row-level security policy for table "mb_submissions"
+A56 sub p2 r1|rows=1
+A57 start_ms|rows=1
+A58 change song|ERR: permission denied for table mb_submissions
+A59 vote 3|ERR: invalid vote: theme
+A60 vote 0|ERR: invalid vote: connoisseur
+A61 vote missing|ERR: missing vote: vibe
+A62 vote own|5
+A63 vote change|5
+A64 vote other room round|ERR: voting closed
+A65 votes|connoisseur=1/2/player,lyrics=1/2/player,surprise=2/2/player,theme=1/2/player,vibe=2/2/player
+A66 tie fn|false
+A67 advance guest|ERR: host only
+A68 advance winner 3|ERR: invalid winner
+A69 advance 1|rows=1
+A70 room|battle r2
+A71 advance 2..5|rows=4
+A72 room|tiebreak r5
+A73 rounds|1:complete:1,2:complete:1,3:complete:1,4:complete:2,5:complete:2
+A74 sudden begin early|ERR: host only or invalid state
+A75 sudden start|rows=1
+A76 sudden start again|ERR: sudden death not available
+A77 room|sudden_draft r6
+A78 turn sudden|1
+A79 begin 0 picks|ERR: two sudden death artists required
+A80 pick r6 s1|rows=1
+A81 turn sudden|2
+A82 p2 sees r6|0
+A83 shared skip sudden|rows=1
+A84 accept sudden|rows=1
+A85 pick r6 s2|rows=1
+A86 turn sudden|2
+A87 p2 sees r6|2
+A88 begin|rows=1
+A89 room|battle r6 {z1,z9}
+A90 rematch early|ERR: match not finished
+A91 advance 6|rows=1
+A92 room|finished r6
+A93 rematch guest|ERR: only host
+A94 rematch|rows=1
+A95 rematch same|true
+A96 new room|draft two true r0
+A97 new members|Ana:player:1:true,Ben:player:2:true
+A98 leave host|rows=1
+A99 closed|null
+B01 create|rows=1
+B02 code|rows=1
+B03 join player|ERR: this room uses one-device pass & play
+B04 local p2|2/player
+B05 local p2 again|ERR: player 2 already exists
+B06 sp|rows=2
+B07 draft|rows=1
+B08 local p2 in draft|ERR: local player 2 is only available in one-device lobby
+B09 picks|rows=10
+B10 host sees|10
+B11 skip s2|rows=1
+B12 skip s1|rows=1
+B13 skips|1:true:q2,2:true:q
+B14 battle|rows=1
+B15 subs|rows=2
+B16 vote s1|5
+B17 vote s2|5
+B18 votes|1connoisseur2,1lyrics2,1surprise2,1theme2,1vibe2,2connoisseur2,2lyrics2,2surprise1,2theme2,2vibe1
+C01 create|rows=1
+C02 code|rows=1
+C03 join|2
+C04 juror|-/juror
+C05 juror 2|-/juror
+C06 sp|rows=1
+C07 sp|rows=1
+C08 draft|rows=1
+C09 picks|rows=5
+C10 picks|rows=5
+C11 sees all (not hidden)|10
+C12 juror sees|10
+C13 juror pick|ERR: new row violates row-level security policy for table "mb_draft_picks"
+C14 juror taken|ERR: player membership not found
+C15 battle|rows=1
+C16 sub|rows=1
+C17 sub|rows=1
+C18 player votes|ERR: only jurors vote
+C19 juror votes|5
+C20 tie (1 of 2 done)|false
+C21 juror 2 votes|5
+C22 tie|true
+C23 votes|-jurorconnoisseur1,-jurorlyrics2,-jurorsurprise2,-jurortheme1,-jurorvibe1,-jurorconnoisseur2,-jurorlyrics1,-jurorsurprise1,-jurortheme2,-jurorvibe2
+C24 self decision|rows=1
+C25 advance|rows=1
+C26 juror leaves|rows=1
+C27 p2 leaves|rows=1
+C28 p2 rejoin|2
+C29 room|battle r2
