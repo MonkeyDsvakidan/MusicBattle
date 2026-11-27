@@ -2,7 +2,7 @@
 // Nach JS/CSS-Änderungen BUILD hier und die ?v=-Parameter in index.html erhöhen.
 // main.js startet die App (genau ein init()), wenn alles geladen ist.
 (async()=>{
-  const BUILD="20261127-3";
+  const BUILD="20261127-4";
   // Werkzeuge (Roadmap „Werkzeuge“): eigene Seiten ?tool=alben / ?tool=rad, kein Teil des Spiels – laden nur tools/, keine Spiel-Skripte.
   // Die Rückkehr vom Spotify-Login (gleiche Redirect-URI wie das Spiel) gehört dem Werkzeug, von dem der state stammt.
   const TOOLS={alben:{stateKey:"mb_alben_state",css:"alben",js:["alben-logic","alben"]},rad:{stateKey:"mb_rad_state",css:"rad",js:["rad-logic","rad"]}};
@@ -23,7 +23,7 @@
   const themesRes=await fetch(`./supabase/functions/_shared/themes.json?v=${BUILD}`);
   if(!themesRes.ok)throw new Error("Themen konnten nicht geladen werden");
   window.MB_THEME_DATA=await themesRes.json();
-  const files=["config","state","errors","ui-common","artist-filter","spotify","room","draft","battle","quiz","votes","jury","ui-screens","ui-quiz","main"];
+  const files=["config","state","errors","group","ui-common","artist-filter","spotify","room","draft","battle","quiz","votes","jury","ui-screens","ui-quiz","main"];
   for(const name of files){
     await new Promise((resolve,reject)=>{
       const s=document.createElement("script");

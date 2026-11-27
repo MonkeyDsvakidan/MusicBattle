@@ -1,0 +1,19 @@
+D01 create|rows=1
+D02 alone|ERR: players missing
+D02b code|rows=1
+D03 join|2
+D04 guest start|ERR: host only
+D05 not ready|ERR: players missing
+D06 sp|rows=1
+D07 sp|rows=1
+D08 start|rows=1
+D09 room|draft cc2
+D10 again|ERR: already started
+D11 turn|1
+P01 create|rows=1
+P02 p2|2
+P03 sp|rows=2
+P04 start|rows=1
+P05 room|draft cc2
+Q01 quiz|rows=1
+Q02 start|ERR: this room is a quiz

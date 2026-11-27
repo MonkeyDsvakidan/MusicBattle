@@ -20,6 +20,7 @@ Browser-Spiel für zwei Spieler: Künstler aus dem eigenen Spotify draften, pro 
    - Sind **Juroren** im Raum, stimmen nur sie ab (jeder auf seinem Gerät). Ohne Juroren stimmen die **Spieler** ab; bei Pass & Play nacheinander und verdeckt („Gerät an Mia geben“).
    - Pro Kategorie gewinnt die Mehrheit, Gleichstand zählt für keinen. Wer mehr Kategorien gewinnt, gewinnt die Runde – die Kategorien werden nacheinander aufgedeckt, danach der Gürtel „Runde an …“. Steht es gleich, wählt der Host den Rundensieger.
 6. **Match** – Fünf Runden, Runde 5 zählt doppelt. Steht es danach unentschieden, folgt **Sudden Death** mit neuen Künstlern. Am Ende zeigt der Endstand Sieger, Statistiken, und die Bilanz je Kategorie. Mit **Rematch** startet der Host direkt ein neues Match mit denselben Leuten (alle wechseln automatisch, Spotify bleibt verbunden, es geht gleich mit dem Draft los).
+7. **Gruppe (Beta, im Bau)** – 3–6 Personen, jede auf dem eigenen Gerät, auf Wunsch in Teams. Zum Ausprobieren einmal die Seite mit `?gruppe=1` öffnen (mit `?gruppe=0` wieder aus); dann erscheint die Karte «3–6 Personen». Fertig sind bisher Raum erstellen (3 oder 5 Runden, Teams, verdeckter Draft), Beitreten per QR/Link, Teams einteilen und Spotify verbinden (mehrere dürfen dasselbe Konto nutzen). Draft, Battle und Wertung für Gruppen folgen.
 
 ## Musik-Quiz
 
@@ -52,7 +53,7 @@ Unter `…/MusicBattle/?tool=rad` erscheinen die gespeicherten Spotify-Alben als
 ```
 index.html, app.js          Einstieg und Lader (BUILD-Version für Cache-Busting)
 styles.css                  Design „Titelkampf bei Nacht“ – Tokens oben in der Datei
-js/                         config, state, ui-common, spotify, room, draft, battle, jury, ui-screens, main
+js/                         config, state, errors, group, ui-common, spotify, room, draft, battle, quiz, votes, jury, ui-screens, ui-quiz, main
 design/mockup-4.1.html      Design-Vorlage
 supabase/migrations/        Datenbankschema als Migrationen
 supabase/functions/         Edge Functions und gemeinsamer Code in _shared/
@@ -79,6 +80,8 @@ Die reine Logik (Themen, Song-Merkmale, Abstimmung, Quiz) ist mit Node getestet.
 ```bash
 node --test
 ```
+
+Die Datenbank-Regeln (RPCs, RLS) laufen lokal gegen Postgres 16 mit allen Migrationen: `bash supabase/tests/run.sh` (vergleicht mit den `*.expected`-Dateien; `duel_regression.sql` sichert den 1v1-Ablauf ab).
 
 Die Oberfläche wird mit dem Smoke-Test aus `CLAUDE.md` geprüft – auch ohne Handy: Spieler 2 und Juror laufen dabei als unsichtbare iframes mit eigener Anmeldung im selben Browser.
 

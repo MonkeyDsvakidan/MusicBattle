@@ -145,6 +145,15 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .modecard{width:100%;display:grid;grid-template-columns:auto 1fr;align-items:start;gap:var(--s4);text-align:left;cursor:pointer;color:var(--text);background:var(--surface-2);box-shadow:none;padding:var(--s4)}
 .modecard:hover{border-color:var(--a);box-shadow:var(--glow-a)}
 .modecard h3,.joinrole h3{margin:3px 0 var(--s1)}
+.modecard.wide{grid-column:1/-1}
+/* Gruppe (M.2): Runden wählen, Teams einteilen */
+.roundpick{display:flex;flex-wrap:wrap;gap:0 var(--s4);margin:0;padding:0;border:0}
+.roundpick legend{padding:0;color:var(--muted);font:700 13px var(--f-text)}
+.groupcount{margin-top:var(--s3)}
+.teamblock{display:grid;gap:var(--s2)}
+.teampick{display:flex;gap:var(--s2);flex-wrap:wrap}
+.teampick .btn{min-height:44px;padding:0 var(--s3)}
+.teampick .btn[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
 .modeicon{width:44px;height:44px;border-radius:var(--r-m);display:grid;place-items:center;font:400 20px var(--f-num);background:var(--surface-3);border:1px solid var(--line-strong);color:var(--gold)}
 .joinrole{display:grid;grid-template-columns:1fr minmax(220px,.8fr);gap:var(--s4);padding:var(--s4);border:1px solid var(--line);border-radius:var(--r-l);background:var(--surface-2)}
 .joinrole>div:last-child{display:grid;gap:var(--s2)}

@@ -13,8 +13,12 @@ function spotifyKey(slotNo,kind){return `mb_sp_${kind}_${slotNo}`}
 
 function poolKey(slotNo){return `mb_artist_pool_v2_${slotNo}`}
 
+// Spielerplatz zum Spotify-Speicherplatz dieses Geräts. Gruppe (M.2): das Gerät hat einen Platz (1–6),
+// seine Anmeldung liegt immer im Speicherplatz 1. 1v1: Speicherplatz = Platz, wenn er diesem Gerät gehört.
+function storageSeat(slotNo){if(isGroupRoom())return slotNo===1?ownGroupSeat():null;return ownsPlayerSlot(slotNo)?slotNo:null}
+
 async function connectSpotify(slotNo){
- if(!ownsPlayerSlot(slotNo)&&!(S.room?.game==="quiz"&&slotNo===1)){
+ if(!storageSeat(slotNo)&&!(S.room?.game==="quiz"&&slotNo===1)){
    S.error=`Spieler ${slotNo} ist in diesem Browser noch nicht angelegt.`;
    render();
    return;
@@ -54,18 +58,18 @@ function clearSpotifySlot(slotNo){const s=S.spotify[slotNo];s.access="";s.refres
 const SAVED_SPOTIFY_KEY="mb_sp_saved";
 function savedSpotify(){try{const s=JSON.parse(localStorage.getItem(SAVED_SPOTIFY_KEY)||"null");return s?.refresh?s:null}catch{return null}}
 function rememberDeviceSpotify(){
-  const n=[1,2].find(k=>S.spotify[k]?.refresh&&(ownsPlayerSlot(k)||!S.room||(S.room.game==="quiz"&&k===1)));
+  const n=[1,2].find(k=>S.spotify[k]?.refresh&&(storageSeat(k)||!S.room||(S.room.game==="quiz"&&k===1)));
   if(!n)return;
   try{localStorage.setItem(SAVED_SPOTIFY_KEY,JSON.stringify({refresh:S.spotify[n].refresh,name:S.spotifyProfiles[n]?.display_name||savedSpotify()?.name||""}))}catch{}
 }
 function forgetSavedSpotify(){try{localStorage.removeItem(SAVED_SPOTIFY_KEY)}catch{}}
 async function useSavedSpotify(slotNo){
-  const saved=savedSpotify();
-  if(!saved||!ownsPlayerSlot(slotNo)||membershipForSlot(slotNo)?.spotify_ready)return false;
+  const saved=savedSpotify(),seat=storageSeat(slotNo);
+  if(!saved||!seat||membershipForSlot(seat)?.spotify_ready)return false;
   const s=S.spotify[slotNo];s.refresh=saved.refresh;s.access="";s.expires=0;
   localStorage.setItem(spotifyKey(slotNo,"refresh"),saved.refresh);
   await hydrateSpotify(slotNo);
-  if(membershipForSlot(slotNo)?.spotify_ready){rememberDeviceSpotify();return true}
+  if(membershipForSlot(seat)?.spotify_ready){rememberDeviceSpotify();return true}
   // Abgelaufen oder widerrufen → vergessen und normal neu verbinden lassen
   clearSpotifySlot(slotNo);forgetSavedSpotify();S.error="";S.notice="Die gespeicherte Spotify-Anmeldung ist abgelaufen. Bitte Spotify neu verbinden.";render();
   return false;
@@ -136,7 +140,7 @@ async function enrichArtist(slotNo,artist){if(!artist?.id)return artist;try{cons
 
 async function hydrateSpotify(slotNo){
  try{
-  if(!S.room?.id)throw Error("Raum konnte nach dem Spotify-Login nicht wiederhergestellt werden.");if(!ownsPlayerSlot(slotNo))throw Error(`Spielerplatz ${slotNo} ist in diesem Browser nicht verfügbar.`);
+  if(!S.room?.id)throw Error("Raum konnte nach dem Spotify-Login nicht wiederhergestellt werden.");const seat=storageSeat(slotNo);if(!seat)throw Error(`Spielerplatz ${slotNo} ist in diesem Browser nicht verfügbar.`);
   const profile=await sp(slotNo,"/me");
   if(slotNo===2&&ownsPlayerSlot(1)&&S.room?.device_mode==="two"){const p1=await getProfileForSlot(1),key1=spotifyAccountKey(p1),key2=spotifyAccountKey(profile);if(key1&&key2&&key1===key2){clearSpotifySlot(2);await sb.rpc("mb_set_spotify_ready_for_slot",{p_room_id:S.room.id,p_slot:2,p_ready:false,p_display_name:"",p_artist_count:0});await reloadRoomNow();S.error="Im 2-Geräte-Modus benötigt Spieler 2 ein eigenes Spotify-Konto. Wähle auf Spotify «Not you?» / «Nicht du?» und melde das zweite Konto an.";render();return}}
   S.spotifyProfiles[slotNo]=profile;const map=new Map();
@@ -167,7 +171,7 @@ async function hydrateSpotify(slotNo){
   }
   S.artistPools[slotNo]=[...map.values()].filter(a=>!looksLikeSpokenArtist(a)&&!chapterIds.has(a.id)).sort((a,b)=>(b.draftWeight||0)-(a.draftWeight||0));
   localStorage.setItem(poolKey(slotNo),JSON.stringify(S.artistPools[slotNo]));
-  await sb.rpc("mb_set_spotify_ready_for_slot",{p_room_id:S.room.id,p_slot:slotNo,p_ready:true,p_display_name:profile.display_name||"",p_artist_count:S.artistPools[slotNo].length});
+  await sb.rpc("mb_set_spotify_ready_for_slot",{p_room_id:S.room.id,p_slot:seat,p_ready:true,p_display_name:profile.display_name||"",p_artist_count:S.artistPools[slotNo].length});
   if(slotNo===1&&S.room?.device_mode==="single"&&ownsPlayerSlot(2)){
     mirrorSingleDeviceSpotifyToPlayer2();
     await sb.rpc("mb_set_spotify_ready_for_slot",{p_room_id:S.room.id,p_slot:2,p_ready:true,p_display_name:profile.display_name||"",p_artist_count:S.artistPools[1].length});
