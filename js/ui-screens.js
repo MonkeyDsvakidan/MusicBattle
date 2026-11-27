@@ -204,7 +204,7 @@ function renderGroupBattle(){
   const corners=cornersInPlay(S.room,r.round_number),done=corners.filter(c=>cornerSub(c)).length,all=done===corners.length,rc=roundCount();
   const label=r.round_number===6?"ENTSCHEIDUNG":`RUNDE ${r.round_number} VON ${rc}${r.round_number===rc?" · DOPPELTE PUNKTE":""}`;
   const hostLine=all?(isHost()?`<p class="muted hint">Die Musik läuft auf deinem Gerät – spielt die Songs nacheinander ab.</p>`:`<p class="muted hint">Die Musik läuft beim Host (${esc(S.members.find(m=>m.user_id===S.room.host_user_id)?.display_name||"Host")}).</p>`):"";
-  $("app").innerHTML=`<section class="card"><div class="battle-title"><div class="eyebrow">${label}${r.round_number===6||!r.category?"":` · ${esc(r.category)}`}</div><h2>${esc(r.theme)}</h2><span class="chip">${done} von ${corners.length} eingereicht</span></div>${errorNotice()}${S.notice?`<div class="notice">${esc(S.notice)}</div>`:""}${hostLine}<div class="cornerlist"${all?animAttr(`reveal:${r.id}`,1500):""}>${corners.map(c=>groupCornerCard(c,all)).join("")}</div>${all?`<div class="notice" style="margin-top:var(--s4)">Die Abstimmung für Gruppen ist noch im Bau – sie folgt als Nächstes.</div>`:`<p class="muted hint centered-text">Alle Songs werden gleichzeitig aufgedeckt.</p>`}${roomExitControls()}</section>`;
+  $("app").innerHTML=`<section class="card"><div class="battle-title"><div class="eyebrow">${label}${r.round_number===6||!r.category?"":` · ${esc(r.category)}`}</div><h2>${esc(r.theme)}</h2><span class="chip">${done} von ${corners.length} eingereicht</span></div>${errorNotice()}${S.notice?`<div class="notice">${esc(S.notice)}</div>`:""}${hostLine}<div class="cornerlist"${all?animAttr(`reveal:${r.id}`,1500):""}>${corners.map(c=>groupCornerCard(c,all)).join("")}</div>${all?renderGroupVoting(r,corners):`<p class="muted hint centered-text">Alle Songs werden gleichzeitig aufgedeckt.</p>`}${roomExitControls()}</section>`;
   document.querySelectorAll("[data-search-slot]").forEach(b=>b.onclick=()=>searchTracks(Number(b.dataset.searchSlot)));
   document.querySelectorAll("[id^=songSearch]").forEach(el=>el.onkeydown=e=>{if(e.key==="Enter")searchTracks(Number(el.id.slice(10)))});
   document.querySelectorAll(".track").forEach(x=>x.onclick=()=>{const n=Number(x.dataset.slot),t=[...(S.searchResults[n]||[]),...(S.suggestions[`${r.id}:${n}`]||[])].find(t=>t.id===x.dataset.id);if(t)submitTrack(n,t)});
@@ -212,12 +212,49 @@ function renderGroupBattle(){
     const el=$(`start${c}`);if(el){el.oninput=()=>{$(`startLabel${c}`).textContent=el.value+"s"};el.onchange=()=>updateStart(c,Number(el.value)*1000)}});
   document.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>playSubmission(cornerSub(Number(b.dataset.play))));
   document.querySelectorAll("[data-pause]").forEach(b=>b.onclick=()=>pause(Number(b.dataset.pause)));
-  bindRoomExitControls();
+  if($("groupFinalize"))$("groupFinalize").onclick=()=>finalizeGroupRound();
+  document.querySelectorAll("[data-group-winner]").forEach(b=>b.onclick=()=>finalizeGroupRound(Number(b.dataset.groupWinner)));
+  bindVoting();bindRoomExitControls();
 }
 
-// Gruppe nach dem Battle: Abstimmung und Wertung folgen in M.5–M.7
+// Abstimmung Gruppe (M.5): pro Kategorie ein Song (ab 3 Ecken nicht der eigene), Fortschritt, dann Punkte + Zwischenstand
+function renderGroupVoting(r,corners){
+  const roundVotes=S.votes.filter(v=>v.round_id===r.id),hasJurors=S.members.some(m=>m.role==="juror");
+  const eligible=groupEligibleVoters(S.members,corners,r.round_number),progress=voteProgress(roundVotes,eligible);
+  const mine=eligible.find(m=>m.user_id===S.user.id),mineDone=mine&&!progress.missing.some(x=>x.id===mine.id);
+  const editing=mine&&S.voteEditing===mine.id?mine:null,voter=editing||(mine&&!mineDone?mine:null);
+  const name=c=>cornerLabel(S.members,c,Boolean(S.room?.team_mode));
+  const head=t=>`<div class="sectionhead"><div><div class="eyebrow">ABSTIMMUNG · FÜNF KATEGORIEN</div><h2>${t}</h2></div><span class="chip">${progress.done} von ${progress.total} haben abgestimmt</span></div>`;
+
+  if(voter&&!progress.complete){
+    const allowed=ballotChoices(voter),own=Object.fromEntries(roundVotes.filter(v=>v.voter_member_id===voter.id).map(v=>[v.category,v.choice]));
+    const choices=S.ballot[voter.id]||(S.ballot[voter.id]=editing?{...own}:{});
+    const left=VOTE_CATEGORIES.filter(c=>!allowed.includes(choices[c.key])).length;
+    const rule=allowed.length<corners.length?"Für den eigenen Song kannst du nicht stimmen.":"Wähle in jeder Kategorie einen Song.";
+    return`<div class="juryarea">${head(voter.role==="juror"?`Deine Stimme, ${esc(voter.display_name)}`:"Deine Stimme")}<p class="muted">${rule} Jede Stimme ist ein Punkt${r.round_number===roundCount()?" – diese Runde zählt doppelt":""}.</p>${errorNotice()}<div class="ballot" data-member="${voter.id}">${VOTE_CATEGORIES.map(c=>`<fieldset class="votecat"><legend><span class="votelabel">${esc(c.label)}</span><span class="votequestion">${esc(c.groupQuestion)}</span></legend><div class="votechoices multi">${corners.map(n=>{const sub=cornerSub(n),off=!allowed.includes(n);return`<button type="button" class="votebtn c${n}" data-cat="${c.key}" data-choice="${n}" aria-pressed="${choices[c.key]===n}"${off?" disabled":""}><small>${esc(name(n))}${off?" · dein Song":""}</small><b>${esc(sub?.song_name||"")}</b></button>`}).join("")}</div></fieldset>`).join("")}</div><div class="mainaction"><button class="btn primary" id="castVotes" ${left?"disabled":""}>${editing?"Änderung speichern":left?`Noch ${left} von ${VOTE_CATEGORIES.length} wählen`:"Stimmen abgeben"}</button></div>${editing?`<div class="actions centered"><button class="btn ghost" id="voteEditCancel">Abbrechen</button></div>`:""}</div>`;
+  }
+
+  if(progress.complete){
+    const res=groupRoundPoints(roundVotes,corners,{hasJurors}),ranked=[...corners].sort((a,b)=>res.points[b]-res.points[a]||a-b);
+    const last=r.round_number===roundCount(),sudden=r.round_number===6;
+    const standings=sudden?[]:groupStandings(S.rounds,cornerCount(),roundCount(),{round_number:r.round_number,points:res.points});
+    const pts=n=>`${n} Punkt${n===1?"":"e"}`;
+    const belt=res.winner?beltBanner(null,`${sudden?"Entscheidung":"Runde"} an ${name(res.winner)} · ${pts(res.points[res.winner])}`):beltBanner(null,sudden?"Gleichstand – der Host entscheidet":`Gleichstand an der Spitze · ${res.top.map(name).join(", ")}`);
+    const hostTie=sudden&&!res.winner;
+    const host=hostTie?`<div class="choice tiechoice"><h3>Wer gewinnt die Entscheidung?</h3><p class="muted">Gleich viele Punkte – du wählst einen der Gleichen.</p><div class="actions">${res.top.map(c=>`<button class="btn" data-group-winner="${c}">${esc(name(c))} · ${esc(cornerSub(c)?.song_name||"")}</button>`).join("")}</div></div>`
+      :`<div class="mainaction"><button class="btn primary" id="groupFinalize">${sudden?"Entscheidung übernehmen":last?`Runde ${r.round_number} übernehmen · ×2`:"Runde übernehmen"}</button></div>`;
+    const others=`<p class="muted centered-text" style="margin-top:var(--s4)">${hostTie?"Gleichstand – der Host wählt den Sieger.":"Der Host übernimmt die Runde."}</p>`;
+    const row=(c,val,rank,song)=>`<li class="rankrow c${c}${ownsCorner(c)?" own":""}${song?" norank":""}">${song?"":`<span class="rk">${rank}</span>`}<span class="rn"><b>${esc(name(c))}</b>${song?`<small>${esc(cornerSub(c)?.song_name||"")}</small>`:""}</span><span class="rp">${val}</span></li>`;
+    return`<div class="juryarea groupresult"${animAttr(`gvote:${r.id}`,1500)}><div class="sectionhead"><div><div class="eyebrow">ABSTIMMUNG · ERGEBNIS</div><h2>Punkte dieser Runde</h2></div><span class="chip">abgestimmt: ${hasJurors?`${progress.total} Juror${progress.total===1?"":"en"}`:`${progress.total} Spieler`}</span></div><ol class="ranklist">${ranked.map(c=>row(c,`+${res.points[c]}${last&&!sudden?" ×2":""}`,"",true)).join("")}</ol>${belt}${standings.length?`<div class="eyebrow standhead">ZWISCHENSTAND${last?" · ENDSTAND NACH DIESER RUNDE":""}</div><ol class="ranklist">${standings.map(t=>row(t.corner,t.total,t.rank+".")).join("")}</ol>`:""}${isHost()?host:others}</div>`;
+  }
+
+  const status=mineDone?"Deine Stimmen sind abgegeben ✓":hasJurors?"Die Juroren stimmen ab":r.round_number===6?"Die anderen stimmen ab":"Die Spieler stimmen ab";
+  return`<div class="juryarea">${head(status)}<div class="votewait"><div class="avatars">${eligible.map(m=>{const d=!progress.missing.some(x=>x.id===m.id);return`<span class="voter${d?" done":""}">${d?"✓":"…"} ${esc(m.display_name)}</span>`}).join("")}</div><p class="muted">Warte auf: ${progress.missing.map(m=>esc(m.display_name)).join(", ")}</p></div>${mineDone?`<div class="actions centered"><button class="btn ghost" id="voteEdit" data-member="${mine.id}">Stimmen ändern</button></div>`:""}</div>`;
+}
+
+// Gruppe nach der letzten Runde: Endstand und Entscheidung folgen in M.6
 function renderGroupInProgress(){
-  $("app").innerHTML=`<section class="card"><div class="eyebrow">GRUPPE · RAUM ${esc(S.room.code)}</div><h2>Dieser Teil ist für Gruppen noch im Bau</h2><p class="muted">Lobby, Draft und Battle funktionieren schon. Abstimmung, Wertung und Endstand für 3–6 Personen kommen als Nächstes.</p>${roomExitControls()}</section>`;
+  $("app").innerHTML=`<section class="card"><div class="eyebrow">GRUPPE · RAUM ${esc(S.room.code)}</div><h2>Dieser Teil ist für Gruppen noch im Bau</h2><p class="muted">Lobby, Draft, Battle und Abstimmung funktionieren schon. Endstand und Entscheidung bei Gleichstand für 3–6 Personen kommen als Nächstes.</p>${roomExitControls()}</section>`;
   bindRoomExitControls();
 }
 
@@ -339,12 +376,12 @@ function bindVoting(){
     const memberId=b.closest(".ballot").dataset.member,cat=b.dataset.cat,choice=Number(b.dataset.choice);
     (S.ballot[memberId]||(S.ballot[memberId]={}))[cat]=choice;
     b.closest(".votechoices").querySelectorAll(".votebtn").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
-    const done=VOTE_CATEGORIES.every(c=>S.ballot[memberId][c.key]===1||S.ballot[memberId][c.key]===2);
-    if($("castVotes")){$("castVotes").disabled=!done;if(!S.voteEditing){const left=VOTE_CATEGORIES.filter(c=>!S.ballot[memberId][c.key]).length;$("castVotes").textContent=done?"Stimmen abgeben":`Noch ${left} von ${VOTE_CATEGORIES.length} wählen`}}
+    const ok=ballotChoices(S.members.find(m=>m.id===memberId)),done=VOTE_CATEGORIES.every(c=>ok.includes(S.ballot[memberId][c.key]));
+    if($("castVotes")){$("castVotes").disabled=!done;if(!S.voteEditing){const left=VOTE_CATEGORIES.filter(c=>!ok.includes(S.ballot[memberId][c.key])).length;$("castVotes").textContent=done?"Stimmen abgeben":`Noch ${left} von ${VOTE_CATEGORIES.length} wählen`}}
   });
   if($("castVotes"))$("castVotes").onclick=()=>castCategoryVotes(document.querySelector(".ballot").dataset.member);
   if($("voteHandover"))$("voteHandover").onclick=()=>{const r=currentRound(),next=eligibleVoters(S.members).filter(m=>m.user_id===S.user.id).sort((a,b)=>(a.player_slot||0)-(b.player_slot||0)).find(m=>!voteProgress(S.votes.filter(v=>v.round_id===r.id),[m]).complete);if(r&&next)S.voteHandover=`${r.id}:${next.id}`;render();window.scrollTo(0,document.querySelector(".juryarea")?.offsetTop||0)};
-  if($("voteEdit"))$("voteEdit").onclick=()=>{const m=eligibleVoters(S.members).find(x=>x.user_id===S.user.id);if(m){S.voteEditing=m.id;delete S.ballot[m.id];render()}};
+  if($("voteEdit"))$("voteEdit").onclick=()=>{const id=$("voteEdit").dataset.member,m=id?S.members.find(x=>x.id===id):eligibleVoters(S.members).find(x=>x.user_id===S.user.id);if(m){S.voteEditing=m.id;delete S.ballot[m.id];render()}};
   if($("voteEditCancel"))$("voteEditCancel").onclick=()=>{const id=S.voteEditing;S.voteEditing="";delete S.ballot[id];render()};
 }
 

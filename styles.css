@@ -180,6 +180,23 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .cornercard .eyebrow{color:var(--corner,var(--muted))}
 .cornercard h3{margin:var(--s1) 0 0}
 .cornercard .songname{font:400 26px/1.15 var(--f-title);margin:var(--s3) 0 var(--s1);overflow-wrap:anywhere}
+/* Abstimmung Gruppe (M.5): Stimmzettel mit 3–6 Songs, Punkte und Zwischenstand als Rangliste */
+.votechoices.multi{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.votebtn[class*=" c"] small{color:var(--corner)}
+.votebtn[class*=" c"][aria-pressed="true"]{border-color:var(--corner);background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--corner)}
+.votebtn:disabled{opacity:.4;cursor:not-allowed}
+.ranklist{list-style:none;margin:var(--s3) auto 0;padding:0;display:grid;gap:var(--s2);max-width:760px}
+.rankrow{display:grid;grid-template-columns:32px 1fr auto;align-items:center;gap:var(--s3);min-height:48px;padding:var(--s2) var(--s3);border-radius:var(--r-m);background:var(--surface-2);border:1px solid var(--line);border-left:4px solid var(--corner,var(--line-strong))}
+.rankrow.norank{grid-template-columns:1fr auto}
+.rankrow.own{background:var(--surface-3)}
+.rankrow .rk{font:400 16px var(--f-num);color:var(--muted)}
+.rankrow .rn{display:grid;min-width:0}
+.rankrow .rn b{color:var(--corner,var(--text));overflow-wrap:anywhere}
+.rankrow .rn small{color:var(--muted);overflow-wrap:anywhere}
+.rankrow .rp{font:400 20px var(--f-num)}
+.standhead{max-width:760px;margin:var(--s5) auto 0}
+.groupresult>.belt,.groupresult>.mainaction,.groupresult>.tiechoice{max-width:760px;margin-left:auto;margin-right:auto}
+@media (prefers-reduced-motion:no-preference){.groupresult[data-anim] .rankrow{animation:mbRowIn .4s ease-out both;animation-delay:var(--elapsed,0ms)}}
 .grouppick.empty b,.grouppick.veiled b{color:var(--muted);font-weight:400;font-style:italic}
 .modeicon{width:44px;height:44px;border-radius:var(--r-m);display:grid;place-items:center;font:400 20px var(--f-num);background:var(--surface-3);border:1px solid var(--line-strong);color:var(--gold)}
 .joinrole{display:grid;grid-template-columns:1fr minmax(220px,.8fr);gap:var(--s4);padding:var(--s4);border:1px solid var(--line);border-radius:var(--r-l);background:var(--surface-2)}

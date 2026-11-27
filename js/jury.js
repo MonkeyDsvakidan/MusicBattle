@@ -7,7 +7,8 @@ let castVotesRunning=false;
 async function castCategoryVotes(memberId){
   const r=currentRound(),choices=S.ballot[memberId]||{};
   if(!r||castVotesRunning)return;
-  if(!VOTE_CATEGORIES.every(c=>choices[c.key]===1||choices[c.key]===2)){S.error="Bitte in allen fünf Kategorien einen Song wählen.";render();return}
+  const allowed=ballotChoices(S.members.find(m=>m.id===memberId));
+  if(!VOTE_CATEGORIES.every(c=>allowed.includes(choices[c.key]))){S.error="Bitte in allen fünf Kategorien einen Song wählen.";render();return}
   castVotesRunning=true;S.error="";
   try{
     const {error}=await sb.rpc("mb_cast_category_votes",{p_round_id:r.id,p_member_id:memberId,p_votes:choices});
@@ -16,6 +17,11 @@ async function castCategoryVotes(memberId){
     await reloadRoomNow();
   }catch(e){S.error=voteErrorText(e?.message||String(e));render()}
   finally{castVotesRunning=false}
+}
+// Wählbare Songs (Ecken) für ein Mitglied: 1v1 beide, Gruppe die Ecken der Runde (ab 3 ohne die eigene)
+function ballotChoices(member){
+  if(!isGroupRoom())return[1,2];
+  const r=currentRound();return groupChoices(cornersInPlay(S.room,r?.round_number),member);
 }
 function voteErrorText(m){if(/voting closed/i.test(m))return"Die Abstimmung für diese Runde ist schon geschlossen.";if(/only jurors/i.test(m))return"Es sind Juroren im Raum – nur sie stimmen ab.";if(/only players/i.test(m))return"Ohne Juroren stimmen die Spieler ab.";if(/not revealed/i.test(m))return"Abstimmen geht erst, wenn beide Songs aufgedeckt sind.";return m}
 
@@ -78,3 +84,18 @@ async function finalizeRound(){
 
 // Abstand im Endstand (gewonnene Kategorien); nur für Abstimmungs-Runden
 function roundJuryMargin(roundId){const d=roundDecision(roundId);return d.kind==="vote"?{margin:Math.abs(d.vote.won.a-d.vote.won.b),a:d.vote.won.a,b:d.vote.won.b}:null}
+
+// Gruppe (M.5): Host übernimmt die Runde, der Server rechnet die Punkte (mb_advance_round).
+// winner nur in der Entscheidung bei Gleichstand: der Host wählt einen der Gleichen.
+let groupFinalizeRunning=false;
+async function finalizeGroupRound(winner=null){
+  const r=currentRound();if(!r||!isHost()||groupFinalizeRunning)return;
+  if(winner&&!(await mbConfirm(`${cornerLabel(S.members,winner,Boolean(S.room?.team_mode))} gewinnt die Entscheidung?`,{title:"Selber entscheiden",confirmLabel:"Ja, Sieger festlegen"})))return;
+  groupFinalizeRunning=true;S.error="";
+  try{
+    const {error}=await sb.rpc("mb_advance_round",{p_room_id:S.room.id,p_round_number:r.round_number,p_winner_slot:winner});
+    if(error)throw error;
+    await reloadRoomNow();
+  }catch(e){S.error=e?.message||String(e);render()}
+  finally{groupFinalizeRunning=false}
+}
