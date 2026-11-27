@@ -1,7 +1,7 @@
 /* state.js – Zustand (S), DOM-Helfer und Abfragen auf Raum/Mitglieder/Runden
    Konsolidiert aus app-1 … app-6d (Roadmap 2.2). Klassisches Skript, globale Namen. */
 
-const S={user:null,room:null,members:[],picks:[],rounds:[],subs:[],scores:[],membership:null,currentArtist:null,currentArtistSlot:null,artistPools:{1:[],2:[]},spotifyProfiles:{1:null,2:null},spotify:{1:{access:"",refresh:"",expires:0,player:null,deviceId:""},2:{access:"",refresh:"",expires:0,player:null,deviceId:""}},searchResults:{1:[],2:[]},searchQuery:{1:"",2:""},suggestions:{},notice:"",error:"",aiReveal:0,votes:[],ballot:{},voteHandover:"",voteEditing:"",quizQuestions:[],quizAnswers:[],quizSolutions:[]};
+const S={user:null,room:null,members:[],picks:[],rounds:[],subs:[],scores:[],membership:null,currentArtist:null,currentArtistSlot:null,artistPools:{1:[],2:[]},spotifyProfiles:{1:null,2:null},spotify:{1:{access:"",refresh:"",expires:0,player:null,deviceId:""},2:{access:"",refresh:"",expires:0,player:null,deviceId:""}},searchResults:{1:[],2:[]},searchQuery:{1:"",2:""},suggestions:{},notice:"",error:"",votes:[],ballot:{},voteHandover:"",voteEditing:"",quizQuestions:[],quizAnswers:[],quizSolutions:[],quizSitouts:[]};
 
 const $=id=>document.getElementById(id);
 
@@ -29,19 +29,13 @@ function roomStorage(){return JSON.parse(localStorage.getItem("mb_online_room")|
 
  function memberName(slotNo){return S.members.find(m=>m.player_slot===slotNo)?.display_name||`Spieler ${slotNo}`}
 
- function juryScores(){return S.scores.filter(x=>x.round_id===currentRound()?.id)}
-
- function humanScores(){return juryScores().filter(x=>x.source==="human")}
-
- function aiScores(){return juryScores().filter(x=>x.source==="ai")}
-
  function currentRound(){return S.rounds.find(r=>r.round_number===Number(S.room?.current_round||1))}
 
  function currentPicks(){const n=Number(S.room?.current_round||1);return [S.picks.find(p=>p.round_number===n&&p.player_slot===1),S.picks.find(p=>p.round_number===n&&p.player_slot===2)]}
 
  function currentSubs(){const rid=currentRound()?.id;return [S.subs.find(x=>x.round_id===rid&&x.player_slot===1),S.subs.find(x=>x.round_id===rid&&x.player_slot===2)]}
 
-function resetLocalRoomState(){rememberDeviceSpotify();clearRoom();if(channel){try{sb.removeChannel(channel)}catch{}channel=null}for(const n of [1,2])clearSpotifySlot(n);S.room=null;S.members=[];S.picks=[];S.rounds=[];S.subs=[];S.scores=[];S.votes=[];S.ballot={};S.voteHandover="";S.voteEditing="";S.membership=null;S.currentArtist=null;S.currentArtistSlot=null;S.aiReveal=0;S.notice="";S.error=""}
+function resetLocalRoomState(){rememberDeviceSpotify();clearRoom();if(channel){try{sb.removeChannel(channel)}catch{}channel=null}for(const n of [1,2])clearSpotifySlot(n);S.room=null;S.members=[];S.picks=[];S.rounds=[];S.subs=[];S.scores=[];S.votes=[];S.ballot={};S.voteHandover="";S.voteEditing="";S.membership=null;S.currentArtist=null;S.currentArtistSlot=null;S.notice="";S.error=""}
 
 function weightedMatchPoints(){
   let a=0,b=0;

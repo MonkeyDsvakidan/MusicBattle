@@ -78,26 +78,29 @@ function quizMusicHint(){
 }
 
 function quizReadyView(){
-  return`<h2>Bereit?</h2><p class="muted">${S.members.filter(m=>m.role==="quizzer").length} Personen spielen mit. Pro Frage habt ihr 20 Sekunden – wer schneller richtig liegt, bekommt mehr Punkte.</p>${quizMusicHint()}${isHost()?`<div class="mainaction"><button class="btn primary" id="quizNext"${S.quizBusy?" disabled":""}>Erste Frage</button></div>`:`<p class="muted">Gleich geht's los – der Host startet die erste Frage.</p>`}`;
+  return`<h2>Bereit?</h2><p class="muted">${S.members.filter(m=>m.role==="quizzer").length} Personen spielen mit. Pro Frage habt ihr 20 Sekunden – wer schneller richtig liegt, bekommt mehr Punkte.${isSoloQuiz()?"":" Kommt ein Song aus deinem Spotify, schaust du bei dieser Frage zu."}</p>${quizMusicHint()}${isHost()?`<div class="mainaction"><button class="btn primary" id="quizNext"${S.quizBusy?" disabled":""}>Erste Frage</button></div>`:`<p class="muted">Gleich geht's los – der Host startet die erste Frage.</p>`}`;
 }
 
 function quizTimer(){return`<div class="quiztimer" role="timer"><div class="quizbar"><span id="quizBar"></span></div><b id="quizTime"></b></div>`}
 function quizSongLine(o){return`<div class="quizsong">${o?.cover_url?`<img src="${esc(o.cover_url)}" alt="" loading="lazy">`:""}<div><strong>${esc(o?.title||"")}</strong><small>${esc(o?.artist||"")}</small></div></div>`}
 
 function quizQuestionView(q){
-  const mine=quizMyAnswer(q),players=S.members.filter(m=>m.role==="quizzer").length,p=q.prompt||{};
-  const waiting=`<div class="notice quizwait" role="status">Deine Antwort: <strong>${esc(quizAnswerText(q,mine?.answer))}</strong><br><small>${Number(q.answer_count)||0} von ${players} haben geantwortet</small></div>`;
+  const mine=quizMyAnswer(q),out=quizSitsOut(q),players=quizAnswerersCount(q),p=q.prompt||{},done=mine||out;
+  const count=`<small>${Number(q.answer_count)||0} von ${players} haben geantwortet</small>`;
+  // 7.11: eigener Song → zuschauen statt antworten
+  const waiting=out?`<div class="notice quizwait" role="status"><strong>Deine Frage – schau zu</strong><br>Der Song kommt aus deinem Spotify. Diesmal raten die anderen.<br>${count}</div>`
+    :`<div class="notice quizwait" role="status">Deine Antwort: <strong>${esc(quizAnswerText(q,mine?.answer))}</strong><br>${count}</div>`;
   let ask="";
   if(q.kind==="year"){
     const y=S.quizYear?.[q.id]??2000,max=new Date().getFullYear();
-    ask=`${quizSongLine(p)}<p class="quizask">Aus welchem Jahr ist dieser Song?</p>${mine?waiting:`<div class="yearpick"><button class="btn" data-year-step="-1" aria-label="Ein Jahr früher">−</button><output id="quizYearOut" class="yearout">${y}</output><button class="btn" data-year-step="1" aria-label="Ein Jahr später">+</button></div><input type="range" id="quizYear" min="1950" max="${max}" value="${y}" aria-label="Erscheinungsjahr"><div class="mainaction"><button class="btn primary" id="quizSendYear"${S.quizAnswering?" disabled":""}>Antwort senden</button></div>`}`;
+    ask=`${quizSongLine(p)}<p class="quizask">Aus welchem Jahr ist dieser Song?</p>${done?waiting:`<div class="yearpick"><button class="btn" data-year-step="-1" aria-label="Ein Jahr früher">−</button><output id="quizYearOut" class="yearout">${y}</output><button class="btn" data-year-step="1" aria-label="Ein Jahr später">+</button></div><input type="range" id="quizYear" min="1950" max="${max}" value="${y}" aria-label="Erscheinungsjahr"><div class="mainaction"><button class="btn primary" id="quizSendYear"${S.quizAnswering?" disabled":""}>Antwort senden</button></div>`}`;
   }else if(q.kind==="older"){
-    ask=`<p class="quizask">Welcher Song ist älter?</p>${mine?waiting:`<div class="quizoptions two">${(p.options||[]).map((o,i)=>`<button class="quizoption" data-quiz-choice="${i+1}"${S.quizAnswering?" disabled":""}>${quizSongLine(o)}</button>`).join("")}</div>`}`;
+    ask=`<p class="quizask">Welcher Song ist älter?</p>${done?waiting:`<div class="quizoptions two">${(p.options||[]).map((o,i)=>`<button class="quizoption" data-quiz-choice="${i+1}"${S.quizAnswering?" disabled":""}>${quizSongLine(o)}</button>`).join("")}</div>`}`;
   }else if(q.kind==="cover"){
-    ask=`<div class="quizcoverwrap"><canvas id="quizCover" class="quizcover" width="256" height="256" role="img" aria-label="Verpixeltes Album-Cover"></canvas></div><p class="quizask">Zu welchem Album gehört das Cover?</p>${mine?waiting:`<div class="quizoptions">${(p.options||[]).map((o,i)=>`<button class="quizoption" data-quiz-choice="${i+1}"${S.quizAnswering?" disabled":""}><strong>${esc(o.album)}</strong><small>${esc(o.artist)}</small></button>`).join("")}</div>`}`;
+    ask=`<div class="quizcoverwrap"><canvas id="quizCover" class="quizcover" width="256" height="256" role="img" aria-label="Verpixeltes Album-Cover"></canvas></div><p class="quizask">Zu welchem Album gehört das Cover?</p>${done?waiting:`<div class="quizoptions">${(p.options||[]).map((o,i)=>`<button class="quizoption" data-quiz-choice="${i+1}"${S.quizAnswering?" disabled":""}><strong>${esc(o.album)}</strong><small>${esc(o.artist)}</small></button>`).join("")}</div>`}`;
   }else if(q.kind==="intro"||q.kind==="album"){
     const intro=q.kind==="intro";
-    ask=`${intro?"":quizSongLine(p)}<p class="quizask">${intro?"Welcher Song läuft gerade?":"Auf welchem Album ist dieser Song?"}</p>${mine?waiting:`<div class="quizoptions">${(p.options||[]).map((o,i)=>`<button class="quizoption" data-quiz-choice="${i+1}"${S.quizAnswering?" disabled":""}><strong>${esc(intro?o.title:o.album)}</strong></button>`).join("")}</div>`}`;
+    ask=`${intro?"":quizSongLine(p)}<p class="quizask">${intro?"Welcher Song läuft gerade?":"Auf welchem Album ist dieser Song?"}</p>${done?waiting:`<div class="quizoptions">${(p.options||[]).map((o,i)=>`<button class="quizoption" data-quiz-choice="${i+1}"${S.quizAnswering?" disabled":""}><strong>${esc(intro?o.title:o.album)}</strong></button>`).join("")}</div>`}`;
   }
   return`${quizTimer()}${ask}${quizMusicHint()}`;
 }
@@ -115,12 +118,12 @@ function quizRevealView(q,last){
   const pts=n=>Number(n||0).toLocaleString("de-CH");
   const answers=quizzers.map(m=>{const a=S.quizAnswers.find(x=>x.question_id===q.id&&x.member_id===m.id);return{m,a}}).sort((x,y)=>(Number(y.a?.points)||0)-(Number(x.a?.points)||0));
   const scored=S.quizAnswers.filter(a=>a.points!==null&&a.points!==undefined);
-  const table=quizStandings(S.members,scored).slice(0,5);
+  const table=quizStandings(S.members,scored,S.quizSitouts).slice(0,5);
   const coverUrl=q.kind==="cover"?q.prompt?.cover_url:q.kind==="intro"||q.kind==="album"?sol?.cover_url:null;
   const cover=coverUrl?`<img class="quizcover" src="${esc(coverUrl)}" alt="">`:"";
-  const myLine=!mine?`<span class="chip">keine Antwort</span>`:Number(mine.points)>0?`<span class="chip gold">+${pts(mine.points)} Punkte</span>`:`<span class="chip">0 Punkte</span>`;
+  const myLine=quizSitsOut(q)?`<span class="chip">ausgesetzt – dein Song</span>`:!mine?`<span class="chip">keine Antwort</span>`:Number(mine.points)>0?`<span class="chip gold">+${pts(mine.points)} Punkte</span>`:`<span class="chip">0 Punkte</span>`;
   return`<div class="quizsolution"${animAttr(`quizreveal:${q.id}`,900)}>${cover}<small>LÖSUNG</small><strong${q.kind==="year"?' class="num"':""}>${esc(quizSolutionText(q,sol)||"…")}</strong>${quizMyAnswer(q)||quizMembership()?myLine:""}</div>
-    <div class="stack quizanswers">${answers.map(({m,a})=>`<div class="member"><div><strong>${esc(m.display_name)}</strong><small>${esc(quizAnswerText(q,a?.answer))}</small></div><span class="chip${Number(a?.points)>0?" ok":""}">${a?pts(a.points):"–"}</span></div>`).join("")}</div>
+    <div class="stack quizanswers">${answers.map(({m,a})=>`<div class="member"><div><strong>${esc(m.display_name)}</strong><small>${quizSitsOut(q,m.id)?"ausgesetzt – eigener Song":esc(quizAnswerText(q,a?.answer))}</small></div><span class="chip${Number(a?.points)>0?" ok":""}">${a?pts(a.points):"–"}</span></div>`).join("")}</div>
     <div class="quizstand"><div class="eyebrow">ZWISCHENSTAND</div><ol>${table.map(r=>`<li><span>${r.place}. ${esc(r.name)}</span><b>${pts(r.points)}</b></li>`).join("")}</ol></div>
     ${isHost()?`<div class="mainaction"><button class="btn primary" id="quizNext"${S.quizBusy?" disabled":""}>${last?"Zur Rangliste":"Nächste Frage"}</button></div>`:`<p class="muted">${last?"Gleich kommt die Rangliste.":"Der Host startet gleich die nächste Frage."}</p>`}`;
 }
@@ -129,7 +132,7 @@ function quizRevealView(q,last){
 function quizSeconds(ms){return`${(Number(ms)/1000).toFixed(1).replace(".",",")} s`}
 function renderQuizFinished(){
   const scored=S.quizAnswers.filter(a=>a.points!==null&&a.points!==undefined);
-  const table=quizStandings(S.members,scored),total=S.quizQuestions.length||Number(S.room.quiz_length)||10;
+  const table=quizStandings(S.members,scored,S.quizSitouts),total=S.quizQuestions.length||Number(S.room.quiz_length)||10;
   const pts=n=>Number(n||0).toLocaleString("de-CH");
   const top=table.filter(r=>r.place===1),single=top.length===1;
   const title=!table.length?"Quiz beendet":single?`${esc(top[0].name)} gewinnt`:"Gleichstand an der Spitze";
@@ -141,8 +144,9 @@ function renderQuizFinished(){
   $("app").innerHTML=`<section class="card finalwrap quizfinal"${animAttr(`quizfinal:${S.room.id}:${S.room.quiz_game_no}`,2500)}>
     <div class="finalscore"><div class="eyebrow">QUIZ BEENDET · ${total} FRAGEN</div><h2>${title}</h2>${table.length?`<div class="big">${pts(top[0].points)}</div>`:""}${single&&table.length>1?`<div class="belt" role="status">★ Quiz-Champion</div>`:""}</div>
     ${table.length>1?`<div class="podium">${order.map(step).join("")}</div>`:""}
-    <div class="statsgrid">${me?`<div class="statcard"><span>Dein Platz</span><b>${me.place} von ${table.length}</b></div><div class="statcard"><span>Deine Treffer</span><b>${me.scored} / ${total}</b></div>`:""}<div class="statcard"><span>Schnellste Antwort</span><b>${fastest?`${quizSeconds(fastest.fastestMs)}`:"–"}</b>${fastest?`<small>${esc(fastest.name)}</small>`:""}</div></div>
-    <div class="quizstand"><div class="eyebrow">RANGLISTE</div><ol>${table.map(r=>`<li><span>${r.place}. ${esc(r.name)}<small>${r.scored} / ${total} Treffer${r.fastestMs!==null?` · schnellste ${quizSeconds(r.fastestMs)}`:""}</small></span><b>${pts(r.points)}</b></li>`).join("")}</ol></div>
+    <div class="statsgrid">${me?`<div class="statcard"><span>Dein Platz</span><b>${me.place} von ${table.length}</b></div><div class="statcard"><span>Deine Treffer</span><b>${me.scored} / ${total-me.sat}</b></div>`:""}<div class="statcard"><span>Schnellste Antwort</span><b>${fastest?`${quizSeconds(fastest.fastestMs)}`:"–"}</b>${fastest?`<small>${esc(fastest.name)}</small>`:""}</div></div>
+    <div class="quizstand"><div class="eyebrow">RANGLISTE</div><ol>${table.map(r=>`<li><span>${r.place}. ${esc(r.name)}<small>${r.scored} / ${total-r.sat} Treffer${r.sat?` · ${r.sat}× ausgesetzt`:""}${r.fastestMs!==null?` · schnellste ${quizSeconds(r.fastestMs)}`:""}</small></span><b>${pts(r.points)}</b></li>`).join("")}</ol></div>
+    ${abendRecord(`mbq:${S.room.id}:${S.room.quiz_game_no||1}`,"quiz",table.map(r=>({name:r.name,place:r.place})))}
     ${errorNotice()}
     ${isHost()?`<div class="actions rematch"><button class="btn primary" id="quizAgain"${S.quizStarting?" disabled":""}>${S.quizStarting?"Neue Fragen werden erstellt …":"Nochmal"}</button></div><p class="muted center">Gleiche Runde, neue Fragen – schon gespielte Songs kommen möglichst nicht nochmals.</p>`:`<p class="muted center">Der Host kann nochmal starten – mit neuen Fragen.</p>`}
     ${roomExitControls()}</section>`;

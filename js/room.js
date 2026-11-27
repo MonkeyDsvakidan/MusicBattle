@@ -23,7 +23,7 @@ async function init(){readInviteFromUrl();await ensureAnon();const saved=roomSto
 
 async function joinRoom(joinRole){S.error="";const code=$("joinCode").value.trim().toUpperCase(),name=$("joinName").value.trim();if(!code||!name){S.error="Raumcode und Name fehlen.";render();return}const {data,error}=await sb.rpc("mb_join_room",{p_room_code:code,p_display_name:name,p_role:joinRole});if(error){S.error=joinErrorText(error.message);render();return}const row=data[0];rememberName(name);S.pendingJoin=null;saveRoom({room_id:row.room_id,code});await loadRoom(row.room_id);subscribeRoom();render();if(joinRole==="quizzer"){await autoQuizSpotify();return}const slot=joinRole==="player"?ownedMemberships().find(m=>m.role==="player")?.player_slot:null;if(slot&&await useSavedSpotify(slot))render()}
 
-async function loadRoom(roomId){const [{data:room},{data:members},{data:picks},{data:rounds},{data:subs},{data:scores},votesRes]=await Promise.all([sb.from("mb_rooms").select("*").eq("id",roomId).single(),sb.from("mb_members").select("*").eq("room_id",roomId).order("joined_at"),sb.from("mb_draft_picks").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_rounds").select("*").eq("room_id",roomId).order("round_number"),sb.from("mb_submissions").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_jury_scores").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_category_votes").select("*").eq("room_id",roomId).order("created_at")]);if(!room){clearRoom();return}S.votes=votesRes?.data||[];S.room=room;S.members=members||[];S.picks=picks||[];if(room.draft_hidden&&["draft","sudden_draft"].includes(room.status))await addHiddenPicks();S.rounds=rounds||[];S.subs=subs||[];S.scores=scores||[];S.membership=S.members.find(m=>m.user_id===S.user?.id)||null;if(room.game==="quiz")await loadQuizData(room);else{S.quizQuestions=[];S.quizAnswers=[];S.quizSolutions=[]}restoreSpotify(1);restoreSpotify(2);restorePool(1);restorePool(2);if(room.game!=="quiz")applySharedSkipState()}
+async function loadRoom(roomId){const [{data:room},{data:members},{data:picks},{data:rounds},{data:subs},{data:scores},votesRes]=await Promise.all([sb.from("mb_rooms").select("*").eq("id",roomId).single(),sb.from("mb_members").select("*").eq("room_id",roomId).order("joined_at"),sb.from("mb_draft_picks").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_rounds").select("*").eq("room_id",roomId).order("round_number"),sb.from("mb_submissions").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_jury_scores").select("*").eq("room_id",roomId).order("created_at"),sb.from("mb_category_votes").select("*").eq("room_id",roomId).order("created_at")]);if(!room){clearRoom();return}S.votes=votesRes?.data||[];S.room=room;S.members=members||[];S.picks=picks||[];if(room.draft_hidden&&["draft","sudden_draft"].includes(room.status))await addHiddenPicks();S.rounds=rounds||[];S.subs=subs||[];S.scores=scores||[];S.membership=S.members.find(m=>m.user_id===S.user?.id)||null;if(room.game==="quiz")await loadQuizData(room);else{S.quizQuestions=[];S.quizAnswers=[];S.quizSolutions=[];S.quizSitouts=[]}restoreSpotify(1);restoreSpotify(2);restorePool(1);restorePool(2);if(room.game!=="quiz")applySharedSkipState()}
 
 async function addLocalPlayer2(){
   const name=$("localPlayer2Name")?.value.trim();
@@ -113,7 +113,7 @@ async function followRematch(){
     const {data}=await sb.from("mb_rooms").select("id,code").eq("id",next).maybeSingle();
     if(!data)return false;
     saveRoom({room_id:data.id,code:data.code});
-    S.currentArtist=null;S.currentArtistSlot=null;S.ballot={};S.voteHandover="";S.voteEditing="";S.aiReveal=0;S.notice="";S.error="";S.searchResults={1:[],2:[]};S.searchQuery={1:"",2:""};
+    S.currentArtist=null;S.currentArtistSlot=null;S.ballot={};S.voteHandover="";S.voteEditing="";S.notice="";S.error="";S.searchResults={1:[],2:[]};S.searchQuery={1:"",2:""};
     await loadRoom(data.id);
     subscribeRoom();
     return true;
@@ -134,7 +134,7 @@ function mbEditingActive(){
 // Fingerabdruck der Raumdaten: Sync rendert nur, wenn sich etwas geändert hat.
 // Sonst ersetzt der 2,5-s-Poll laufend das DOM und Klicks/Eingaben gehen verloren.
 function mbRoomFingerprint(){
-  try{return JSON.stringify([S.room,S.members,S.picks,S.rounds,S.subs,S.scores,S.votes,S.quizQuestions,S.quizAnswers,S.quizSolutions])}catch{return String(Date.now())}
+  try{return JSON.stringify([S.room,S.members,S.picks,S.rounds,S.subs,S.scores,S.votes,S.quizQuestions,S.quizAnswers,S.quizSolutions,S.quizSitouts])}catch{return String(Date.now())}
 }
 
 // Getippten Text über einen Neuaufbau retten (nur innerhalb derselben Phase/Runde).

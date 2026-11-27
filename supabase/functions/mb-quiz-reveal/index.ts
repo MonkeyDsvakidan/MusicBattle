@@ -1,5 +1,5 @@
 // mb-quiz-reveal (Roadmap 7.4): Host deckt die laufende Quiz-Frage auf. Erst wenn die Zeit abgelaufen ist
-// (Frist + 1 s Toleranz wie in mb_quiz_answer) oder alle Mitspieler geantwortet haben. Punkte berechnet die
+// (Frist + 1 s Toleranz wie in mb_quiz_answer) oder alle Mitspieler geantwortet haben (ohne Ausgesetzte, 7.11). Punkte berechnet die
 // Quiz-Engine (scoreAnswer, mit node --test geprüft); gespeichert wird über mb_quiz_store_reveal in einem Schritt.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { scoreAnswer } from "../_shared/quiz-engine.mjs";
@@ -38,9 +38,13 @@ Deno.serve(async (req) => {
     if (q.status === "revealed") return out({ ok: true, duplicate: true, question_id: q.id });
     if (q.status !== "open") return out({ error: "question not open" }, 409);
 
-    const { count: players } = await admin.from("mb_members").select("id", { count: "exact", head: true }).eq("room_id", roomId).eq("role", "quizzer");
+    // 7.11: Ausgesetzte zählen beim «alle haben geantwortet» nicht mit (Zeilen verschwinden, wenn jemand den Raum verlässt)
+    const [{ count: players }, { count: sitting }] = await Promise.all([
+      admin.from("mb_members").select("id", { count: "exact", head: true }).eq("room_id", roomId).eq("role", "quizzer"),
+      admin.from("mb_quiz_sitouts").select("member_id", { count: "exact", head: true }).eq("question_id", q.id),
+    ]);
     const remaining = new Date(q.deadline_at).getTime() + 1000 - Date.now();
-    if (remaining > 0 && Number(q.answer_count) < Number(players || 0)) return out({ error: "still running", remaining_ms: remaining }, 409);
+    if (remaining > 0 && Number(q.answer_count) < Number(players || 0) - Number(sitting || 0)) return out({ error: "still running", remaining_ms: remaining }, 409);
 
     const [{ data: sol }, { data: answers }] = await Promise.all([
       admin.from("mb_quiz_solutions").select("solution").eq("question_id", q.id).maybeSingle(),
