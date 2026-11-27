@@ -5,17 +5,17 @@
    Gleichstand → der Host entscheidet. */
 
 const VOTE_CATEGORIES=[
-  {key:"theme",label:"Thema",question:"Welcher Song trifft das Thema besser?"},
-  {key:"vibe",label:"Vibe",question:"Welcher Song hat den besseren Vibe?"},
-  {key:"lyrics",label:"Lyrics",question:"Welcher Song hat die stärkeren Lyrics?"},
-  {key:"surprise",label:"Überraschung",question:"Welcher Song war die grössere Überraschung?"},
-  {key:"connoisseur",label:"Kenner-Wahl",question:"Welchen Song würden echte Kenner wählen?"}
+  {key:"theme",label:"Thema",question:"Welcher Song trifft das Thema besser?",groupQuestion:"Welcher Song trifft das Thema am besten?"},
+  {key:"vibe",label:"Vibe",question:"Welcher Song hat den besseren Vibe?",groupQuestion:"Welcher Song hat den besten Vibe?"},
+  {key:"lyrics",label:"Lyrics",question:"Welcher Song hat die stärkeren Lyrics?",groupQuestion:"Welcher Song hat die stärksten Lyrics?"},
+  {key:"surprise",label:"Überraschung",question:"Welcher Song war die grössere Überraschung?",groupQuestion:"Welcher Song war die grösste Überraschung?"},
+  {key:"connoisseur",label:"Kenner-Wahl",question:"Welchen Song würden echte Kenner wählen?",groupQuestion:"Welchen Song würden echte Kenner wählen?"}
 ];
 
 // Stimmen, die zählen: mit Juroren im Raum nur Juroren, sonst nur Spieler
 function countedVotes(votes,hasJurors){
   const role=hasJurors?"juror":"player";
-  return (votes||[]).filter(v=>v&&v.voter_role===role&&(v.choice===1||v.choice===2));
+  return (votes||[]).filter(v=>v&&v.voter_role===role&&Number.isInteger(v.choice)&&v.choice>=1&&v.choice<=6);
 }
 
 /**
@@ -54,4 +54,49 @@ function eligibleVoters(members){
   return jurors.length?jurors:(members||[]).filter(m=>m.role==="player");
 }
 
-if(typeof module!=="undefined")module.exports={VOTE_CATEGORIES,countedVotes,categoryResult,voteProgress,eligibleVoters};
+// ---------- Gruppe (M.5): Stimmen = Punkte, gleiche Regeln wie mb_cast_category_votes / mb_advance_round ----------
+
+// Wer stimmt in einer Gruppen-Runde ab? Mit Juroren nur sie; in der Entscheidung (Runde 6) nicht die
+// Punktgleichen, solange es andere Spieler gibt
+function groupEligibleVoters(members,corners,roundNumber){
+  const all=eligibleVoters(members);
+  if(all.some(m=>m.role==="juror")||Number(roundNumber)!==6)return all;
+  const others=all.filter(m=>!corners.includes(m.corner??m.player_slot));
+  return others.length?others:all;
+}
+
+// Wofür darf diese Person stimmen? Ab 3 Ecken nicht für die eigene (Spieler), sonst frei
+function groupChoices(corners,voter){
+  const own=voter?.role==="player"?(voter.corner??voter.player_slot):null;
+  return corners.filter(c=>corners.length<3||c!==own);
+}
+
+/**
+ * Punkte einer Gruppen-Runde: jede gezählte Stimme = 1 Punkt für die gewählte Ecke.
+ * @returns {{points:Object<number,number>, top:number[], winner:number|null}} winner nur ohne Gleichstand
+ */
+function groupRoundPoints(votes,corners,{hasJurors=false}={}){
+  const counted=countedVotes(votes,hasJurors);
+  const points=Object.fromEntries(corners.map(c=>[c,counted.filter(v=>v.choice===c).length]));
+  const max=Math.max(0,...Object.values(points));
+  const top=corners.filter(c=>points[c]===max);
+  return{points,top,winner:top.length===1?top[0]:null};
+}
+
+/**
+ * Zwischenstand: Punkte aller gewerteten Runden (mb_rounds.points), letzte Runde doppelt,
+ * plus optional die laufende Runde (live). Rangliste mit geteilten Plätzen.
+ * @returns {Array<{corner,total,rank}>} absteigend sortiert
+ */
+function groupStandings(rounds,cornerCount,roundCount,live){
+  const n=Math.max(2,Number(cornerCount)||2),last=Number(roundCount)||5;
+  const totals=Array.from({length:n},(_,i)=>({corner:i+1,total:0}));
+  const add=(roundNumber,points)=>{if(Number(roundNumber)>last)return;const w=Number(roundNumber)===last?2:1;for(const t of totals)t.total+=(Number(points?.[t.corner])||0)*w};
+  for(const r of rounds||[])if(r.status==="complete"&&r.points&&(!live||r.round_number!==live.round_number))add(r.round_number,r.points);
+  if(live)add(live.round_number,live.points);
+  totals.sort((a,b)=>b.total-a.total||a.corner-b.corner);
+  totals.forEach((t,i)=>{t.rank=i&&t.total===totals[i-1].total?totals[i-1].rank:i+1});
+  return totals;
+}
+
+if(typeof module!=="undefined")module.exports={VOTE_CATEGORIES,countedVotes,categoryResult,voteProgress,eligibleVoters,groupEligibleVoters,groupChoices,groupRoundPoints,groupStandings};
