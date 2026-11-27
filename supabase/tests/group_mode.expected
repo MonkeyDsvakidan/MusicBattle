@@ -1,0 +1,157 @@
+G01 bad rounds|ERR: invalid round count
+G02 create|rows=1
+G03 code|rows=1
+G04 room|group false 3 two -
+G05 join|2
+G06 join|3
+G07 join|4
+G08 join|5
+G09 leave|rows=1
+G10 join takes free seat|3
+G11 leave|rows=1
+G12 members|Ana:1:1,Ben:2:2,Fay:3:3,Dia:4:4
+G13 direct status|ERR: use mb_start_draft
+G14 teams off|ERR: teams not enabled
+G15 not ready|ERR: spotify not ready
+G16 sp|rows=1
+G17 sp|rows=1
+G18 guest start|ERR: host only
+G19 sp seat 3|rows=1
+G20 sp|rows=1
+G21 start|rows=1
+G22 start again|ERR: already started
+G23 room|draft cc4
+G24 members|Ana:1:1,Ben:2:2,Fay:3:3,Dia:4:4
+G25 late player|ERR: already started
+G26 turn|1
+G27 pick r1|rows=1
+G28 pick other corner|ERR: new row violates row-level security policy for table "mb_draft_picks"
+G29 pick round 4|ERR: new row violates row-level security policy for table "mb_draft_picks"
+G30 turn|2
+G31 sees|0
+G32 pick|rows=1
+G33 turn|3
+G34 propose|rows=1
+G35 accept 1|rows=1
+G36 accept 1 again|rows=1
+G37 proposal|[1] {}
+G38 accept 2|rows=1
+G39 accept 4|rows=1
+G40 skips|- {zz}
+G41 propose|rows=1
+G42 accept 2|rows=1
+G43 reject 4|rows=1
+G44 skips|- {zz}
+G45 skip|rows=1
+G46 skip again|ERR: draft skip unavailable
+G47 pick|rows=1
+G48 pick|rows=1
+G49 turn|1
+G50 picks|rows=2
+G51 picks|rows=2
+G52 picks|rows=2
+G53 picks|rows=2
+G54 battle 5|ERR: three rounds required
+G55 battle 3|rows=1
+G56 room|battle r1
+G57 sees|1:1,1:2,1:3,1:4,2:2,3:2
+G58 sub|rows=3
+G59 sub|rows=3
+G60 sub|rows=3
+G61 vote 3 of 4 songs|ERR: songs not revealed
+G62 sub|rows=3
+G63 vote own|ERR: no vote for own song
+G64 vote 5|ERR: invalid vote: theme
+G65 vote|5
+G66 vote|5
+G67 vote|5
+G68 vote|5
+G69 voter corners|1,2,3,4
+G70 advance wrong round|ERR: voting closed
+G71 advance guest|ERR: host only
+G72 advance 1|rows=1
+G73 advance 1 again|rows=1
+G74 round 1|{"1": 15, "2": 5, "3": 0, "4": 0} w1 complete
+G75 vote|5
+G76 vote|5
+G77 vote|5
+G78 vote|5
+G79 advance 2|rows=1
+G80 vote|5
+G81 vote|5
+G82 vote|5
+G83 vote|5
+G84 advance 3|rows=1
+G85 room|tiebreak r3 {1,2}
+G86 rounds|1:{"1": 15, "2": 5, "3": 0, "4": 0}:1 | 2:{"1": 5, "2": 15, "3": 0, "4": 0}:2 | 3:{"1": 9, "2": 9, "3": 1, "4": 1}:-
+G87 sudden|rows=1
+G88 turn|1
+G89 pick not tied|ERR: new row violates row-level security policy for table "mb_draft_picks"
+G90 propose not tied|ERR: shared skip unavailable
+G91 propose|rows=1
+G92 answer not tied|ERR: shared skip unavailable
+G93 accept|rows=1
+G94 pick|rows=1
+G95 begin early|ERR: two sudden death artists required
+G96 turn|2
+G97 pick|rows=1
+G98 begin|rows=1
+G99 sub|rows=1
+GA0 sub|rows=1
+GA1 tied votes|ERR: tied corners do not vote
+GA2 vote 3|ERR: invalid vote: theme
+GA3 vote|5
+GA4 vote|5
+GA5 advance no decision|ERR: host decision required
+GA6 advance not tied|ERR: host decision required
+GA7 advance host 2|rows=1
+GA8 room|finished r6
+GA9 round 6|{"1": 5, "2": 5} w2
+GB0 rematch|rows=1
+GB1 new room|draft group 3 true cc4
+GB2 members|Ana:1:1,Ben:2:2,Fay:3:3,Dia:4:4
+T01 create|rows=1
+T02 code|rows=1
+T03 join|2
+T04 join|3
+T05 join|4
+T06 join|5
+T07 teams auto|Ana:1,Ben:2,Cem:1,Dia:2,Eli:1
+T08 guest sets team|ERR: host only
+T09 bad team|ERR: invalid corner
+T10 set Eli 3|rows=1
+T11 set Ben 3|rows=1
+T12 set Dia 3|rows=1
+T13 all one team|ERR: permission denied for table mb_members
+T14 set Ana 3|rows=1
+T15 set Cem 3|rows=1
+T16 one team|ERR: not enough teams
+T17 Ana+Cem 1|rows=2
+T19 start|rows=1
+T20 teams|Ana:1:1,Ben:2:2,Cem:3:1,Dia:4:2,Eli:5:2
+T21 room|draft cc2
+T22 set after start|ERR: already started
+T23 captain pick|rows=1
+T24 pick other team|ERR: new row violates row-level security policy for table "mb_draft_picks"
+T25 teammate sees|1
+T26 other team sees|0
+T27 skip team 1|rows=1
+T28 skip team 1 again|ERR: draft skip unavailable
+T29 propose team 2|rows=1
+T30 accept team 1|rows=1
+T31 skips|- {zq}
+T32 battle|rows=1
+T33 sub|rows=1
+T34 sub|rows=1
+T35 vote own team|5
+T36 vote 3|ERR: invalid vote: theme
+T37 voter corner|1
+F01 create|rows=1
+F02|2
+F03|3
+F04|4
+F05|5
+F06|6
+F07 full|ERR: group full
+F08 juror|juror
+F09 local p2|ERR: local player 2 is only available in one-device lobby

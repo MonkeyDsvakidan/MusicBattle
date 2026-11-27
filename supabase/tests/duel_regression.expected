@@ -6,7 +6,7 @@ A05 join p3|ERR: player slots full
 A06 join quizzer|ERR: this room is a battle
 A07 local p2 by guest|ERR: local player 2 is only available in one-device lobby
 A08 sp wrong slot|ERR: player slot not owned by user
-A09 sp slot 3|ERR: invalid player slot
+A09 sp slot 3|ERR: player slot not owned by user
 A10 sp p2|rows=1
 A11 guest status|rows=0
 A12 sp p1|rows=1
@@ -38,7 +38,7 @@ A37 propose taken|ERR: shared skip unavailable
 A38 dup artist|ERR: duplicate key value violates unique constraint "mb_draft_picks_room_id_spotify_artist_id_key"
 A39 pick r1 s2|rows=1
 A40 pick r1 s2 again|ERR: duplicate key value violates unique constraint "mb_draft_picks_room_id_player_slot_round_number_key"
-A41 pick r7|ERR: new row for relation "mb_draft_picks" violates check constraint "mb_draft_picks_round_number_check"
+A41 pick r7|ERR: new row violates row-level security policy for table "mb_draft_picks"
 A42 picks p1|rows=4
 A43 picks p2|rows=4
 A44 turn after 10|1
