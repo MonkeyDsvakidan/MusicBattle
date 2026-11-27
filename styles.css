@@ -19,6 +19,10 @@
   --muted:#b8a8d4;         /* Nebentext, Kontrast ≥ 7:1 auf --surface */
   --a:#ff3fa4;             /* Spieler A / Slot 1 – Pink */
   --b:#38e1ff;             /* Spieler B / Slot 2 – Cyan */
+  --c3:#b8f25c;            /* Gruppe (M.4, Entscheid «Neon-Club»): Ecke 3 – Lime */
+  --c4:#ff8a3d;            /* Ecke 4 – Orange */
+  --c5:#a78bfa;            /* Ecke 5 – Violett */
+  --c6:#5b8cff;            /* Ecke 6 – Blau */
   --gold:#ffd166;          /* Thema, Punktezettel-Linie, Sieg */
   --cta-end:#ff7a59;       /* Ende des Hauptbutton-Verlaufs */
   --on-cta:#1a0c22;        /* Text auf Pink/Gold */
@@ -162,7 +166,20 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .grouppick{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s2);padding:var(--s2);border-radius:var(--r-s);background:rgba(255,255,255,.04);font-size:13px}
 .grouppick span{color:var(--muted);flex:none;max-width:45%;overflow-wrap:anywhere}
 .grouppick b{font-weight:600;text-align:right;overflow-wrap:anywhere}
-.grouppick.own{box-shadow:inset 3px 0 0 var(--text)}
+.grouppick.own{background:rgba(255,255,255,.09)}
+/* Eckenfarben (M.4): .cN setzt --corner, Bausteine nutzen sie */
+.c1{--corner:var(--a)}.c2{--corner:var(--b)}.c3{--corner:var(--c3)}.c4{--corner:var(--c4)}.c5{--corner:var(--c5)}.c6{--corner:var(--c6)}
+.grouppick{box-shadow:inset 3px 0 0 var(--corner,transparent)}
+.grouppick span{color:var(--corner,var(--muted))}
+.turnbanner.c3,.turnbanner.c4,.turnbanner.c5,.turnbanner.c6,.turnbanner.c1,.turnbanner.c2{border-color:var(--corner)}
+.turnbanner.c3 strong,.turnbanner.c4 strong,.turnbanner.c5 strong,.turnbanner.c6 strong,.turnbanner.c1 strong,.turnbanner.c2 strong{color:var(--corner)}
+.teamblock>.eyebrow{color:var(--corner,var(--muted))}
+/* Battle Gruppe (M.4): eine Karte je Ecke, untereinander */
+.cornerlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--s3);margin-top:var(--s4)}
+.cornercard{padding:var(--s4);border-radius:var(--r-l);background:var(--surface-2);border:1px solid var(--line);border-left:4px solid var(--corner,var(--line-strong))}
+.cornercard .eyebrow{color:var(--corner,var(--muted))}
+.cornercard h3{margin:var(--s1) 0 0}
+.cornercard .songname{font:400 26px/1.15 var(--f-title);margin:var(--s3) 0 var(--s1);overflow-wrap:anywhere}
 .grouppick.empty b,.grouppick.veiled b{color:var(--muted);font-weight:400;font-style:italic}
 .modeicon{width:44px;height:44px;border-radius:var(--r-m);display:grid;place-items:center;font:400 20px var(--f-num);background:var(--surface-3);border:1px solid var(--line-strong);color:var(--gold)}
 .joinrole{display:grid;grid-template-columns:1fr minmax(220px,.8fr);gap:var(--s4);padding:var(--s4);border:1px solid var(--line);border-radius:var(--r-l);background:var(--surface-2)}

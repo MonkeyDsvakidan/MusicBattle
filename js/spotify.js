@@ -182,8 +182,9 @@ async function hydrateSpotify(slotNo){
 
 function waitSdk(){return new Promise((ok,no)=>{if(window.Spotify?.Player)return ok();let n=0,t=setInterval(()=>{if(window.Spotify?.Player){clearInterval(t);ok()}else if(++n>100){clearInterval(t);no(Error("Spotify SDK lädt nicht"))}},100)})}
 
+// Gruppe (M.4): Musik nur am Host-Gerät mit dessen Anmeldung (Speicherplatz 1), auch für die Songs der anderen
 function playbackSlotForBrowser(slotNo){
-  return S.room?.device_mode==="single"?1:slotNo;
+  return S.room?.device_mode==="single"||isGroupRoom()?1:slotNo;
 }
 
 async function ensurePlayer(slotNo){
@@ -194,7 +195,7 @@ async function ensurePlayer(slotNo){
   if(!t)throw Error(`Spotify Login für Spieler ${playbackSlot} fehlt`);
   return new Promise(async(ok,no)=>{
     const p=new Spotify.Player({
-      name:S.room?.device_mode==="single"?"Music Battle · Pass & Play":`Music Battle · Spieler ${playbackSlot}`,
+      name:isGroupRoom()?"Music Battle · Gruppe":S.room?.device_mode==="single"?"Music Battle · Pass & Play":`Music Battle · Spieler ${playbackSlot}`,
       getOAuthToken:cb=>token(playbackSlot).then(cb).catch(()=>cb("")),
       volume:.75
     });

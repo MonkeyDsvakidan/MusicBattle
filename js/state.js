@@ -45,6 +45,10 @@ function roomStorage(){return JSON.parse(localStorage.getItem("mb_online_room")|
  function poolSlot(corner){return isGroupRoom()?1:corner}
 
 // Eigener Skip ist pro Ecke einmal (im Team für alle zusammen)
+ function cornerPick(c){const n=Number(S.room?.current_round||1);return S.picks.find(p=>p.round_number===n&&p.player_slot===c)}
+
+ function cornerSub(c){const rid=currentRound()?.id;return S.subs.find(x=>x.round_id===rid&&x.player_slot===c)}
+
  function cornerSkipUsed(c){return S.members.some(m=>m.role==="player"&&(m.corner??m.player_slot)===c&&m.draft_skip_used)}
 
  function memberName(slotNo){return S.members.find(m=>m.player_slot===slotNo)?.display_name||`Spieler ${slotNo}`}
