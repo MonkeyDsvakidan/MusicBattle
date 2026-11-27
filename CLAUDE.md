@@ -125,6 +125,8 @@ Bildschirm-Zustände lassen sich auch ohne Datenbank prüfen (seit 4.2): neuen C
 
 Reine Logik (z. B. Abstimmung, Quiz-Fragen) wird als reine Funktion geschrieben und mit `node --test` getestet. Tests liegen in `tests/*.test.js` und `tests/*.test.mjs`; ausführen im Repo-Root mit `node --test` (ohne Pfad).
 
+Datenbank-Regeln (RPCs, RLS) lokal testen (seit M.1): `bash supabase/tests/run.sh` baut eine frische Postgres-Datenbank mit Supabase-Platzhaltern (`stub.sql`) und allen Migrationen und vergleicht jedes `supabase/tests/*.sql` mit seiner `*.expected`-Datei (`--update` schreibt sie neu – nur bewusst, Änderungen im Diff begründen). `duel_regression.sql` sichert den 1v1-Ablauf ab: bei jeder Migration, die 1v1-Funktionen anfasst, laufen lassen.
+
 ## Glossar
 - **Slot** – Spielerplatz 1 oder 2 (A = Slot 1, B = Slot 2)
 - **Host** – Ersteller des Raums (Spieler 1), steuert Rundenwechsel und entscheidet bei Gleichstand

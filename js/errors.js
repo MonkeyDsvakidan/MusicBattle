@@ -71,6 +71,20 @@ const BACKEND_ERRORS={
   "this room uses one-device pass & play":"Dieses Match läuft auf einem Gerät – du kannst nur als Juror beitreten.",
   "two sudden death artists required":"Für Sudden Death braucht es zwei Künstler.",
   "voting closed":"Die Abstimmung ist schon geschlossen.",
+  // Mehrspieler (M.1)
+  "group full":"Die Gruppe ist voll (höchstens 6 Spieler). Du kannst als Juror beitreten.",
+  "host decision required":"Gleichstand – der Host muss entscheiden.",
+  "invalid corner":"Ungültiges Team.",
+  "invalid round count":"Bitte 3 oder 5 Runden wählen.",
+  "no vote for own song":"Für den eigenen Song kannst du nicht stimmen.",
+  "not enough players":"Es braucht mindestens 3 Spieler – zu zweit spielt ihr 1v1.",
+  "not enough teams":"Es braucht mindestens 2 Teams.",
+  "spotify not ready":"Noch nicht alle haben Spotify verbunden.",
+  "sudden death artists missing":"Für die Entscheidung fehlen noch Künstler.",
+  "teams not enabled":"In diesem Raum gibt es keine Teams.",
+  "three rounds required":"Es braucht zuerst drei Runden mit Künstlern.",
+  "tied corners do not vote":"In der Entscheidung stimmen nur die anderen ab.",
+  "use mb_start_draft":"Das geht gerade nicht. Lade die Seite neu.",
 };
 // raise exception mit Platzhalter (z. B. «invalid vote: theme»)
 const BACKEND_PREFIXES=[
