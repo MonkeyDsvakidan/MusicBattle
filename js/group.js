@@ -44,4 +44,17 @@ function cornerLabel(members,corner,teamMode){
   return cornerMembers(members,corner)[0]?.display_name||`Spieler ${corner}`;
 }
 
-if(typeof module!=="undefined")module.exports={GROUP_MIN_PLAYERS,GROUP_MAX_PLAYERS,GROUP_MAX_TEAMS,groupLobbyStatus,shuffledTeams,draftTurnCorner,cornerMembers,draftCaptain,cornerLabel};
+// ---------- Battle (M.4) ----------
+// Ecken, die in einer Runde spielen (wie mb_corners_in_play): Entscheidung (Runde 6) nur die Punktgleichen
+function cornersInPlay(room,roundNumber){
+  if(Number(roundNumber)===6)return (room?.sudden_corners?.length?room.sudden_corners:[1,2]).map(Number);
+  return Array.from({length:Math.max(2,Number(room?.corner_count)||2)},(_,i)=>i+1);
+}
+// Wer wählt den Song einer Ecke: wer den Künstler dieser Runde gezogen hat (im Team die Person, aus deren
+// Spotify er stammt); ist sie nicht mehr im Raum, die erste Person der Ecke
+function songChooser(members,pick,corner){
+  const team=cornerMembers(members,corner);
+  return team.find(m=>pick&&m.user_id===pick.player_user_id)||team[0]||null;
+}
+
+if(typeof module!=="undefined")module.exports={GROUP_MIN_PLAYERS,GROUP_MAX_PLAYERS,GROUP_MAX_TEAMS,groupLobbyStatus,shuffledTeams,draftTurnCorner,cornerMembers,draftCaptain,cornerLabel,cornersInPlay,songChooser};

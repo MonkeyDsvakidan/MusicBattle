@@ -114,7 +114,7 @@ function renderGroupLobby(){
   const row=p=>{const mine=p.player_slot===mySeat;
     const status=p.spotify_ready?`<span class="chip ok">Spotify bereit</span>`:mine?`<button class="btn primary" data-connect-slot="1">Spotify verbinden</button>`:`<span class="chip">verbindet auf eigenem Gerät</span>`;
     return`<div class="member groupmember"><div><strong>${esc(p.display_name)}${mine?" (du)":""}</strong><small>Platz ${p.player_slot}${p.user_id===S.room.host_user_id?" · Host":""}</small></div>${teams?teamPick(p):""}${status}</div>`};
-  const byTeam=teams?st.teams.map(t=>`<div class="teamblock"><div class="eyebrow">TEAM ${t}</div><div class="stack">${st.players.filter(p=>p.corner===t).map(row).join("")}</div></div>`).join(""):`<div class="stack">${st.players.map(row).join("")}</div>`;
+  const byTeam=teams?st.teams.map(t=>`<div class="teamblock c${t}"><div class="eyebrow">TEAM ${t}</div><div class="stack">${st.players.filter(p=>p.corner===t).map(row).join("")}</div></div>`).join(""):`<div class="stack">${st.players.map(row).join("")}</div>`;
   const settings=[`${S.room.round_count} RUNDEN`,teams?"TEAMS":"",S.room.draft_hidden?"VERDECKTER DRAFT":""].filter(Boolean).join(" · ");
   $("app").innerHTML=`<section class="card lobby"><div class="eyebrow">LOBBY · GRUPPE · ${settings}</div><h2 class="roomcode">${esc(S.room.code)}</h2>${inviteBlock(false)}${errorNotice()}${S.notice?`<div class="notice">${esc(S.notice)}</div>`:""}
     <p class="muted groupcount">${st.players.length} von ${GROUP_MAX_PLAYERS} Spielern${st.full?" – die Gruppe ist voll":""}. Ihr dürft dasselbe Spotify-Konto nutzen.</p>
@@ -156,14 +156,14 @@ function renderGroupDraft(){
   const turn=draftTurnCorner(S.picks,cc),captain=draftCaptain(S.members,S.picks,turn),prop=S.room.draft_skip_proposal||null;
   const myTurn=!filled&&captain?.user_id===S.user?.id,teamTurn=!filled&&!myTurn&&ownsCorner(turn);
   const holding=myTurn&&S.currentArtist&&S.currentArtistSlot===turn,corners=Array.from({length:cc},(_,i)=>i+1);
-  const banner=filled?"":`<div class="turnbanner" role="status"><small>WER IST DRAN?</small><strong>${esc(cornerLabel(S.members,turn,teams))}</strong><span>${myTurn?(teams?"Du ziehst für dein Team.":"Du bist dran."):teams&&captain?`${esc(captain.display_name)} zieht.`:""}</span></div>`;
+  const banner=filled?"":`<div class="turnbanner c${turn}" role="status"><small>WER IST DRAN?</small><strong>${esc(cornerLabel(S.members,turn,teams))}</strong><span>${myTurn?(teams?"Du ziehst für dein Team.":"Du bist dran."):teams&&captain?`${esc(captain.display_name)} zieht.`:""}</span></div>`;
   const panel=prop&&!filled?groupSkipPanel(prop)
     :myTurn?`<div class="artistdraw">${holding?`${S.currentArtist.image?`<img src="${esc(S.currentArtist.image)}" alt="">`:""}<h2>${esc(S.currentArtist.name)}</h2><p class="muted">Wähle eine freie Runde für diesen Künstler.</p><div class="actions centered">${cornerSkipUsed(turn)?`<span class="chip">Skip benutzt</span>`:`<button class="btn danger" id="skipArtist">Skip (1×)</button>`}<button class="btn ghost" id="sharedSkip">Gemeinsam überspringen</button></div>`:`<h2>?</h2><p class="muted">Zufällig aus deinem Spotify-Pool.</p><button class="btn primary" id="drawArtist">Künstler ziehen</button>`}</div>`
     :teamTurn?`<div class="notice">${esc(captain?.display_name||"")} zieht gerade für euer Team – redet mit, welche Runde passt.</div>`
     :filled?`<div class="notice">Alle Künstler sind verteilt – die Themen werden jetzt aufgedeckt.</div>`:"";
   const board=Array.from({length:rc},(_,i)=>i+1).map(n=>{
     const free=holding&&!prop&&!S.picks.some(p=>p.round_number===n&&p.player_slot===turn);
-    return`<div class="groupround${free?" selectable":""}" data-round="${n}"${free?' role="button" tabindex="0"':""}><div class="roundnum">Runde ${n}${n===rc?" · ×2":""}${free?`<span class="slotcta">hier einsetzen</span>`:""}</div>${corners.map(c=>{const p=S.picks.find(x=>x.round_number===n&&x.player_slot===c);return`<div class="grouppick${!p?" empty":p.hidden?" veiled":""}${ownsCorner(c)?" own":""}"><span>${esc(groupCornerLabel(c))}</span><b>${!p?"frei":p.hidden?"verdeckt":esc(p.artist_name)}</b></div>`}).join("")}</div>`}).join("");
+    return`<div class="groupround${free?" selectable":""}" data-round="${n}"${free?' role="button" tabindex="0"':""}><div class="roundnum">Runde ${n}${n===rc?" · ×2":""}${free?`<span class="slotcta">hier einsetzen</span>`:""}</div>${corners.map(c=>{const p=S.picks.find(x=>x.round_number===n&&x.player_slot===c);return`<div class="grouppick c${c}${!p?" empty":p.hidden?" veiled":""}${ownsCorner(c)?" own":""}"><span>${esc(groupCornerLabel(c))}</span><b>${!p?"frei":p.hidden?"verdeckt":esc(p.artist_name)}</b></div>`}).join("")}</div>`}).join("");
   $("app").innerHTML=`<section class="card"><div class="sectionhead"><div><div class="eyebrow">DRAFT · GRUPPE</div><h2>${filled?"Draft abgeschlossen":"Künstler verteilen"}</h2></div><span class="chip">${done}/${rc*cc} Künstler</span></div>${banner}${errorNotice()}${panel}<div class="grouprounds">${board}</div>${roomExitControls()}</section>`;
   if($("drawArtist"))$("drawArtist").onclick=()=>drawArtist(turn);
   if($("skipArtist"))$("skipArtist").onclick=()=>useDraftSkip(turn);
@@ -174,9 +174,50 @@ function renderGroupDraft(){
   if(filled&&isHost()&&(S.rounds||[]).length===0&&S.room?.status!=="battle")initializeRounds();
 }
 
-// Gruppe nach dem Draft: Battle und Wertung folgen in M.4–M.7
+// ---------- Gruppe (M.4): Battle mit 3–6 Songs ----------
+// Jede Ecke reicht verdeckt einen Song ein (wer den Künstler gezogen hat), sind alle drin, werden alle
+// gleichzeitig aufgedeckt. Musik nur am Host-Gerät (Entscheid M.0), dort nacheinander abspielen.
+function groupSearchBlock(c){
+  const results=S.searchResults[c]||[],suggested=S.suggestions[`${currentRound()?.id}:${c}`]||[];
+  return`<div style="margin-top:14px"><div class="playcontrols"><input id="songSearch${c}" value="${esc(S.searchQuery[c]||"")}" placeholder="Song suchen…" autocomplete="off"><button class="btn primary" data-search-slot="${c}">Suchen</button></div>${!results.length&&suggested.length?`<div class="eyebrow suggest-head">Vorschläge</div>`:""}<div class="results">${(results.length?results:suggested).map(t=>`<div class="track" data-slot="${c}" data-id="${esc(t.id)}">${t.image?`<img src="${esc(t.image)}" alt="">`:"<span></span>"}<div><strong>${esc(t.name)}</strong><small>${t.source?`${t.source==="top"?"Oft gehört":"Spotify"} · `:""}${esc(t.album)}</small></div><span class="chip">Einreichen</span></div>`).join("")}</div><p class="muted hint">Eingereicht ist eingereicht – kein Wechsel mehr.</p></div>`;
+}
+function groupStartSlider(c,sub){return`<label style="margin-top:12px">Startpunkt: <span id="startLabel${c}">${Math.round((sub.start_ms||0)/1000)}s</span></label><input type="range" class="range" min="0" max="90" value="${Math.round((sub.start_ms||0)/1000)}" id="start${c}">`}
+function groupCornerCard(c,all){
+  const pick=cornerPick(c),sub=cornerSub(c),chooser=songChooser(S.members,pick,c),iChoose=chooser?.user_id===S.user?.id,mineSub=sub&&sub.player_user_id===S.user?.id;
+  const head=`<div class="artistline">${pick?.artist_image_url?`<img src="${esc(pick.artist_image_url)}" alt="">`:""}<div><div class="eyebrow">${esc(groupCornerLabel(c))}</div><h3>${esc(pick?.artist_name||"")}</h3></div></div>`;
+  let body;
+  if(all){
+    body=`<div class="songname">${esc(sub.song_name)}</div><div class="muted">${esc(sub.artist_name)}${sub.album_name?` · ${esc(sub.album_name)}`:""}</div>${mineSub?groupStartSlider(c,sub):""}${isHost()?`<div class="playcontrols"><button class="btn green" data-play="${c}">▶︎ Abspielen</button><button class="btn" data-pause="${c}">❚❚ Pause</button></div>`:""}`;
+  }else if(sub){
+    body=`<div class="lockbadge">✓ Song eingereicht</div>${mineSub?`<p class="muted" style="margin:var(--s2) 0 0">Bleibt verdeckt, bis alle eingereicht haben.</p>${groupStartSlider(c,sub)}`:""}`;
+  }else if(iChoose){
+    body=groupSearchBlock(c);
+  }else if(ownsCorner(c)){
+    body=`<p class="muted">${esc(chooser?.display_name||"")} wählt den Song für euer Team – redet mit.</p>`;
+  }else{
+    body=`<div class="lockedpick"><div class="lockicon">●</div><strong>Wählt noch…</strong></div>`;
+  }
+  return`<div class="cornercard c${c}">${head}${body}</div>`;
+}
+function renderGroupBattle(){
+  const r=currentRound();if(!r){$("app").innerHTML="<div class='card loading'>Runde wird vorbereitet…</div>";return}
+  const corners=cornersInPlay(S.room,r.round_number),done=corners.filter(c=>cornerSub(c)).length,all=done===corners.length,rc=roundCount();
+  const label=r.round_number===6?"ENTSCHEIDUNG":`RUNDE ${r.round_number} VON ${rc}${r.round_number===rc?" · DOPPELTE PUNKTE":""}`;
+  const hostLine=all?(isHost()?`<p class="muted hint">Die Musik läuft auf deinem Gerät – spielt die Songs nacheinander ab.</p>`:`<p class="muted hint">Die Musik läuft beim Host (${esc(S.members.find(m=>m.user_id===S.room.host_user_id)?.display_name||"Host")}).</p>`):"";
+  $("app").innerHTML=`<section class="card"><div class="battle-title"><div class="eyebrow">${label}${r.round_number===6||!r.category?"":` · ${esc(r.category)}`}</div><h2>${esc(r.theme)}</h2><span class="chip">${done} von ${corners.length} eingereicht</span></div>${errorNotice()}${S.notice?`<div class="notice">${esc(S.notice)}</div>`:""}${hostLine}<div class="cornerlist"${all?animAttr(`reveal:${r.id}`,1500):""}>${corners.map(c=>groupCornerCard(c,all)).join("")}</div>${all?`<div class="notice" style="margin-top:var(--s4)">Die Abstimmung für Gruppen ist noch im Bau – sie folgt als Nächstes.</div>`:`<p class="muted hint centered-text">Alle Songs werden gleichzeitig aufgedeckt.</p>`}${roomExitControls()}</section>`;
+  document.querySelectorAll("[data-search-slot]").forEach(b=>b.onclick=()=>searchTracks(Number(b.dataset.searchSlot)));
+  document.querySelectorAll("[id^=songSearch]").forEach(el=>el.onkeydown=e=>{if(e.key==="Enter")searchTracks(Number(el.id.slice(10)))});
+  document.querySelectorAll(".track").forEach(x=>x.onclick=()=>{const n=Number(x.dataset.slot),t=[...(S.searchResults[n]||[]),...(S.suggestions[`${r.id}:${n}`]||[])].find(t=>t.id===x.dataset.id);if(t)submitTrack(n,t)});
+  corners.forEach(c=>{const pick=cornerPick(c);if(!cornerSub(c)&&pick&&songChooser(S.members,pick,c)?.user_id===S.user?.id)loadSuggestions(c,pick,r.id);
+    const el=$(`start${c}`);if(el){el.oninput=()=>{$(`startLabel${c}`).textContent=el.value+"s"};el.onchange=()=>updateStart(c,Number(el.value)*1000)}});
+  document.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>playSubmission(cornerSub(Number(b.dataset.play))));
+  document.querySelectorAll("[data-pause]").forEach(b=>b.onclick=()=>pause(Number(b.dataset.pause)));
+  bindRoomExitControls();
+}
+
+// Gruppe nach dem Battle: Abstimmung und Wertung folgen in M.5–M.7
 function renderGroupInProgress(){
-  $("app").innerHTML=`<section class="card"><div class="eyebrow">GRUPPE · RAUM ${esc(S.room.code)}</div><h2>Das Battle für Gruppen ist noch im Bau</h2><p class="muted">Lobby und Draft funktionieren schon. Songs, Abstimmung und Wertung für 3–6 Personen kommen als Nächstes.</p>${roomExitControls()}</section>`;
+  $("app").innerHTML=`<section class="card"><div class="eyebrow">GRUPPE · RAUM ${esc(S.room.code)}</div><h2>Dieser Teil ist für Gruppen noch im Bau</h2><p class="muted">Lobby, Draft und Battle funktionieren schon. Abstimmung, Wertung und Endstand für 3–6 Personen kommen als Nächstes.</p>${roomExitControls()}</section>`;
   bindRoomExitControls();
 }
 

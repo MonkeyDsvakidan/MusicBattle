@@ -1,7 +1,7 @@
 // Lobby-Logik Gruppenmodus (M.2). Ausführen im Repo-Root: node --test
 const test=require("node:test");
 const assert=require("node:assert/strict");
-const {groupLobbyStatus,shuffledTeams,draftTurnCorner,cornerMembers,draftCaptain,cornerLabel}=require("../js/group.js");
+const {groupLobbyStatus,shuffledTeams,draftTurnCorner,cornerMembers,draftCaptain,cornerLabel,cornersInPlay,songChooser}=require("../js/group.js");
 
 const p=(slot,name,ready=true,corner=slot)=>({id:"m"+slot,role:"player",player_slot:slot,corner,display_name:name,spotify_ready:ready});
 
@@ -63,4 +63,19 @@ test("Name der Ecke",()=>{
   assert.equal(cornerLabel(members,2,false),"Ben");
   assert.equal(cornerLabel(members,2,true),"Team 2");
   assert.equal(cornerLabel(members,4,false),"Spieler 4");
+});
+
+test("Ecken im Spiel: alle, in der Entscheidung nur die Gleichen",()=>{
+  assert.deepEqual(cornersInPlay({corner_count:4},2),[1,2,3,4]);
+  assert.deepEqual(cornersInPlay({corner_count:4,sudden_corners:[2,4]},6),[2,4]);
+  assert.deepEqual(cornersInPlay({},6),[1,2]);
+  assert.deepEqual(cornersInPlay({},1),[1,2]);
+});
+
+test("Song wählt, wer den Künstler gezogen hat",()=>{
+  const members=[{...p(1,"Ana",true,1),user_id:"u1"},{...p(3,"Cem",true,1),user_id:"u3"},{...p(2,"Ben",true,2),user_id:"u2"}];
+  assert.equal(songChooser(members,{player_user_id:"u3"},1).display_name,"Cem");
+  assert.equal(songChooser(members,{player_user_id:"weg"},1).display_name,"Ana");
+  assert.equal(songChooser(members,null,2).display_name,"Ben");
+  assert.equal(songChooser(members,{player_user_id:"u1"},5),null);
 });
