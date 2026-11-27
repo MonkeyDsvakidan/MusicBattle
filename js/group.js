@@ -22,4 +22,26 @@ function shuffledTeams(players,teamsInUse,rand=Math.random){
   return list.map((p,i)=>({id:p.id,corner:i%k+1}));
 }
 
-if(typeof module!=="undefined")module.exports={GROUP_MIN_PLAYERS,GROUP_MAX_PLAYERS,GROUP_MAX_TEAMS,groupLobbyStatus,shuffledTeams};
+// ---------- Draft (M.3) ----------
+// Wer ist dran: reihum Ecke 1, 2, 3 … (wie mb_draft_turn_slot); nur Picks der normalen Runden zählen
+function draftTurnCorner(picks,cornerCount){
+  const n=(picks||[]).filter(p=>p.round_number<=5).length;
+  return n%Math.max(2,cornerCount||2)+1;
+}
+// Spieler einer Ecke, nach Platz sortiert (ohne Teams genau eine Person)
+function cornerMembers(members,corner){
+  return (members||[]).filter(m=>m.role==="player"&&(m.corner??m.player_slot)===corner).sort((a,b)=>a.player_slot-b.player_slot);
+}
+// Team: wer zieht beim nächsten Zug der Ecke? Reihum nach Platz – 1. Zug die erste Person, 2. Zug die zweite …
+function draftCaptain(members,picks,corner){
+  const team=cornerMembers(members,corner);if(!team.length)return null;
+  const done=(picks||[]).filter(p=>p.player_slot===corner&&p.round_number<=5).length;
+  return team[done%team.length];
+}
+// Name einer Ecke: mit Teams «Team n», sonst der Name der Person
+function cornerLabel(members,corner,teamMode){
+  if(teamMode)return`Team ${corner}`;
+  return cornerMembers(members,corner)[0]?.display_name||`Spieler ${corner}`;
+}
+
+if(typeof module!=="undefined")module.exports={GROUP_MIN_PLAYERS,GROUP_MAX_PLAYERS,GROUP_MAX_TEAMS,groupLobbyStatus,shuffledTeams,draftTurnCorner,cornerMembers,draftCaptain,cornerLabel};
