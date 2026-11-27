@@ -132,7 +132,8 @@ function render(){
   $("roomBadge").innerHTML=`<span class="chip">${esc(S.room.code)} · ${role()==="player"?(localSlots.length===2?"SPIELER 1 + 2":`SPIELER ${localSlots[0]}`):"JURY"}</span>`;
   if(isGroupRoom()&&S.room.status==="battle"){renderGroupBattle();$("app").insertAdjacentHTML("afterbegin",flowSteps());return}
   if(isGroupRoom()&&S.room.status==="draft"){renderGroupDraft();$("app").insertAdjacentHTML("afterbegin",flowSteps());return}
-  if(isGroupRoom()&&!["lobby","closed"].includes(S.room.status)){renderGroupInProgress();$("app").insertAdjacentHTML("afterbegin",flowSteps());return}
+  const groupScreen=isGroupRoom()&&{tiebreak:renderGroupTiebreak,sudden_draft:renderGroupSuddenDraft,finished:renderGroupFinished}[S.room.status];
+  if(groupScreen){groupScreen();$("app").insertAdjacentHTML("afterbegin",flowSteps());return}
   if(S.room.status==="lobby")renderLobby();else if(S.room.status==="draft")renderDraft();else if(S.room.status==="battle")renderBattle();else if(S.room.status==="tiebreak")renderTiebreak();else if(S.room.status==="sudden_draft")renderSuddenDraft();else if(S.room.status==="finished")renderFinished();else if(S.room.status==="closed"){renderClosed();return}else renderLobby();
   renderMissingPlayerNotice();
   $("app").insertAdjacentHTML("afterbegin",flowSteps());

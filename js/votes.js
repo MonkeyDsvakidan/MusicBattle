@@ -99,4 +99,18 @@ function groupStandings(rounds,cornerCount,roundCount,live){
   return totals;
 }
 
-if(typeof module!=="undefined")module.exports={VOTE_CATEGORIES,countedVotes,categoryResult,voteProgress,eligibleVoters,groupEligibleVoters,groupChoices,groupRoundPoints,groupStandings};
+/**
+ * Endstand (M.6): Totale wie groupStandings; hat die Entscheidung (Runde 6) einen Sieger, ist er Platz 1
+ * und die übrigen Punktgleichen teilen Platz 2 (die anderen behalten ihren Platz).
+ * @returns {Array<{corner,total,rank,decided?}>} absteigend nach Platz
+ */
+function groupFinalStandings(rounds,cornerCount,roundCount){
+  const table=groupStandings(rounds,cornerCount,roundCount);
+  const w=Number((rounds||[]).find(r=>Number(r.round_number)===6&&r.status==="complete")?.winner_slot)||null;
+  const win=w&&table.find(t=>t.corner===w&&t.rank===1);if(!win)return table;
+  for(const t of table)if(t.rank===1&&t!==win)t.rank=2;
+  win.decided=true;
+  return[win,...table.filter(t=>t!==win)];
+}
+
+if(typeof module!=="undefined")module.exports={VOTE_CATEGORIES,countedVotes,categoryResult,voteProgress,eligibleVoters,groupEligibleVoters,groupChoices,groupRoundPoints,groupStandings,groupFinalStandings};

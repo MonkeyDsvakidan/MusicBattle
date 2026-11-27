@@ -79,3 +79,12 @@ test("Song wählt, wer den Künstler gezogen hat",()=>{
   assert.equal(songChooser(members,null,2).display_name,"Ben");
   assert.equal(songChooser(members,{player_user_id:"u1"},5),null);
 });
+
+test("Entscheidungs-Draft: die Punktgleichen der Reihe nach", () => {
+  const { suddenTurnCorner } = require("../js/group.js");
+  const room = { sudden_corners: [2, 4, 5] };
+  assert.equal(suddenTurnCorner(room, [{ round_number: 3, player_slot: 2 }]), 2);
+  assert.equal(suddenTurnCorner(room, [{ round_number: 6, player_slot: 2 }]), 4);
+  assert.equal(suddenTurnCorner(room, [2, 4, 5].map(c => ({ round_number: 6, player_slot: c }))), null);
+  assert.equal(suddenTurnCorner({}, []), 1);
+});

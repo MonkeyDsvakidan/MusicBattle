@@ -56,3 +56,27 @@ test("Gruppen-Fragen in allen Kategorien, Schweizer Schreibweise", () => {
   const { VOTE_CATEGORIES } = require("../js/votes.js");
   for (const c of VOTE_CATEGORIES) assert.ok(c.groupQuestion.endsWith("?") && !c.groupQuestion.includes("ß"), c.key);
 });
+
+test("Endstand: Sieger der Entscheidung auf Platz 1, andere Gleiche Platz 2", () => {
+  const { groupFinalStandings } = require("../js/votes.js");
+  const rounds = [
+    { round_number: 1, status: "complete", points: { 1: 2, 2: 1, 3: 0 } },
+    { round_number: 2, status: "complete", points: { 1: 0, 2: 1, 3: 0 } },
+    { round_number: 3, status: "complete", points: { 1: 1, 2: 1, 3: 2 } }, // letzte Runde ×2 → 4/4/4
+  ];
+  assert.deepEqual(groupFinalStandings(rounds, 3, 3).map(t => [t.corner, t.total, t.rank]), [[1, 4, 1], [2, 4, 1], [3, 4, 1]]);
+  const decided = [...rounds, { round_number: 6, status: "complete", winner_slot: 2, points: { 1: 1, 2: 3, 3: 0 } }];
+  assert.deepEqual(groupFinalStandings(decided, 3, 3).map(t => [t.corner, t.total, t.rank, Boolean(t.decided)]), [[2, 4, 1, true], [1, 4, 2, false], [3, 4, 2, false]]);
+});
+
+test("Endstand: ohne Entscheidung zählt nur das Total, Runde 6 nicht mit", () => {
+  const { groupFinalStandings } = require("../js/votes.js");
+  const rounds = [
+    { round_number: 1, status: "complete", points: { 1: 3, 2: 0, 3: 1, 4: 0 } },
+    { round_number: 2, status: "complete", points: { 1: 0, 2: 2, 3: 2, 4: 0 } }, // ×2 → 3/4/5/0
+  ];
+  assert.deepEqual(groupFinalStandings(rounds, 4, 2).map(t => [t.corner, t.total, t.rank]), [[3, 5, 1], [2, 4, 2], [1, 3, 3], [4, 0, 4]]);
+  // Sieger der Entscheidung, der nicht vorne lag (Datenfehler): Tabelle bleibt unverändert
+  const odd = [...rounds, { round_number: 6, status: "complete", winner_slot: 4 }];
+  assert.equal(groupFinalStandings(odd, 4, 2)[0].corner, 3);
+});
