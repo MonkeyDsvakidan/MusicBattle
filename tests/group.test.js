@@ -1,7 +1,7 @@
 // Lobby-Logik Gruppenmodus (M.2). Ausführen im Repo-Root: node --test
 const test=require("node:test");
 const assert=require("node:assert/strict");
-const {groupLobbyStatus,shuffledTeams}=require("../js/group.js");
+const {groupLobbyStatus,shuffledTeams,draftTurnCorner,cornerMembers,draftCaptain,cornerLabel}=require("../js/group.js");
 
 const p=(slot,name,ready=true,corner=slot)=>({id:"m"+slot,role:"player",player_slot:slot,corner,display_name:name,spotify_ready:ready});
 
@@ -36,4 +36,31 @@ test("Teams mischen: ausgeglichen, 2–3 Teams, alle zugeteilt",()=>{
   assert.deepEqual([count(1),count(2)].sort(),[2,3]);
   assert.deepEqual([...new Set(shuffledTeams(players,3,rand).map(x=>x.corner))].sort(),[1,2,3]);
   assert.ok(shuffledTeams(players,5,rand).every(x=>x.corner<=3));
+});
+
+test("Draft reihum über alle Ecken, Runde 6 zählt nicht",()=>{
+  const pk=(slot,round)=>({player_slot:slot,round_number:round});
+  assert.equal(draftTurnCorner([],4),1);
+  assert.equal(draftTurnCorner([pk(1,1),pk(2,1),pk(3,2)],4),4);
+  assert.equal(draftTurnCorner([pk(1,1),pk(2,1),pk(3,2),pk(4,1)],4),1);
+  assert.equal(draftTurnCorner([pk(1,1)],2),2);
+  assert.equal(draftTurnCorner([pk(1,1),pk(2,1),pk(1,6)],2),1);
+});
+
+test("Team: Captain wechselt reihum nach Platz",()=>{
+  const members=[p(1,"Ana",true,1),p(2,"Ben",true,2),p(3,"Cem",true,1),p(4,"Dia",true,1),{role:"juror",display_name:"Jo"}];
+  assert.deepEqual(cornerMembers(members,1).map(m=>m.display_name),["Ana","Cem","Dia"]);
+  const pk=(slot,round)=>({player_slot:slot,round_number:round});
+  assert.equal(draftCaptain(members,[],1).display_name,"Ana");
+  assert.equal(draftCaptain(members,[pk(1,3)],1).display_name,"Cem");
+  assert.equal(draftCaptain(members,[pk(1,3),pk(1,1),pk(1,2)],1).display_name,"Ana");
+  assert.equal(draftCaptain(members,[pk(1,3)],2).display_name,"Ben");
+  assert.equal(draftCaptain(members,[],5),null);
+});
+
+test("Name der Ecke",()=>{
+  const members=[p(1,"Ana"),p(2,"Ben")];
+  assert.equal(cornerLabel(members,2,false),"Ben");
+  assert.equal(cornerLabel(members,2,true),"Team 2");
+  assert.equal(cornerLabel(members,4,false),"Spieler 4");
 });

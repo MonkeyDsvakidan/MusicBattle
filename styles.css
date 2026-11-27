@@ -154,6 +154,16 @@ input:focus,select:focus{border-color:var(--a);box-shadow:0 0 0 3px rgba(255,63,
 .teampick{display:flex;gap:var(--s2);flex-wrap:wrap}
 .teampick .btn{min-height:44px;padding:0 var(--s3)}
 .teampick .btn[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+/* Gruppe (M.3): Draft-Tafel als Liste je Runde */
+.grouprounds{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s3);margin-top:var(--s4)}
+.groupround{display:grid;gap:var(--s2);align-content:start;padding:var(--s3);border-radius:var(--r-m);background:var(--surface-2);border:1px solid var(--line)}
+.groupround.selectable{cursor:pointer;border-color:var(--gold);border-style:dashed;touch-action:manipulation}
+.groupround.selectable:hover{background:rgba(255,209,102,.08)}
+.grouppick{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s2);padding:var(--s2);border-radius:var(--r-s);background:rgba(255,255,255,.04);font-size:13px}
+.grouppick span{color:var(--muted);flex:none;max-width:45%;overflow-wrap:anywhere}
+.grouppick b{font-weight:600;text-align:right;overflow-wrap:anywhere}
+.grouppick.own{box-shadow:inset 3px 0 0 var(--text)}
+.grouppick.empty b,.grouppick.veiled b{color:var(--muted);font-weight:400;font-style:italic}
 .modeicon{width:44px;height:44px;border-radius:var(--r-m);display:grid;place-items:center;font:400 20px var(--f-num);background:var(--surface-3);border:1px solid var(--line-strong);color:var(--gold)}
 .joinrole{display:grid;grid-template-columns:1fr minmax(220px,.8fr);gap:var(--s4);padding:var(--s4);border:1px solid var(--line);border-radius:var(--r-l);background:var(--surface-2)}
 .joinrole>div:last-child{display:grid;gap:var(--s2)}

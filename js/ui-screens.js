@@ -132,9 +132,51 @@ function renderGroupLobby(){
   bindRoomExitControls();
 }
 
-// Gruppe nach der Lobby: Draft, Battle und Wertung folgen in M.3–M.7
+// ---------- Gruppe (M.3): Draft für 3–6 Ecken ----------
+// Reihum zieht jede Ecke (im Team die Person, die im Team dran ist) einen Künstler aus dem eigenen Spotify
+// und setzt ihn in eine freie Runde. Tafel als Liste je Runde (375 px: keine Tabelle mit 6 Spalten).
+function groupCornerLabel(c){const own=ownsCorner(c);return cornerLabel(S.members,c,Boolean(S.room?.team_mode))+(own?(S.room?.team_mode?" · ihr":" · du"):"")}
+function groupSkipPanel(p){
+  const others=Array.from({length:cornerCount()},(_,i)=>i+1).filter(c=>c!==p.slot),yes=p.yes||[],mine=myCorners()[0];
+  const waiting=others.filter(c=>!yes.includes(c)).map(c=>esc(groupCornerLabel(c))).join(", ");
+  const img=p.artist_image?`<img src="${esc(p.artist_image)}" alt="">`:"",name=`<h2>${esc(p.artist_name)}</h2>`;
+  if(ownsCorner(p.slot))return`<div class="artistdraw">${img}${name}<p class="muted">Gemeinsamer Skip: Alle anderen müssen zustimmen. Es fehlt noch: ${waiting}</p><div class="actions centered"><button class="btn ghost" id="skipWithdraw">Vorschlag zurückziehen</button></div></div>`;
+  if(mine&&others.includes(mine)&&!yes.includes(mine))return`<div class="artistdraw">${img}${name}<p>${esc(groupCornerLabel(p.slot))} möchte diesen Künstler überspringen. Einverstanden? Ein Nein reicht zum Ablehnen.</p><div class="actions centered"><button class="btn primary" id="skipYes">Ja, überspringen</button><button class="btn ghost" id="skipNo">Nein, behalten</button></div></div>`;
+  if(mine&&yes.includes(mine))return`<div class="notice">Ihr habt dem Skip von ${esc(p.artist_name)} zugestimmt. Es fehlt noch: ${waiting}</div>`;
+  return`<div class="notice">${esc(groupCornerLabel(p.slot))} möchte ${esc(p.artist_name)} überspringen – alle anderen entscheiden.</div>`;
+}
+function bindGroupSkip(){
+  const p=S.room?.draft_skip_proposal,mine=myCorners()[0];if(!p)return;
+  if($("skipYes"))$("skipYes").onclick=()=>answerSharedSkip(mine,true);
+  if($("skipNo"))$("skipNo").onclick=()=>answerSharedSkip(mine,false);
+  if($("skipWithdraw"))$("skipWithdraw").onclick=()=>answerSharedSkip(p.slot,false);
+}
+function renderGroupDraft(){
+  const teams=Boolean(S.room.team_mode),rc=roundCount(),cc=cornerCount(),done=S.picks.filter(p=>p.round_number<=5).length,filled=done>=rc*cc;
+  const turn=draftTurnCorner(S.picks,cc),captain=draftCaptain(S.members,S.picks,turn),prop=S.room.draft_skip_proposal||null;
+  const myTurn=!filled&&captain?.user_id===S.user?.id,teamTurn=!filled&&!myTurn&&ownsCorner(turn);
+  const holding=myTurn&&S.currentArtist&&S.currentArtistSlot===turn,corners=Array.from({length:cc},(_,i)=>i+1);
+  const banner=filled?"":`<div class="turnbanner" role="status"><small>WER IST DRAN?</small><strong>${esc(cornerLabel(S.members,turn,teams))}</strong><span>${myTurn?(teams?"Du ziehst für dein Team.":"Du bist dran."):teams&&captain?`${esc(captain.display_name)} zieht.`:""}</span></div>`;
+  const panel=prop&&!filled?groupSkipPanel(prop)
+    :myTurn?`<div class="artistdraw">${holding?`${S.currentArtist.image?`<img src="${esc(S.currentArtist.image)}" alt="">`:""}<h2>${esc(S.currentArtist.name)}</h2><p class="muted">Wähle eine freie Runde für diesen Künstler.</p><div class="actions centered">${cornerSkipUsed(turn)?`<span class="chip">Skip benutzt</span>`:`<button class="btn danger" id="skipArtist">Skip (1×)</button>`}<button class="btn ghost" id="sharedSkip">Gemeinsam überspringen</button></div>`:`<h2>?</h2><p class="muted">Zufällig aus deinem Spotify-Pool.</p><button class="btn primary" id="drawArtist">Künstler ziehen</button>`}</div>`
+    :teamTurn?`<div class="notice">${esc(captain?.display_name||"")} zieht gerade für euer Team – redet mit, welche Runde passt.</div>`
+    :filled?`<div class="notice">Alle Künstler sind verteilt – die Themen werden jetzt aufgedeckt.</div>`:"";
+  const board=Array.from({length:rc},(_,i)=>i+1).map(n=>{
+    const free=holding&&!prop&&!S.picks.some(p=>p.round_number===n&&p.player_slot===turn);
+    return`<div class="groupround${free?" selectable":""}" data-round="${n}"${free?' role="button" tabindex="0"':""}><div class="roundnum">Runde ${n}${n===rc?" · ×2":""}${free?`<span class="slotcta">hier einsetzen</span>`:""}</div>${corners.map(c=>{const p=S.picks.find(x=>x.round_number===n&&x.player_slot===c);return`<div class="grouppick${!p?" empty":p.hidden?" veiled":""}${ownsCorner(c)?" own":""}"><span>${esc(groupCornerLabel(c))}</span><b>${!p?"frei":p.hidden?"verdeckt":esc(p.artist_name)}</b></div>`}).join("")}</div>`}).join("");
+  $("app").innerHTML=`<section class="card"><div class="sectionhead"><div><div class="eyebrow">DRAFT · GRUPPE</div><h2>${filled?"Draft abgeschlossen":"Künstler verteilen"}</h2></div><span class="chip">${done}/${rc*cc} Künstler</span></div>${banner}${errorNotice()}${panel}<div class="grouprounds">${board}</div>${roomExitControls()}</section>`;
+  if($("drawArtist"))$("drawArtist").onclick=()=>drawArtist(turn);
+  if($("skipArtist"))$("skipArtist").onclick=()=>useDraftSkip(turn);
+  if($("sharedSkip"))$("sharedSkip").onclick=()=>proposeSharedSkip(turn);
+  bindGroupSkip();
+  document.querySelectorAll(".groupround.selectable").forEach(x=>{x.onclick=()=>placeArtist(Number(x.dataset.round));x.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();placeArtist(Number(x.dataset.round))}}});
+  bindRoomExitControls();
+  if(filled&&isHost()&&(S.rounds||[]).length===0&&S.room?.status!=="battle")initializeRounds();
+}
+
+// Gruppe nach dem Draft: Battle und Wertung folgen in M.4–M.7
 function renderGroupInProgress(){
-  $("app").innerHTML=`<section class="card"><div class="eyebrow">GRUPPE · RAUM ${esc(S.room.code)}</div><h2>Der Draft für Gruppen ist noch im Bau</h2><p class="muted">Die Lobby funktioniert schon. Ziehen, Songs und Abstimmung für 3–6 Personen kommen als Nächstes.</p>${roomExitControls()}</section>`;
+  $("app").innerHTML=`<section class="card"><div class="eyebrow">GRUPPE · RAUM ${esc(S.room.code)}</div><h2>Das Battle für Gruppen ist noch im Bau</h2><p class="muted">Lobby und Draft funktionieren schon. Songs, Abstimmung und Wertung für 3–6 Personen kommen als Nächstes.</p>${roomExitControls()}</section>`;
   bindRoomExitControls();
 }
 

@@ -32,6 +32,21 @@ function roomStorage(){return JSON.parse(localStorage.getItem("mb_online_room")|
 
  function ownGroupSeat(){return ownedMemberships().find(m=>m.role==="player")?.player_slot||null}
 
+// Ecken (M.3): im 1v1 Ecke = Platz; Runden/Ecken aus dem Raum (alte Räume ohne Werte: 5 Runden, 2 Ecken)
+ function roundCount(){return Number(S.room?.round_count)||5}
+
+ function cornerCount(){return Number(S.room?.corner_count)||2}
+
+ function myCorners(){return ownedMemberships().filter(m=>m.role==="player").map(m=>m.corner??m.player_slot)}
+
+ function ownsCorner(c){return myCorners().includes(c)}
+
+// Speicherplatz des Künstler-Pools für eine Ecke: Gruppe immer 1 (ein Platz je Gerät), 1v1 = Ecke
+ function poolSlot(corner){return isGroupRoom()?1:corner}
+
+// Eigener Skip ist pro Ecke einmal (im Team für alle zusammen)
+ function cornerSkipUsed(c){return S.members.some(m=>m.role==="player"&&(m.corner??m.player_slot)===c&&m.draft_skip_used)}
+
  function memberName(slotNo){return S.members.find(m=>m.player_slot===slotNo)?.display_name||`Spieler ${slotNo}`}
 
  function currentRound(){return S.rounds.find(r=>r.round_number===Number(S.room?.current_round||1))}

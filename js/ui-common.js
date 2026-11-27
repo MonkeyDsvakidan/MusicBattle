@@ -130,6 +130,7 @@ function render(){
   if(S.room.game==="quiz"){if(S.room.status==="closed"){renderClosed();return}$("roomBadge").innerHTML=`<span class="chip">${esc(S.room.code)} · QUIZ</span>`;renderQuiz();$("app").insertAdjacentHTML("afterbegin",flowSteps());return}
   const localSlots=ownedMemberships().filter(m=>m.role==="player").map(m=>m.player_slot).sort();
   $("roomBadge").innerHTML=`<span class="chip">${esc(S.room.code)} · ${role()==="player"?(localSlots.length===2?"SPIELER 1 + 2":`SPIELER ${localSlots[0]}`):"JURY"}</span>`;
+  if(isGroupRoom()&&S.room.status==="draft"){renderGroupDraft();$("app").insertAdjacentHTML("afterbegin",flowSteps());return}
   if(isGroupRoom()&&!["lobby","closed"].includes(S.room.status)){renderGroupInProgress();$("app").insertAdjacentHTML("afterbegin",flowSteps());return}
   if(S.room.status==="lobby")renderLobby();else if(S.room.status==="draft")renderDraft();else if(S.room.status==="battle")renderBattle();else if(S.room.status==="tiebreak")renderTiebreak();else if(S.room.status==="sudden_draft")renderSuddenDraft();else if(S.room.status==="finished")renderFinished();else if(S.room.status==="closed"){renderClosed();return}else renderLobby();
   renderMissingPlayerNotice();
