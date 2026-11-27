@@ -48,11 +48,11 @@ Deno.serve(async (req) => {
 
     const [{ data: sol }, { data: answers }] = await Promise.all([
       admin.from("mb_quiz_solutions").select("solution").eq("question_id", q.id).maybeSingle(),
-      admin.from("mb_quiz_answers").select("id,answer,answer_ms").eq("question_id", q.id),
+      admin.from("mb_quiz_answers").select("id,member_id,answer,answer_ms").eq("question_id", q.id),
     ]);
     const limitMs = new Date(q.deadline_at).getTime() - new Date(q.started_at).getTime();
     const points: Record<string, number> = {};
-    for (const a of answers ?? []) points[a.id] = scoreAnswer(q.kind, a.answer, sol?.solution, a.answer_ms, limitMs);
+    for (const a of answers ?? []) points[a.id] = scoreAnswer(q.kind, a.answer, sol?.solution, a.answer_ms, limitMs, a.member_id);   // member_id: «Wer hört X?» ohne sich selbst (7.10)
 
     const { data: stored, error } = await admin.rpc("mb_quiz_store_reveal", { p_question_id: q.id, p_points: points });
     if (error) return out({ error: "failed to reveal", detail: error.message }, 500);

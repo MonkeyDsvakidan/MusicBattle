@@ -2,7 +2,7 @@
 // erzeugt die Fragen mit der Quiz-Engine und speichert Fragen + Lösungen über mb_quiz_store_game in einem Schritt.
 // Die Fragen sind danach noch „pending“ (unsichtbar); geöffnet werden sie einzeln (7.6).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { generateQuiz, questionTrackIds, QUIZ_ENGINE_VERSION, QUIZ_KINDS, QUIZ_KINDS_V1 } from "../_shared/quiz-engine.mjs";
+import { generateQuiz, questionTrackIds, QUIZ_ENGINE_VERSION, QUIZ_KINDS, QUIZ_KINDS_V1, FRIEND_KINDS } from "../_shared/quiz-engine.mjs";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     if (!room || room.game !== "quiz") return out({ error: "quiz not found" }, 404);
     if (room.host_user_id !== userData.user.id) return out({ error: "only host" }, 403);
     if (!["lobby", "finished"].includes(room.status)) return out({ error: "already started" }, 409);
-    if (room.quiz_kind !== "music") return out({ error: "quiz kind not available yet" }, 409);   // „Unter Freunden“ folgt in 7.10
+    const friends = room.quiz_kind === "friends";   // 7.10 «Unter Freunden»: zusätzlich Fragen über die Personen
 
     const started = Date.now();
     // nur Songs von Personen, die noch im Raum sind
@@ -59,14 +59,18 @@ Deno.serve(async (req) => {
     // Fragetypen, die die App des Hosts kennt (7.12: „intro“ nur, wenn sein Gerät Musik spielt). Ältere Apps schicken
     // nichts → nur die ersten drei Typen, sonst sähen sie Fragen, die sie nicht anzeigen können.
     const asked = Array.isArray(body?.kinds) ? QUIZ_KINDS.filter((k) => body.kinds.includes(k)) : [];
-    const kinds = asked.length ? asked : QUIZ_KINDS_V1;
+    const kinds = [...(asked.length ? asked : QUIZ_KINDS_V1), ...(friends ? FRIEND_KINDS.filter((k) => body?.kinds?.includes?.(k)) : [])];
 
     // 7.11: Wer einen Song einer Frage geliefert hat, ist bei ihr ausgesetzt (Solo: nie)
     const { data: quizzers } = await admin.from("mb_members").select("id").eq("room_id", roomId).eq("role", "quizzer");
     const players = (quizzers ?? []).map((m: any) => m.id);
+    // 7.10: Top-Künstler der Mitspielenden (für Platz N, Wer hört X, Gemeinsamkeit)
+    const { data: artists } = friends
+      ? await admin.from("mb_quiz_artists").select("member_id,spotify_artist_id,name,rank,image_url").eq("room_id", roomId).limit(2000)
+      : { data: [] };
 
     const gameNo = Number(room.quiz_game_no) + 1;
-    const questions = generateQuiz(pool ?? [], { count: room.quiz_length, seed: `${roomId}:${gameNo}`, years, avoid, kinds, players });
+    const questions = generateQuiz(pool ?? [], { count: room.quiz_length, seed: `${roomId}:${gameNo}`, years, avoid, kinds, players, artists: artists ?? [] });
     if (questions.length < room.quiz_length) {
       return out({ error: "pool too small", songs: ids.length, questions: questions.length, needed: room.quiz_length }, 409);
     }
